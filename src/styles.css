@@ -1,0 +1,254 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-surface-alt: var(--surface-alt);
+  --color-primary-glow: var(--primary-glow);
+  --color-profit: var(--profit);
+  --color-loss: var(--loss);
+  --font-display: "Sora", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: #09090b;
+  --surface-alt: #0e0e11;
+  --foreground: #f4f4f5;
+  --card: #121215;
+  --card-foreground: #f4f4f5;
+  --popover: #121215;
+  --popover-foreground: #f4f4f5;
+  --primary: #e5a93c;
+  --primary-glow: #d99b26;
+  --primary-foreground: #09090b;
+  --secondary: #18181b;
+  --secondary-foreground: #f4f4f5;
+  --muted: #1c1c21;
+  --muted-foreground: #a1a1aa;
+  --accent: #1e1e24;
+  --accent-foreground: #f4f4f5;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --profit: #10b981;
+  --loss: #f43f5e;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #e5a93c;
+  --chart-1: #e5a93c;
+  --chart-2: #10b981;
+  --chart-3: #f43f5e;
+  --chart-4: #f59e0b;
+  --chart-5: #a1a1aa;
+  --sidebar: #0b0b0e;
+  --sidebar-foreground: #f4f4f5;
+  --sidebar-primary: #e5a93c;
+  --sidebar-primary-foreground: #09090b;
+  --sidebar-accent: #18181b;
+  --sidebar-accent-foreground: #f4f4f5;
+  --sidebar-border: #222226;
+  --sidebar-ring: #e5a93c;
+  --gradient-gold: linear-gradient(135deg, #f5b748, #d4931a);
+  --shadow-gold: 0 8px 30px -8px rgba(229, 169, 60, 0.25);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font-sans); }
+  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
+}
+
+@utility bg-gold { background-image: var(--gradient-gold); }
+@utility text-gold {
+  background-image: var(--gradient-gold);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+@utility shadow-gold { box-shadow: var(--shadow-gold); }
+@utility surface {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+@utility lift {
+  transition: transform .3s, border-color .3s, box-shadow .3s;
+  &:hover { transform: translateY(-4px); border-color: color-mix(in oklab, var(--primary) 45%, var(--border)); box-shadow: var(--shadow-gold); }
+}
+@utility grid-pattern {
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--foreground) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--foreground) 5%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+@utility gold-glow {
+  background: radial-gradient(circle, color-mix(in oklab, var(--primary) 35%, transparent), transparent 65%);
+  filter: blur(40px);
+}
+@utility gold-border {
+  border: 1px solid transparent;
+  background: linear-gradient(var(--card), var(--card)) padding-box, var(--gradient-gold) border-box;
+}
+@utility no-scrollbar { scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+
+/* ---------- Hero (gold theme) ---------- */
+@utility hero-bg {
+  background:
+    radial-gradient(120% 80% at 100% 0%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 55%),
+    radial-gradient(80% 60% at 0% 100%, color-mix(in oklab, var(--primary-glow) 12%, transparent), transparent 60%),
+    var(--background);
+}
+@utility hero-beams {
+  background:
+    linear-gradient(115deg, transparent 52%, color-mix(in oklab, var(--primary) 11%, transparent) 58%, transparent 64%),
+    linear-gradient(115deg, transparent 64%, color-mix(in oklab, var(--primary) 7%, transparent) 70%, transparent 76%),
+    linear-gradient(115deg, transparent 78%, color-mix(in oklab, var(--primary) 10%, transparent) 84%, transparent 90%);
+  filter: blur(18px);
+  mix-blend-mode: screen;
+}
+@utility dot-map {
+  background-image: radial-gradient(color-mix(in oklab, var(--foreground) 22%, transparent) 1px, transparent 1.6px);
+  background-size: 9px 9px;
+  mask-image: radial-gradient(ellipse 55% 60% at 50% 45%, black 20%, transparent 75%);
+  opacity: 0.45;
+}
+@utility text-silver {
+  background-image: linear-gradient(90deg, oklch(0.55 0.01 260) 0%, oklch(0.98 0 0) 30%, oklch(0.98 0 0) 70%, oklch(0.55 0.01 260) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+/* Recolors the blue crystal candle image to the brand gold */
+@utility candle-glow {
+  filter: hue-rotate(185deg) saturate(1.4) brightness(1.1)
+    drop-shadow(0 0 30px color-mix(in oklab, var(--primary) 55%, transparent));
+}
+
+/* ---------- Shared minimal surfaces ---------- */
+@utility glass {
+  position: relative;
+  border-radius: var(--radius);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  transition: border-color 0.2s ease;
+}
+@utility glass-gold {
+  position: relative;
+  border-radius: var(--radius);
+  background-color: var(--card);
+  border: 1px solid rgba(229, 169, 60, 0.35);
+  box-shadow: 0 4px 24px -6px rgba(229, 169, 60, 0.12);
+}
+@utility glass-hover {
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+/* Thin fading divider line */
+@utility hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.12), transparent);
+}
+@utility hairline-v {
+  width: 1px;
+  background: linear-gradient(180deg, transparent, oklch(1 0 0 / 0.12), transparent);
+}
+/* Soft spotlight used behind sections */
+@utility spotlight {
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--primary) 18%, transparent), transparent);
+  filter: blur(30px);
+}
+/* Infinite horizontal scroll (duplicate the children once) */
+@utility marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee var(--marquee-duration, 40s) linear infinite;
+  &:hover { animation-play-state: paused; }
+}
+@utility mask-fade-x {
+  mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--profit) 60%, transparent); }
+  50% { box-shadow: 0 0 0 6px transparent; }
+}
+@utility live-dot {
+  width: .5rem; height: .5rem; border-radius: 9999px; background: var(--profit);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee { animation: none; }
+}

@@ -1,0 +1,131 @@
+// Placeholder content — edit freely.
+export const navLinks = [
+  { label: "Pricing", href: "/#challenges" },
+  { label: "Markets", href: "/#markets" },
+  { label: "Rules", href: "/rules" },
+  { label: "How It Works", href: "/#how" },
+  { label: "Support", href: "/contact" },
+  { label: "Dashboard", href: "/dashboard" },
+];
+
+export const stats = [
+  { label: "Total paid to traders", value: 18.4, prefix: "$", suffix: "M+", decimals: 1, note: "Since 2023" },
+  { label: "Funded traders", value: 12500, suffix: "+", decimals: 0, note: "Across all plans" },
+  { label: "Countries served", value: 140, suffix: "+", decimals: 0, note: "Worldwide access" },
+  { label: "Average payout time", value: 8, suffix: "h", decimals: 0, note: "From request to wallet" },
+];
+
+export const partners = ["MetaTrader 5", "cTrader", "Match-Trader", "TradingView", "Visa", "Mastercard", "USDT · TRC20", "Rise", "Skrill", "Apple Pay"];
+
+export const sizes = [5000, 10000, 25000, 50000, 100000, 200000];
+export type PlanType = "1-Step" | "2-Step" | "Instant Funding";
+export const planTypes: PlanType[] = ["1-Step", "2-Step", "Instant Funding"];
+
+export const planMeta: Record<PlanType, { tagline: string; phases: string }> = {
+  "1-Step": { tagline: "One phase. Hit the target, get funded.", phases: "1 phase" },
+  "2-Step": { tagline: "Our most balanced evaluation with relaxed limits.", phases: "2 phases" },
+  "Instant Funding": { tagline: "Skip the evaluation and trade a funded account today.", phases: "No evaluation" },
+};
+
+const baseFee: Record<number, number> = { 5000: 49, 10000: 89, 25000: 179, 50000: 299, 100000: 529, 200000: 999 };
+
+type Rules = {
+  target: string; daily: string; overall: string; days: string; leverage: string; split: string;
+  payout: string; time: string; mult: number;
+};
+const rules: Record<PlanType, Rules> = {
+  // Mirrors the backend rulebook (CHALLENGE_RULES). Funded accounts on every model use 3% daily / 5% overall.
+  "1-Step": { target: "10%", daily: "4%", overall: "10%", days: "3 days", leverage: "1:100", split: "80% → 90%", payout: "Every 14 days", time: "Unlimited", mult: 1.1 },
+  "2-Step": { target: "8% / 5%", daily: "4%", overall: "10%", days: "3 days", leverage: "1:100", split: "80% → 90%", payout: "Every 14 days", time: "Unlimited", mult: 1 },
+  "Instant Funding": { target: "None", daily: "3%", overall: "5%", days: "5 (3 profitable)", leverage: "1:100", split: "80% → 90%", payout: "Every 14 days", time: "Unlimited", mult: 2.6 },
+};
+
+export function getPlan(type: PlanType, size: number) {
+  const r = rules[type];
+  return {
+    rows: [
+      ["Profit target", r.target, "Profit you need to reach to pass"],
+      ["Max daily loss", r.daily, "Static, from initial balance"],
+      ["Max overall loss", r.overall, "Static, from initial balance"],
+      ["Min trading days", r.days, "Profitable days close at least +0.5%"],
+      ["Trading period", r.time, "No deadline to pass"],
+      ["Leverage", r.leverage, "On forex majors"],
+      ["Profit split", r.split, "80%, then 85%, then 90% per payout"],
+      ["Payout cycle", r.payout, "Up to 6% of balance per cycle"],
+    ] as [string, string, string][],
+    fee: Math.round((baseFee[size] ?? 0) * r.mult),
+  };
+}
+export const popular = { type: "2-Step" as PlanType, size: 100000 };
+
+export const planIncludes = [
+  "Fee refunded with first payout",
+  "Weekend holding with add-on (+20%)",
+  "EAs and copy trading allowed",
+  "Raw spreads from 0.0 pips",
+  "Free retry offers on selected plans",
+];
+
+export const compareTypes: { label: string; values: Record<PlanType, string | boolean> }[] = [
+  { label: "Evaluation phases", values: { "1-Step": "1", "2-Step": "2", "Instant Funding": "None" } },
+  { label: "Profit target", values: { "1-Step": "10%", "2-Step": "8% / 5%", "Instant Funding": "—" } },
+  { label: "Max daily loss", values: { "1-Step": "4%", "2-Step": "4%", "Instant Funding": "3%" } },
+  { label: "Max overall loss", values: { "1-Step": "10%", "2-Step": "10%", "Instant Funding": "5%" } },
+  { label: "Profit split", values: { "1-Step": "Up to 90%", "2-Step": "Up to 90%", "Instant Funding": "Up to 90%" } },
+  { label: "News trading (outside ±5 min)", values: { "1-Step": true, "2-Step": true, "Instant Funding": true } },
+  { label: "Refundable fee", values: { "1-Step": true, "2-Step": true, "Instant Funding": false } },
+  { label: "Scaling plan", values: { "1-Step": true, "2-Step": true, "Instant Funding": true } },
+];
+
+export const scaling = [
+  { step: "Funded", size: "$100K", split: "80%", req: "Pass evaluation" },
+  { step: "Level 1", size: "$125K", split: "85%", req: "+10% in 3 months" },
+  { step: "Level 2", size: "$250K", split: "90%", req: "+10% in 3 months" },
+  { step: "Level 3", size: "$500K", split: "90%", req: "+10% in 3 months" },
+  { step: "Elite", size: "$2M", split: "90%", req: "Consistent 12 months" },
+];
+
+export const payouts = [
+  { name: "M. Khan", flag: "🇵🇰", amount: 12480, date: "Oct 18, 2026", plan: "$100K 2-Step", method: "USDT" },
+  { name: "L. Rossi", flag: "🇮🇹", amount: 8920, date: "Oct 17, 2026", plan: "$50K 1-Step", method: "Rise" },
+  { name: "D. Okafor", flag: "🇳🇬", amount: 21350, date: "Oct 16, 2026", plan: "$200K 2-Step", method: "USDT" },
+  { name: "S. Müller", flag: "🇩🇪", amount: 5640, date: "Oct 15, 2026", plan: "$25K 2-Step", method: "Bank" },
+  { name: "A. García", flag: "🇪🇸", amount: 15200, date: "Oct 14, 2026", plan: "$100K 1-Step", method: "Rise" },
+  { name: "J. Smith", flag: "🇬🇧", amount: 9875, date: "Oct 13, 2026", plan: "$50K 2-Step", method: "Bank" },
+  { name: "R. Tanaka", flag: "🇯🇵", amount: 31020, date: "Oct 12, 2026", plan: "$200K 2-Step", method: "USDT" },
+];
+
+export const comparison: { label: string; us: string | boolean; them: string | boolean }[] = [
+  { label: "Profit split", us: "Up to 90%", them: "70–80%" },
+  { label: "Average payout time", us: "8 hours", them: "5–14 days" },
+  { label: "Time limit to pass", us: "Unlimited", them: "30–60 days" },
+  { label: "Weekend holding add-on", us: true, them: false },
+  { label: "EAs & copy trading", us: true, them: false },
+  { label: "Refundable fee", us: true, them: false },
+  { label: "Scaling up to $2M", us: true, them: false },
+];
+
+/**
+ * Trader stories carousel. Placeholder content — swap in real traders.
+ * `image`: thumbnail path (e.g. "/stories/booker.jpg" in /public); without it a styled placeholder is shown.
+ * `video`: embeddable URL (e.g. "https://www.youtube.com/embed/<id>"); the play button is disabled without it.
+ */
+export type Story = { name: string; country: string; total: string; quote: string; image?: string; video?: string };
+export const stories: Story[] = [
+  { name: "Hamza", country: "PK", total: "$52,431", quote: "Bullish 4ex gave me the structure and confidence to scale consistently." },
+  { name: "Jonathan", country: "US", total: "$24,186", quote: "The rules are clear, the support is real, and the payouts are fast." },
+  { name: "Stephen", country: "GB", total: "$201,095", quote: "Hitting six figures changed my life. Bullish 4ex made it possible." },
+  { name: "Elena", country: "ES", total: "$15,845", quote: "This firm gave me the leverage to actually start earning in the game." },
+  { name: "Omar", country: "AE", total: "$86,320", quote: "I never thought I would get paid this fast — fee refunded on my first payout." },
+  { name: "Yuki", country: "JP", total: "$31,760", quote: "Clean dashboard, clear drawdown. I always know exactly where I stand." },
+];
+
+export const faqs = [
+  ["What are the trading rules?", "Respect the max daily and overall loss limits, hit the profit target, and trade the minimum days. No time limits."],
+  ["How fast are payouts?", "Most payouts are processed within 24 hours, with an average of 8 hours."],
+  ["Is the challenge fee refundable?", "Yes. Your fee is refunded with your first payout as a funded trader."],
+  ["Do I need to complete KYC?", "KYC is required only once you pass the evaluation and before your funded account is issued."],
+  ["Which platforms can I use?", "MetaTrader 5, cTrader and Match-Trader on desktop, web and mobile."],
+  ["Can I trade news and weekends?", "News trading is allowed, except opening or closing trades within 5 minutes of high-impact releases. Holding over the weekend needs the weekend holding add-on (+20%) at checkout."],
+  ["Is there a scaling plan?", "Consistent traders can scale their account up to $2,000,000."],
+];
