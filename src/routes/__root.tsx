@@ -110,6 +110,12 @@ function RootShell({ children }: { children: ReactNode }) {
       <body>
         {children}
         <Scripts />
+        {/* Zen-try Live Chat Support */}
+        <script
+          src="https://zen-try.site/widget.js"
+          data-workspace-id="ac25e179-9dc5-4bc8-b1d3-8b7648f86a68"
+          defer
+        />
       </body>
     </html>
   );
