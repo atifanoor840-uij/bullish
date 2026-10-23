@@ -103,9 +103,9 @@ function SignupPage() {
         {/* Left Side: Brand & Benefits */}
         <div className="relative hidden flex-col justify-between border-r border-white/[0.08] bg-white/[0.02] p-8 md:flex">
           <div>
-            <Link to="/" className="inline-block transition hover:opacity-90">
+            <div className="inline-block transition hover:opacity-90">
               <Logo />
-            </Link>
+            </div>
             <div className="mt-10">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                 <Sparkles className="h-3.5 w-3.5" /> Start Trading Today
@@ -145,7 +145,7 @@ function SignupPage() {
         <div className="p-6 sm:p-8">
           <div className="text-center md:text-left">
             <div className="md:hidden flex justify-center mb-4">
-              <Link to="/"><Logo /></Link>
+              <Logo />
             </div>
             <h1 className="text-silver font-display text-2xl font-bold tracking-tight sm:text-3xl">
               Create trader account

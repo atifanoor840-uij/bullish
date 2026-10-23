@@ -48,7 +48,12 @@ export function Navbar() {
 }
 
 export function Hero() {
-  const avatars = ["H", "E", "M", "R"];
+  const avatars = [
+    "https://randomuser.me/api/portraits/men/32.jpg",
+    "https://randomuser.me/api/portraits/women/44.jpg",
+    "https://randomuser.me/api/portraits/men/75.jpg",
+    "https://randomuser.me/api/portraits/men/86.jpg",
+  ];
   return (
     <section className="hero-bg relative overflow-hidden pt-36 pb-24 md:pt-44 md:pb-32">
       {/* Diagonal light beams (top-right) */}
@@ -108,7 +113,7 @@ export function Hero() {
           <div className="flex items-center gap-3">
             <div className="flex -space-x-3">
               {avatars.map((a) => (
-                <span key={a} className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-background bg-secondary text-sm font-semibold text-primary">{a}</span>
+                <img key={a} src={a} alt="Funded trader"className="h-10 w-10 rounded-full border-2 border-background bg-secondary object-cover" />
               ))}
             </div>
             <p className="text-sm text-muted-foreground"><span className="font-bold text-foreground">12.5K+</span> Funded Traders</p>

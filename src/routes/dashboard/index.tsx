@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { CheckCircle2, Eye, EyeOff, PlusCircle, RefreshCw, Wallet, TrendingUp, Layers, Banknote, AlertTriangle, Clock, Gift, ArrowRight } from "lucide-react";
+import { CheckCircle2, Lock, PlusCircle, RefreshCw, Wallet, TrendingUp, Layers, Banknote, AlertTriangle, Clock, Gift, ArrowRight } from "lucide-react";
 import {
-  Badge, Button, Card, CopyButton, EmptyState, ErrorNote, Loading, Note, PageHeader, Progress, StatCard, Tabs, useAction, useApi, cx,
+  Button, Card, EmptyState, ErrorNote, Loading, Note, PageHeader, StatCard, useAction, useApi, cx,
 } from "@/components/portal/ui";
+import { PlanBadge, SegmentedBar, Sheet, StatusChip, chipCls } from "@/components/portal/account-ui";
+import { CredentialRows } from "@/components/portal/AccountDetail";
 import { propApi, type Order, type TradingAccount } from "@/lib/propApi";
-import { breachReason, describeAccount, fmtDate, money, num, signed, sizeLabel, tone } from "@/lib/portal";
+import { breachReason, describeAccount, fmtDate, money, num, signed, tone } from "@/lib/portal";
 
 export const Route = createFileRoute("/dashboard/")({ component: AccountsOverview });
 
@@ -104,24 +106,24 @@ function AccountsOverview() {
         </Card>
       ) : (
         <>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <Tabs<Filter>
-              value={filter}
-              onChange={setFilter}
-              tabs={[
-                { id: "all", label: "All", count: accounts.length },
-                { id: "Active", label: "Active", count: count("Active") },
-                { id: "Funded", label: "Funded", count: funded.length },
-                { id: "Passed", label: "Passed", count: count("Passed") },
-                { id: "Failed", label: "Breached", count: count("Failed") },
-              ]}
-            />
+          <div className="mb-4 flex flex-wrap items-center gap-2" role="tablist">
+            {([
+              ["all", "All", accounts.length],
+              ["Active", "Active", count("Active")],
+              ["Funded", "Funded", funded.length],
+              ["Passed", "Passed", count("Passed")],
+              ["Failed", "Breached", count("Failed")],
+            ] as [Filter, string, number][]).map(([id, label, n]) => (
+              <button key={id} role="tab" aria-selected={filter === id} onClick={() => setFilter(id)} className={cx(chipCls, filter === id && "border-primary/50 bg-primary/10 text-primary")}>
+                {label}<span className="text-muted-foreground">{n}</span>
+              </button>
+            ))}
           </div>
-          <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {shown.map((a) => (
               <AccountCard key={a.id} account={a} ordersById={ordersById} retry={data?.retry.find((r) => r.accountId === a.id)} tags={data?.tags[a.id] ?? []} onChanged={reload} />
             ))}
-            {!shown.length && <Card><EmptyState title="No accounts in this view" /></Card>}
+            {!shown.length && <Card className="md:col-span-2 xl:col-span-3"><EmptyState title="No accounts in this view" /></Card>}
           </div>
         </>
       )}
@@ -137,90 +139,102 @@ function AccountCard({ account: a, ordersById, retry, tags, onChanged }: { accou
   const hasTarget = info.target > 0;
 
   return (
-    <Card className="p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link to="/dashboard/accounts/$id" params={{ id: a.id }} className="font-display text-lg font-semibold transition hover:text-primary">
-              {info.model} · {sizeLabel(info.size)}
-            </Link>
-            <Badge>{a.status}</Badge>
-            {pending && <Badge tone="warning">Preparing credentials</Badge>}
+    <div className="card-shadow flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="account-head flex gap-4 p-4">
+        <PlanBadge info={info} />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <Link to="/dashboard/accounts/$id" params={{ id: a.id }} className="truncate font-sans text-base leading-5 font-semibold transition hover:text-primary">
+            Login ID : {pending ? "Pending" : a.login || a.id}
+          </Link>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <StatusChip status={a.status} />
+            {pending && <span className="inline-flex h-5 items-center rounded-md bg-amber-500/15 px-1.5 text-xs font-medium text-amber-500">Preparing</span>}
+            <span className="text-xs text-muted-foreground">{a.platform}</span>
+          </div>
+          <p className="mt-auto text-xl leading-6 font-semibold tabular-nums">{money(a.balance)}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
             {tags.map((t) => (
               <span key={t.offerId + t.kind} title={t.offerName} className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 text-[11px] font-semibold text-primary"><Gift className="h-3 w-3" />{t.label}</span>
             ))}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {info.phase} · {a.platform}{!pending && a.login ? ` · #${a.login}` : ""} · Order {a.orderId}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="primary" href={`/dashboard/accounts/${encodeURIComponent(a.id)}`}>View details</Button>
-          {!pending && (
-            <Button size="sm" onClick={() => setCreds(!creds)}>{creds ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}Credentials</Button>
-          )}
-          {a.status === "Passed" && (
-            <Button size="sm" variant="success" busy={busy === "next"} onClick={async () => (await run("next", () => propApi.accounts.requestNextStage(a.id), "Next stage requested.")) && onChanged()}>
-              {busy === "next" ? "Requesting…" : "Request next stage"}
-            </Button>
-          )}
-          {a.status === "Failed" && retry?.offer && (
-            <Button size="sm" variant="secondary" busy={busy === "retry"} onClick={async () => (await run("retry", () => propApi.catalog.claimRetry(a.id), "Free retry claimed — a new account is being prepared.")) && onChanged()}>
-              {busy === "retry" ? "Claiming…" : `Free retry (${retry.offer.retriesRemaining} left)`}
-            </Button>
-          )}
+        )}
+
+        {pending ? (
+          <Note tone="warning">Your trading account is being prepared. Credentials will appear here and in your email shortly.</Note>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              <Metric label="Equity" value={money(a.equity ?? a.balance, 0)} />
+              <Metric label="Today" value={signed(a.todayPl, 0)} cls={tone(a.todayPl)} />
+              <Metric label="Total P/L" value={signed(info.profit, 0)} cls={tone(info.profit)} />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{hasTarget ? "Profit target" : "Max loss used"}</span>
+                <span className="font-medium text-foreground">
+                  {hasTarget ? `${money(Math.max(0, info.profit), 0)} / ${money(info.target, 0)}` : `${money(info.maxUsed, 0)} / ${money(info.maxLimit, 0)}`}
+                </span>
+              </div>
+              <SegmentedBar
+                className="h-6"
+                mode={hasTarget ? "profit" : "loss"}
+                ratio={hasTarget ? Math.max(0, info.profit) / info.target : info.maxLimit ? info.maxUsed / info.maxLimit : 0}
+              />
+            </div>
+          </>
+        )}
+
+        {a.status === "Failed" && (
+          <div className="flex items-start gap-2 rounded-xl border border-loss/25 bg-loss/10 px-3 py-2.5 text-xs text-loss">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{breachReason(a)}
+          </div>
+        )}
+
+        {(a.status === "Passed" || (a.status === "Failed" && retry?.offer)) && (
+          <div className="flex flex-wrap gap-2">
+            {a.status === "Passed" && (
+              <Button size="sm" variant="success" busy={busy === "next"} onClick={async () => (await run("next", () => propApi.accounts.requestNextStage(a.id), "Next stage requested.")) && onChanged()}>
+                {busy === "next" ? "Requesting…" : "Request next stage"}
+              </Button>
+            )}
+            {a.status === "Failed" && retry?.offer && (
+              <Button size="sm" variant="secondary" busy={busy === "retry"} onClick={async () => (await run("retry", () => propApi.catalog.claimRetry(a.id), "Free retry claimed — a new account is being prepared.")) && onChanged()}>
+                {busy === "retry" ? "Claiming…" : `Free retry (${retry.offer.retriesRemaining} left)`}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {note && <Note tone={note.tone}>{note.text}</Note>}
+
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-3">
+          <span className="truncate text-xs text-muted-foreground">{info.phase}</span>
+          <div className="flex shrink-0 items-center gap-3">
+            {!pending && (
+              <button onClick={() => setCreds(true)} className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition hover:text-foreground"><Lock className="h-3.5 w-3.5" />Login info</button>
+            )}
+            <Link to="/dashboard/accounts/$id" params={{ id: a.id }} className="inline-flex items-center gap-1 text-sm font-semibold text-primary">View details<ArrowRight className="h-3.5 w-3.5" /></Link>
+          </div>
         </div>
       </div>
 
-      {pending && <div className="mt-4"><Note tone="warning">Your trading account is being prepared. Credentials will appear here and in your email shortly.</Note></div>}
-
-      {creds && !pending && (
-        <div className="mt-4 grid gap-3 rounded-xl bg-background p-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[["Server", a.server], ["Login", a.login], ["Password", a.passwordMaster], ["Investor password", a.passwordInvestor]].map(([k, v]) => (
-            <div key={k} className="min-w-0">
-              <p className="text-[11px] text-muted-foreground">{k}</p>
-              <p className="mt-0.5 flex items-center gap-1 font-mono text-sm break-all">{v || "—"}{v && <CopyButton value={v} label={`Copy ${k}`} />}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {a.status === "Failed" && (
-        <div className="mt-4 flex items-start gap-2 rounded-xl border border-loss/25 bg-loss/10 px-4 py-3 text-sm text-loss">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{breachReason(a)}
-        </div>
-      )}
-
-      {!pending && (
-        <>
-          <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <Metric label="Balance" value={money(a.balance)} />
-            <Metric label="Equity" value={money(a.equity ?? a.balance)} />
-            <Metric label="Today" value={signed(a.todayPl)} cls={tone(a.todayPl)} />
-            <Metric label="Total P/L" value={signed(info.profit)} cls={tone(info.profit)} />
-          </div>
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {hasTarget ? (
-              <Progress label="Profit target" used={info.profit} limit={info.target} format={(n) => money(n, 0)} />
-            ) : (
-              <Progress label="Profit" used={info.profit} limit={Math.max(info.profit, info.size * 0.06, 1)} format={(n) => money(n, 0)} />
-            )}
-            <Progress label="Daily loss" used={info.dailyUsed} limit={info.dailyLimit} danger format={(n) => money(n, 0)} />
-            <Progress label="Max loss" used={info.maxUsed} limit={info.maxLimit} danger format={(n) => money(n, 0)} />
-          </div>
-        </>
-      )}
-
-      {note && <div className="mt-4"><Note tone={note.tone}>{note.text}</Note></div>}
-    </Card>
+      <Sheet open={creds} onClose={() => setCreds(false)} title="Login information">
+        <CredentialRows account={a} />
+      </Sheet>
+    </div>
   );
 }
 
 function Metric({ label, value, cls = "" }: { label: string; value: string; cls?: string }) {
   return (
-    <div className="min-w-0 rounded-xl border border-white/[0.05] bg-background/40 px-4 py-3">
+    <div className="min-w-0 rounded-xl bg-white/[0.03] px-3 py-2">
       <p className="text-[11px] text-muted-foreground">{label}</p>
-      <p className={cx("mt-1 truncate text-sm font-semibold tabular-nums", cls)}>{value}</p>
+      <p className={cx("mt-0.5 truncate text-[13px] font-semibold tabular-nums", cls)}>{value}</p>
     </div>
   );
 }

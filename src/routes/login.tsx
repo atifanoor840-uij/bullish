@@ -57,9 +57,9 @@ function LoginPage() {
       >
         {/* Brand header */}
         <div className="flex flex-col items-center text-center">
-          <Link to="/" className="transition hover:opacity-90">
+          <div className="transition hover:opacity-90">
             <Logo />
-          </Link>
+          </div>
           <h1 className="text-silver mt-6 font-display text-2xl font-bold tracking-tight sm:text-3xl">
             Welcome back
           </h1>

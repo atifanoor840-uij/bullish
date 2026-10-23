@@ -30,6 +30,7 @@ import { Route as AdminPayoutsRouteImport } from './routes/admin/payouts'
 import { Route as AdminPricingRouteImport } from './routes/admin/pricing'
 import { Route as AdminPromotionsRouteImport } from './routes/admin/promotions'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as CertificatesIdRouteImport } from './routes/certificates.$id'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardCertificatesRouteImport } from './routes/dashboard/certificates'
@@ -150,6 +151,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiSplatRoute = ApiSplatRouteImport.update({
+  id: '/api/$',
+  path: '/api/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CertificatesIdRoute = CertificatesIdRouteImport.update({
   id: '/certificates/$id',
   path: '/certificates/$id',
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/admin/pricing': typeof AdminPricingRoute
   '/admin/promotions': typeof AdminPromotionsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/$': typeof ApiSplatRoute
   '/certificates/$id': typeof CertificatesIdRoute
   '/dashboard/certificates': typeof DashboardCertificatesRoute
   '/dashboard/kyc': typeof DashboardKycRoute
@@ -277,6 +284,7 @@ export interface FileRoutesByTo {
   '/admin/pricing': typeof AdminPricingRoute
   '/admin/promotions': typeof AdminPromotionsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/$': typeof ApiSplatRoute
   '/certificates/$id': typeof CertificatesIdRoute
   '/dashboard/certificates': typeof DashboardCertificatesRoute
   '/dashboard/kyc': typeof DashboardKycRoute
@@ -315,6 +323,7 @@ export interface FileRoutesById {
   '/admin/pricing': typeof AdminPricingRoute
   '/admin/promotions': typeof AdminPromotionsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/$': typeof ApiSplatRoute
   '/certificates/$id': typeof CertificatesIdRoute
   '/dashboard/certificates': typeof DashboardCertificatesRoute
   '/dashboard/kyc': typeof DashboardKycRoute
@@ -354,6 +363,7 @@ export interface FileRouteTypes {
     | '/admin/pricing'
     | '/admin/promotions'
     | '/admin/users'
+    | '/api/$'
     | '/certificates/$id'
     | '/dashboard/certificates'
     | '/dashboard/kyc'
@@ -389,6 +399,7 @@ export interface FileRouteTypes {
     | '/admin/pricing'
     | '/admin/promotions'
     | '/admin/users'
+    | '/api/$'
     | '/certificates/$id'
     | '/dashboard/certificates'
     | '/dashboard/kyc'
@@ -426,6 +437,7 @@ export interface FileRouteTypes {
     | '/admin/pricing'
     | '/admin/promotions'
     | '/admin/users'
+    | '/api/$'
     | '/certificates/$id'
     | '/dashboard/certificates'
     | '/dashboard/kyc'
@@ -451,6 +463,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RulesRoute: typeof RulesRoute
   SignupRoute: typeof SignupRoute
+  ApiSplatRoute: typeof ApiSplatRoute
   CertificatesIdRoute: typeof CertificatesIdRoute
 }
 
@@ -602,6 +615,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/users'
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/$': {
+      id: '/api/$'
+      path: '/api/$'
+      fullPath: '/api/$'
+      preLoaderRoute: typeof ApiSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/certificates/$id': {
       id: '/certificates/$id'
@@ -784,6 +804,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RulesRoute: RulesRoute,
   SignupRoute: SignupRoute,
+  ApiSplatRoute: ApiSplatRoute,
   CertificatesIdRoute: CertificatesIdRoute,
 }
 export const routeTree = rootRouteImport

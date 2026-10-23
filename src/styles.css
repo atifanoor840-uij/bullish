@@ -158,6 +158,20 @@
 }
 @utility no-scrollbar { scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
 
+/* ---------- Trader portal (dashboard shell + account view) ---------- */
+@utility portal-bg {
+  background: linear-gradient(154deg, #1a160d 1.19%, #0b0b0e 60.62%);
+}
+@utility card-shadow { box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.3); }
+/* Account header card: card colour fading into a warm gold tint on the left */
+@utility account-head {
+  background: linear-gradient(-90deg, var(--card) 25%, #2a2112 100%);
+}
+@keyframes drawer-in-right { from { transform: translateX(110%); } to { transform: translateX(0); } }
+@keyframes drawer-in-left { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@utility animate-drawer-right { animation: drawer-in-right .5s cubic-bezier(0.32, 0.72, 0, 1); }
+@utility animate-drawer-left { animation: drawer-in-left .4s cubic-bezier(0.32, 0.72, 0, 1); }
+
 /* ---------- Hero (gold theme) ---------- */
 @utility hero-bg {
   background:
