@@ -11,16 +11,22 @@ import type {
 
 /* ====================================================================== rulebook */
 
-export type Model = "Two Step" | "One Step" | "Instant";
+export type Model = "Two Step" | "One Step" | "Instant" | "Flex";
 
-export const RULES: Record<Model, { targets: number[]; daily: number; overall: number; minDays: number }> = {
-  "Two Step": { targets: [8, 5], daily: 4, overall: 10, minDays: 3 },
-  "One Step": { targets: [10], daily: 4, overall: 10, minDays: 3 },
-  Instant: { targets: [], daily: 3, overall: 5, minDays: 5 },
+export const RULES: Record<Model, { targets: number[]; daily: number; overall: number; minDays: number; isTrailing?: boolean }> = {
+  "Two Step": { targets: [6, 5], daily: 4, overall: 6, minDays: 3 },
+  "One Step": { targets: [9], daily: 4, overall: 6, minDays: 3 },
+  Instant: { targets: [], daily: 3, overall: 6, minDays: 5 },
+  Flex: { targets: [4], daily: 4, overall: 8, minDays: 0, isTrailing: true },
 };
-export const FUNDED_LIMITS = { daily: 3, overall: 5 };
+export const FUNDED_LIMITS: Record<Model, { daily: number; overall: number; minDays: number; isTrailing?: boolean }> = {
+  "Two Step": { daily: 4, overall: 6, minDays: 5 },
+  "One Step": { daily: 4, overall: 6, minDays: 5 },
+  Instant: { daily: 3, overall: 6, minDays: 5 },
+  Flex: { daily: 4, overall: 8, minDays: 5, isTrailing: true },
+};
 export const WEEKEND_ADDON_PERCENT = 20;
-export const PROFIT_SPLIT_BY_WITHDRAWAL = [80, 85, 90];
+export const PROFIT_SPLIT_BY_WITHDRAWAL = [70, 80, 90, 100];
 export const PAYOUT_CAP_PERCENT = 6;
 export const PAYOUT_PERIOD_DAYS = 14;
 export const PAYOUT_MIN = 100;
@@ -32,7 +38,7 @@ export const PENDING_PASSWORD = "GENERATED_MASTER_PASS";
 
 export function stagesFor(model: Model): string[] {
   if (model === "Instant") return [PHASE.FUNDED];
-  if (model === "One Step") return [PHASE.P1, PHASE.FUNDED];
+  if (model === "One Step" || model === "Flex") return [PHASE.P1, PHASE.FUNDED];
   return [PHASE.P1, PHASE.P2, PHASE.FUNDED];
 }
 
@@ -41,6 +47,7 @@ export const orderStatusForPhase = (phase: string) =>
 
 export function modelOf(text = ""): Model {
   const t = text.toLowerCase();
+  if (t.includes("flex")) return "Flex";
   if (t.includes("instant")) return "Instant";
   if (t.includes("one") || t.includes("1-step") || t.includes("1 step")) return "One Step";
   return "Two Step";
@@ -54,7 +61,7 @@ export function targetPercent(model: Model, phase: string) {
 }
 
 export function limitsFor(model: Model, phase: string) {
-  return phase === PHASE.FUNDED ? FUNDED_LIMITS : RULES[model];
+  return phase === PHASE.FUNDED ? (FUNDED_LIMITS[model] ?? FUNDED_LIMITS["Two Step"]) : (RULES[model] ?? RULES["Two Step"]);
 }
 
 /* ====================================================================== plans & orders */
@@ -63,10 +70,14 @@ const planCache = new Map<string, DBPricingPlan | null>();
 
 export async function getPlan(planId: string): Promise<DBPricingPlan | null> {
   if (planCache.has(planId)) return planCache.get(planId)!;
-  const plan = await db.one<DBPricingPlan>("pricing_plans", { id: eq(planId) });
-  planCache.set(planId, plan);
-  setTimeout(() => planCache.delete(planId), 60_000);
-  return plan;
+  try {
+    const plan = await db.one<DBPricingPlan>("pricing_plans", { id: eq(planId) });
+    planCache.set(planId, plan);
+    setTimeout(() => planCache.delete(planId), 60_000);
+    return plan;
+  } catch {
+    return null;
+  }
 }
 
 export async function orderPlan(order: Pick<DBOrder, "planId">) {

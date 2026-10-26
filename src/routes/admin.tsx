@@ -127,16 +127,29 @@ function AdminLayout() {
 }
 
 function CrmLogin({ onDone }: { onDone: () => Promise<void> }) {
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passcode, setPasscode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const signup = mode === "signup";
+  const switchMode = () => {
+    setMode(signup ? "signin" : "signup");
+    setError("");
+  };
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
-      await propApi.auth.crmSignin(email.trim().toLowerCase(), password);
+      if (signup) {
+        if (password.length < 8) throw new Error("Password must be at least 8 characters.");
+        await propApi.auth.crmSignup({ name: name.trim(), email: email.trim().toLowerCase(), password, passcode: passcode.trim() });
+      } else {
+        await propApi.auth.crmSignin(email.trim().toLowerCase(), password);
+      }
       await onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Access denied");
@@ -150,15 +163,25 @@ function CrmLogin({ onDone }: { onDone: () => Promise<void> }) {
         <Logo />
         <div className="mt-6 flex items-center gap-2">
           <Lock className="h-4 w-4 text-primary" />
-          <h1 className="font-display text-xl font-semibold">CRM sign in</h1>
+          <h1 className="font-display text-xl font-semibold">{signup ? "Create admin account" : "CRM sign in"}</h1>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">Admin and support staff only.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {signup ? "Requires the admin passcode set on the server." : "Admin and support staff only."}
+        </p>
         <form onSubmit={submit} className="mt-6 space-y-4">
+          {signup && <Field label="Name"><input required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></Field>}
           <Field label="Email"><input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} /></Field>
-          <Field label="Password"><input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} /></Field>
+          <Field label="Password"><input type="password" required minLength={signup ? 8 : undefined} autoComplete={signup ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} /></Field>
+          {signup && <Field label="Admin passcode"><input type="password" required autoComplete="off" value={passcode} onChange={(e) => setPasscode(e.target.value)} className={inputCls} /></Field>}
           {error && <Note tone="error">{error}</Note>}
-          <Button variant="primary" className="w-full" busy={busy} type="submit">Sign in</Button>
+          <Button variant="primary" className="w-full" busy={busy} type="submit">{signup ? "Create account" : "Sign in"}</Button>
         </form>
+        <p className="mt-5 text-center text-xs text-muted-foreground">
+          {signup ? "Already have an account?" : "New admin?"}{" "}
+          <button type="button" onClick={switchMode} className="font-semibold text-primary hover:underline">
+            {signup ? "Sign in" : "Create an account"}
+          </button>
+        </p>
       </Card>
     </div>
   );

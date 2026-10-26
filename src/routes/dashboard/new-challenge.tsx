@@ -9,11 +9,12 @@ import { bogoBadge, bogoFor, isLive, isPublic, offerSummary } from "@/lib/offers
 
 export const Route = createFileRoute("/dashboard/new-challenge")({ component: NewChallenge });
 
-const MODELS: PricingPlan["model"][] = ["One Step", "Two Step", "Instant"];
+const MODELS: PricingPlan["model"][] = ["One Step", "Two Step", "Instant", "Flex"];
 const RULES: Record<PricingPlan["model"], [string, string][]> = {
-  "One Step": [["Profit target", "10%"], ["Max daily loss", "4%"], ["Max overall loss", "10%"], ["Min. trading days", "3"], ["Profit split", "Up to 90%"]],
-  "Two Step": [["Profit target", "8% / 5%"], ["Max daily loss", "4%"], ["Max overall loss", "10%"], ["Min. trading days", "3"], ["Profit split", "Up to 90%"]],
-  Instant: [["Profit target", "None"], ["Max daily loss", "3%"], ["Max overall loss", "5%"], ["Min. trading days", "5"], ["Profit split", "Up to 90%"]],
+  "One Step": [["Profit target", "9%"], ["Max daily loss", "4%"], ["Max overall loss", "6% (static)"], ["Min. trading days", "3 Winning Days"], ["Profit split", "70% up to 100%"]],
+  "Two Step": [["Profit target", "Phase 1: 6% / Phase 2: 5%"], ["Max daily loss", "4%"], ["Max overall loss", "6% (static)"], ["Min. trading days", "3 Winning Days / phase"], ["Profit split", "70% up to 100%"]],
+  Instant: [["Profit target", "None"], ["Max daily loss", "3%"], ["Max overall loss", "6% (static)"], ["Min. trading days", "5 Winning Days"], ["Profit split", "70% up to 100%"]],
+  Flex: [["Profit target", "4%"], ["Max daily loss", "4%"], ["Max overall loss", "8% trailing"], ["Min. trading days", "None (Eval) / 5 (Funded)"], ["Profit split", "85% (90% w/ add-on)"]],
 };
 const PLATFORMS = ["MT5", "MT4", "cTrader"] as const;
 
@@ -123,7 +124,7 @@ function NewChallenge() {
                     <p className="font-semibold">{m}</p>
                     <span className={cx("flex h-4 w-4 items-center justify-center rounded-full border", m === activeModel ? "border-primary bg-primary" : "border-white/20")}>{m === activeModel && <Check className="h-2.5 w-2.5 text-primary-foreground" />}</span>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{m === "Instant" ? "Skip the evaluation, trade funded today." : m === "One Step" ? "One phase, then funded." : "Two phases with relaxed targets."}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{m === "Flex" ? "Pay $9 setup, activation fee only when you pass." : m === "Instant" ? "Skip the evaluation, trade funded today." : m === "One Step" ? "One phase (9% target), then funded." : "Two phases (6% / 5% targets)."}</p>
                 </button>
               ))}
             </div>

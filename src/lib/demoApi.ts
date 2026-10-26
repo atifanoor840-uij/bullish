@@ -93,14 +93,18 @@ const sum = (t: { profit: number }[]) => Math.round(t.reduce((s, x) => s + x.pro
 
 const accounts = [
   { id: "731204", userId: "u-trader01", orderId: "o-4821", platform: "MT5", login: "731204", passwordMaster: "Fx!9kLm2", passwordInvestor: "Inv#44a", server: "Bullish4ex-Live", profitTarget: 0, balance: 100000 + sum(funded), equity: 100000 + sum(funded) - 120, todayPl: 342.5, totalPl: sum(funded), status: "Funded", phase: "Funded (Live)", graphLink: "https://example.com/stats/731204", deliveryStatus: "delivered", statisticsPayload: stats(funded), statisticsUpdatedAt: daysAgo(0, 1), createdAt: daysAgo(25), userName: "Hamza Raza", userEmail: "hamza@example.com", ruleChecks: [
-    { id: "daily-drawdown", label: "Daily drawdown", status: "passed", info: "Max daily loss used 18%" },
-    { id: "overall-drawdown", label: "Overall drawdown", status: "passed", info: "Equity stays above $95,000" },
-    { id: "minimum-holding-time", label: "Minimum holding time", status: "passed", info: "All trades held ≥ 3 minutes" },
-    { id: "news-trading", label: "News trading", status: "warning", info: "1 trade opened 4 minutes before CPI" },
-    { id: "weekend-holding", label: "Weekend holding", status: "passed", info: "No positions held over the weekend" },
+    { id: "daily-drawdown", label: "Maximum Daily Drawdown", status: "passed", info: "Max daily loss used 18% (4% daily limit, resets 00:00 UTC)" },
+    { id: "overall-drawdown", label: "Maximum Loss (6% Static)", status: "passed", info: "Equity stays above $94,000 floor" },
+    { id: "minimum-holding-time", label: "Minimum Holding Time (3 Min)", status: "passed", info: "All trades held ≥ 3 minutes" },
+    { id: "winning-days", label: "Winning Days (≥0.5%)", status: "passed", info: "5 of 5 required Winning Days completed" },
+    { id: "one-percent-risk", label: "1% Per-Trade Risk Rule", status: "passed", info: "Max floating loss within 1% limit ($1,000)" },
+    { id: "trade-layering", label: "Trade Layering (10-Min Gap)", status: "passed", info: "All trade entries separated by ≥10 min" },
+    { id: "overnight-holding", label: "Overnight Holding", status: "passed", info: "All trades closed before 00:00 UTC daily reset" },
+    { id: "weekend-holding", label: "Weekend Holding", status: "passed", info: "No positions held over the weekend" },
+    { id: "inactivity", label: "Inactivity (30 Days)", status: "passed", info: "Active trade executed within 30 days" },
   ] },
-  { id: "731877", userId: "u-trader01", orderId: "o-5530", platform: "MT5", login: "731877", passwordMaster: "Pq7!zR4s", passwordInvestor: "Inv#91b", server: "Bullish4ex-Demo", profitTarget: 5000, balance: 50000 + sum(phase1), equity: 50000 + sum(phase1), todayPl: -86.2, totalPl: sum(phase1), status: "Active", phase: "Phase 1 (Evaluation)", graphLink: "", deliveryStatus: "delivered", statisticsPayload: stats(phase1), statisticsUpdatedAt: daysAgo(0, 1), createdAt: daysAgo(13), userName: "Hamza Raza", userEmail: "hamza@example.com" },
-  { id: "729955", userId: "u-trader01", orderId: "o-6102", platform: "MT5", login: "729955", passwordMaster: "Zx3!pp0", passwordInvestor: "Inv#12c", server: "Bullish4ex-Demo", profitTarget: 2000, balance: 25000 + sum(failed), equity: 25000 + sum(failed), todayPl: 0, totalPl: sum(failed), status: "Failed", phase: "Phase 1 (Evaluation)", graphLink: "", deliveryStatus: "delivered", statisticsPayload: { ...stats(failed), breachReason: "Daily drawdown limit of $1,000 was exceeded on Oct 16." }, createdAt: daysAgo(29), userName: "Hamza Raza", userEmail: "hamza@example.com" },
+  { id: "731877", userId: "u-trader01", orderId: "o-5530", platform: "MT5", login: "731877", passwordMaster: "Pq7!zR4s", passwordInvestor: "Inv#91b", server: "Bullish4ex-Demo", profitTarget: 4500, balance: 50000 + sum(phase1), equity: 50000 + sum(phase1), todayPl: -86.2, totalPl: sum(phase1), status: "Active", phase: "Phase 1 (Evaluation)", graphLink: "", deliveryStatus: "delivered", statisticsPayload: stats(phase1), statisticsUpdatedAt: daysAgo(0, 1), createdAt: daysAgo(13), userName: "Hamza Raza", userEmail: "hamza@example.com" },
+  { id: "729955", userId: "u-trader01", orderId: "o-6102", platform: "MT5", login: "729955", passwordMaster: "Zx3!pp0", passwordInvestor: "Inv#12c", server: "Bullish4ex-Demo", profitTarget: 1500, balance: 25000 + sum(failed), equity: 25000 + sum(failed), todayPl: 0, totalPl: sum(failed), status: "Failed", phase: "Phase 1 (Evaluation)", graphLink: "", deliveryStatus: "delivered", statisticsPayload: { ...stats(failed), breachReason: "Daily drawdown limit of $1,000 was exceeded on Oct 16." }, createdAt: daysAgo(29), userName: "Hamza Raza", userEmail: "hamza@example.com" },
   { id: "pending-7120", userId: "u-trader02", orderId: "o-7120", platform: "MT5", login: "", passwordMaster: "", passwordInvestor: "", server: "Bullish4ex-PendingServer", profitTarget: 4000, balance: 50000, equity: 50000, todayPl: 0, totalPl: 0, status: "Active", phase: "Phase 1 (Evaluation)", graphLink: "", deliveryStatus: "pending", createdAt: daysAgo(0, 4), userName: "Elena Vidal", userEmail: "elena@example.com" },
 ];
 

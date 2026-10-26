@@ -206,6 +206,91 @@ function Overview({ account: a, info, trades, days, onRefresh, refreshing }: { a
   const consistency = tradedTotal > 0 && bestDay > 0 ? Math.max(0, 100 - (bestDay / tradedTotal) * 100) : 0;
   const consistencyLabel = tradedTotal <= 0 ? "Needs profit" : consistency >= 80 ? "Excellent" : consistency >= 60 ? "Average" : "Low";
 
+  const allChecks: RuleCheck[] = useMemo(() => {
+    if (checks.length > 0) return checks;
+    const isFundedOrInstant = info.isFunded || info.model === "Instant";
+    const onePct = info.size * 0.01;
+    const items: RuleCheck[] = [
+      {
+        id: "daily-drawdown",
+        label: "Maximum Daily Drawdown",
+        status: info.dailyUsed >= info.dailyLimit ? "failed" : info.dailyUsed >= info.dailyLimit * 0.8 ? "warning" : "passed",
+        info: `Daily loss $${info.dailyUsed.toFixed(2)} of $${info.dailyLimit.toFixed(2)} limit. Resets at 00:00 UTC.`,
+      },
+      {
+        id: "overall-drawdown",
+        label: info.isTrailing ? "Maximum Loss (8% Trailing)" : "Maximum Loss (6% Static)",
+        status: info.maxUsed >= info.maxLimit ? "failed" : info.maxUsed >= info.maxLimit * 0.8 ? "warning" : "passed",
+        info: info.isTrailing
+          ? `Floor trails 8% below peak closed balance. Current drawdown: $${info.maxUsed.toFixed(2)}.`
+          : `Static limit $${info.maxLimit.toFixed(2)} (6% of initial balance). Current drawdown: $${info.maxUsed.toFixed(2)}.`,
+      },
+      {
+        id: "minimum-holding-time",
+        label: "Minimum Holding Time (3 Min)",
+        status: trades.some((t) => (new Date(t.close_time).getTime() - new Date(t.open_time).getTime()) < 180_000) ? (info.model === "Flex" ? "warning" : "failed") : "passed",
+        info: "All positions must be held for at least 3 minutes (180s) before closing.",
+      },
+    ];
+    if (!info.isFunded && info.target > 0) {
+      items.push({
+        id: "profit-target",
+        label: "Profit Target",
+        status: info.profit >= info.target ? "passed" : "pending",
+        info: `$${Math.max(0, info.profit).toFixed(2)} of $${info.target.toFixed(2)} target reached with zero open exposure.`,
+      });
+    }
+    if (info.minDays > 0) {
+      items.push({
+        id: "minimum-profitable-trading-days",
+        label: "Winning Days (≥0.5%)",
+        status: profitableDays >= info.minDays ? "passed" : "pending",
+        info: `${profitableDays} of ${info.minDays} required Winning Days (each reaching ≥$${(info.size * 0.005).toFixed(0)} profit).`,
+      });
+    }
+    if (isFundedOrInstant) {
+      items.push({
+        id: "one-percent-risk",
+        label: "1% Per-Trade Risk Rule",
+        status: "passed",
+        info: `Floating loss on a single position must never exceed $${onePct.toFixed(2)} (1% of starting balance).`,
+      });
+      items.push({
+        id: "trade-layering",
+        label: info.model === "Instant" ? "Trade Layering (10m gap, max 2 layers)" : "Trade Layering (10-Min Gap)",
+        status: "passed",
+        info: info.model === "Instant" ? "10 min between trade opens, maximum 2 concurrent layers." : "10 minutes between each trade open time.",
+      });
+      items.push({
+        id: "news-trading",
+        label: "News Trading Window (±5 Min)",
+        status: "passed",
+        info: "Restricted window of 5 minutes before and after high-impact news releases on affected instruments.",
+      });
+    }
+    if (info.model !== "Flex") {
+      items.push({
+        id: "overnight-holding",
+        label: "Overnight Holding",
+        status: "passed",
+        info: "Trades must open and close within the same UTC day (before 00:00 UTC).",
+      });
+      items.push({
+        id: "weekend-holding",
+        label: "Weekend Holding",
+        status: "passed",
+        info: a.weekendHoldingAddon ? "Weekend Holding Add-on is active." : "Weekend holding prohibited: all trades closed Fri 23:00 to Sun 23:00 UTC.",
+      });
+    }
+    items.push({
+      id: "inactivity",
+      label: "Inactivity Rule (30 Days)",
+      status: "passed",
+      info: "Must execute at least 1 trade every 30 consecutive calendar days.",
+    });
+    return items;
+  }, [checks, info, trades, profitableDays, a.weekendHoldingAddon]);
+
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
       <div className="order-1 flex shrink-0 flex-col gap-4 lg:order-2 lg:w-[22.5rem] lg:gap-6">
@@ -229,11 +314,11 @@ function Overview({ account: a, info, trades, days, onRefresh, refreshing }: { a
         <div className={cx(cardCls, "p-5")}>
           <div className="flex items-center justify-between">
             <p className="flex items-center gap-2 text-base leading-5 font-semibold"><Shield className="size-4 text-muted-foreground" />Rule Checks</p>
-            {checks.length > 0 && <span className="text-xs text-muted-foreground">{checks.filter((c) => c.status === "passed").length}/{checks.length} passed</span>}
+            {allChecks.length > 0 && <span className="text-xs text-muted-foreground">{allChecks.filter((c) => c.status === "passed").length}/{allChecks.length} passed</span>}
           </div>
-          {checks.length ? (
-            <ul className="mt-3 max-h-72 overflow-y-auto pr-1">
-              {checks.map((c) => (
+          {allChecks.length ? (
+            <ul className="mt-3 max-h-80 overflow-y-auto pr-1">
+              {allChecks.map((c) => (
                 <li key={c.id} className="border-b border-border py-3 last:border-0 last:pb-0" title={c.info}>
                   <div className="flex items-center justify-between gap-2 text-[13px] font-medium">
                     <span>{c.label || c.id}</span>
@@ -304,6 +389,15 @@ function Objectives({ info, profitableDays, onRefresh, refreshing }: { info: Acc
     setDeadline(Date.now() + REFRESH_SECONDS * 1000);
   };
 
+  // Official Bullish4ex Daily Reset Countdown (00:00 UTC)
+  const nowUtc = new Date(now);
+  const nextMidnightUtc = Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate() + 1, 0, 0, 0);
+  const msUntilMidnight = Math.max(0, nextMidnightUtc - now);
+  const resetH = Math.floor(msUntilMidnight / 3600000);
+  const resetM = Math.floor((msUntilMidnight % 3600000) / 60000);
+  const resetS = Math.floor((msUntilMidnight % 60000) / 1000);
+  const resetTimeStr = `${String(resetH).padStart(2, "0")}:${String(resetM).padStart(2, "0")}:${String(resetS).padStart(2, "0")}`;
+
   const pctOf = (v: number) => (info.size ? +((v / info.size) * 100).toFixed(2) : 0);
   const profitRatio = info.target > 0 ? Math.max(0, info.profit) / info.target : 0;
   const daily = info.dailyLimit ? info.dailyUsed / info.dailyLimit : 0;
@@ -312,7 +406,7 @@ function Objectives({ info, profitableDays, onRefresh, refreshing }: { info: Acc
   const cells: { label: string; hint: string; value: string; body: ReactNode; foot: ReactNode }[] = [
     {
       label: "Profit target",
-      hint: "Closed profit needed to pass this stage.",
+      hint: "Target verified strictly on closed balance with zero open positions or pending orders.",
       value: info.target > 0 ? `${money(info.target, 0)} (${pctOf(info.target)}%)` : "No target",
       body: (
         <div>
@@ -326,22 +420,24 @@ function Objectives({ info, profitableDays, onRefresh, refreshing }: { info: Acc
       foot: <>Result: <span className={tone(info.profit)}>{signed(info.profit)}</span></>,
     },
     {
-      label: "Min trading days",
-      hint: "Days with at least 0.5% profit on the starting balance.",
-      value: `${info.minDays} Days`,
-      body: <DayPills done={Math.min(profitableDays, info.minDays)} total={info.minDays} />,
-      foot: <>Result: {profitableDays} {profitableDays === 1 ? "day" : "days"}</>,
+      label: "Winning Days (≥0.5%)",
+      hint: "Calendar day (00:00-23:59 UTC) where profit reaches at least 0.5% of starting balance on an equity basis.",
+      value: info.minDays > 0 ? `${info.minDays} Winning Days` : "No minimum",
+      body: <DayPills done={Math.min(profitableDays, Math.max(1, info.minDays))} total={Math.max(1, info.minDays)} />,
+      foot: <>Achieved: {profitableDays} of {info.minDays} {info.minDays === 1 ? "day" : "days"}</>,
     },
     {
-      label: "Daily loss limit",
-      hint: "Maximum loss allowed within one trading day.",
+      label: "Daily drawdown limit",
+      hint: "Maximum permitted daily loss including closed trades and floating losses. Resets strictly at 00:00 UTC.",
       value: `-${money(info.dailyLimit, 0)} (-${pctOf(info.dailyLimit)}%)`,
       body: <LossBar ratio={daily} />,
       foot: <>Remaining: {money(Math.max(0, info.dailyLimit - info.dailyUsed))}</>,
     },
     {
-      label: "Max loss limit",
-      hint: "Maximum overall drawdown from the starting balance.",
+      label: info.isTrailing ? "Max loss (8% trailing)" : "Max loss (6% static)",
+      hint: info.isTrailing
+        ? "8% trailing from highest closed balance, locking at starting balance once 8% in profit."
+        : "6% static limit from initial balance. Monitored continuously across lifetime of account.",
       value: `-${money(info.maxLimit, 0)} (-${pctOf(info.maxLimit)}%)`,
       body: <LossBar ratio={max} />,
       foot: <>Remaining: {money(Math.max(0, info.maxLimit - info.maxUsed))}</>,
@@ -351,12 +447,17 @@ function Objectives({ info, profitableDays, onRefresh, refreshing }: { info: Acc
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex flex-wrap items-center gap-2 text-[13px] leading-5 font-medium text-muted-foreground">
-          Trading Objectives • Refresh in
-          <span className="inline-flex min-h-5 items-center gap-1 rounded-md bg-primary/15 px-1.5 py-[3px] text-xs leading-[14px] text-primary tabular-nums">
-            <Clock className="size-3" />{Math.floor(left / 60)} Min : {String(left % 60).padStart(2, "0")} Sec
+        <div className="flex flex-wrap items-center gap-2 text-[13px] leading-5 font-medium text-muted-foreground">
+          <span>Trading Objectives</span>
+          <span className="text-white/20">•</span>
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-500">
+            <Clock className="size-3" />Daily Reset (00:00 UTC): {resetTimeStr}
           </span>
-        </p>
+          <span className="text-white/20">•</span>
+          <span className="inline-flex min-h-5 items-center gap-1 rounded-md bg-primary/15 px-1.5 py-[3px] text-xs leading-[14px] text-primary tabular-nums">
+            Sync in {Math.floor(left / 60)}m {String(left % 60).padStart(2, "0")}s
+          </span>
+        </div>
         <button onClick={refreshNow} disabled={refreshing} className={secondaryXs}><RefreshCw className={cx(refreshing && "animate-spin")} />Refresh</button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-0 xl:overflow-hidden xl:rounded-xl xl:border xl:border-border xl:bg-card">

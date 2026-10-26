@@ -55,16 +55,23 @@ export function statusTone(status?: string): Tone {
 
 /* ---------------- challenge rules (mirror of the backend rulebook) ---------------- */
 
-type Rule = { targets: number[]; daily: number; overall: number; minDays: number };
+type Rule = { targets: number[]; daily: number; overall: number; minDays: number; isTrailing?: boolean };
 const RULES: Record<string, Rule> = {
-  "Two Step": { targets: [8, 5], daily: 4, overall: 10, minDays: 3 },
-  "One Step": { targets: [10], daily: 4, overall: 10, minDays: 3 },
-  Instant: { targets: [], daily: 3, overall: 5, minDays: 5 },
+  "Two Step": { targets: [6, 5], daily: 4, overall: 6, minDays: 3 },
+  "One Step": { targets: [9], daily: 4, overall: 6, minDays: 3 },
+  Instant: { targets: [], daily: 3, overall: 6, minDays: 5 },
+  Flex: { targets: [4], daily: 4, overall: 8, minDays: 0, isTrailing: true },
 };
-const FUNDED = { daily: 3, overall: 5 };
+const FUNDED: Record<string, { daily: number; overall: number; minDays: number; isTrailing?: boolean }> = {
+  "Two Step": { daily: 4, overall: 6, minDays: 5 },
+  "One Step": { daily: 4, overall: 6, minDays: 5 },
+  Instant: { daily: 3, overall: 6, minDays: 5 },
+  Flex: { daily: 4, overall: 8, minDays: 5, isTrailing: true },
+};
 
 export const modelOf = (planName = "") => {
   const p = planName.toLowerCase();
+  if (p.includes("flex")) return "Flex";
   if (p.includes("instant")) return "Instant";
   if (p.includes("one") || p.includes("1-step") || p.includes("1 step")) return "One Step";
   return "Two Step";
@@ -88,6 +95,8 @@ export type AccountInfo = {
   maxUsed: number;
   minDays: number;
   profit: number;
+  isTrailing?: boolean;
+  highWaterMark?: number;
 };
 
 /** Joins an account with its order to resolve plan, size and risk limits. */
@@ -95,14 +104,29 @@ export function describeAccount(a: TradingAccount, ordersById: Record<string, Or
   const order = ordersById[a.orderId];
   const planName = order?.planName || "";
   const model = modelOf(planName);
-  const rule = RULES[model]!;
+  const rule = RULES[model] ?? RULES["Two Step"]!;
   const size = num(a["size"]) || sizeFrom(planName, order?.planId) || Math.max(0, num(a.balance) - num(a.totalPl));
   const phase = a.phase || (a.status === "Funded" ? "Funded (Live)" : "Phase 1 (Evaluation)");
   const isFunded = a.status === "Funded" || phase.startsWith("Funded");
   const stage = phase.startsWith("Phase 2") ? 1 : 0;
   const targetPct = isFunded ? 0 : (rule.targets[stage] ?? 0);
-  const limits = isFunded ? FUNDED : rule;
+  const limits = isFunded ? (FUNDED[model] ?? FUNDED["Two Step"]!) : rule;
   const equity = num(a.equity, num(a.balance));
+
+  // Flex uses 8% trailing max loss measured from highest closed-trade balance, locking at starting balance once 8% in profit
+  const isFlex = model === "Flex";
+  const highWaterMark = Math.max(size, num(a["highWaterMark"], num(a.balance)));
+  let maxLimit = num(a["maxDrawdown"]) || (size * limits.overall) / 100;
+  let maxUsed = num(a["currentMaxDrawdown"], Math.max(0, size - Math.min(num(a.balance), equity)));
+
+  if (isFlex) {
+    // Floor rises with closed balance: highest closed balance - 8% of initial size. Locks at starting balance when profit >= 8%
+    const floor = Math.min(size, highWaterMark - (size * 0.08));
+    const allowedTotalLoss = Math.max(0, num(a.balance) - floor);
+    maxLimit = (size * 0.08);
+    maxUsed = Math.max(0, highWaterMark - Math.min(num(a.balance), equity));
+  }
+
   return {
     planName: planName || `${model} ${sizeLabel(size)}`,
     model,
@@ -111,11 +135,13 @@ export function describeAccount(a: TradingAccount, ordersById: Record<string, Or
     isFunded,
     target: num(a.profitTarget) || (size * targetPct) / 100,
     dailyLimit: num(a["dailyLossLimit"]) || (size * limits.daily) / 100,
-    maxLimit: num(a["maxDrawdown"]) || (size * limits.overall) / 100,
+    maxLimit,
     dailyUsed: num(a["currentDailyLoss"], Math.max(0, -num(a.todayPl))),
-    maxUsed: num(a["currentMaxDrawdown"], Math.max(0, size - Math.min(num(a.balance), equity))),
-    minDays: rule.minDays,
+    maxUsed,
+    minDays: isFunded ? limits.minDays : rule.minDays,
     profit: num(a.totalPl, num(a.balance) - size),
+    isTrailing: !!limits.isTrailing,
+    highWaterMark,
   };
 }
 
@@ -180,3 +206,7 @@ export function tradingDays(trades: Trade[]): DayStat[] {
   }
   return Object.values(days).sort((a, b) => a.day.localeCompare(b.day));
 }
+
+/** Determines if a trading day meets the 0.5% profit threshold to qualify as a Winning Day. */
+export const isWinningDay = (pl: number, size: number) => size > 0 && pl >= size * 0.005;
+

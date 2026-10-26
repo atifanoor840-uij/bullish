@@ -28,16 +28,41 @@ export async function requestPayout(ctx: Ctx) {
   if (acc.status === "Failed" || !(acc.status === "Funded" || acc.phase === PHASE.FUNDED)) throw new HttpError(400, "Payouts are available on active funded accounts only.");
 
   const order = await db.one<DBOrder>("orders", { id: eq(acc.orderId) });
-  const { size } = order ? await orderPlan(order) : { size: Math.max(0, acc.balance - acc.totalPl) };
+  const { size, model } = order ? await orderPlan(order) : { size: Math.max(0, acc.balance - acc.totalPl), model: "Two Step" };
+  const isFlex = model === "Flex";
 
-  // Trading-day gates.
+  // 14 days must have passed since funded account was received
+  const fundedAgeMs = Date.now() - new Date(acc.deliveredAt || acc.createdAt).getTime();
+  if (fundedAgeMs < 14 * 864e5) {
+    const daysLeft = Math.ceil((14 * 864e5 - fundedAgeMs) / 864e5);
+    throw new HttpError(400, `Payouts unlock 14 days after receiving your funded account. ${daysLeft} day(s) remaining.`);
+  }
+
+  // Winning Days gate: 5 Winning Days (each >=0.5% of Initial Balance) required before payout
   const byDay = new Map<string, number>();
   tradesOf(acc.statisticsPayload).forEach((t) => t.close_time && byDay.set(t.close_time.slice(0, 10), (byDay.get(t.close_time.slice(0, 10)) ?? 0) + t.profit));
-  const profitableDays = [...byDay.values()].filter((pl) => pl >= size * 0.005).length;
-  if (profitableDays < 3) throw new HttpError(400, `You need 3 profitable trading days (≥0.5% each). Current: ${profitableDays}.`);
-  if (byDay.size < 5) throw new HttpError(400, `You need at least 5 trading days before a payout. Current: ${byDay.size}.`);
+  const winningDays = [...byDay.values()].filter((pl) => pl >= size * 0.005).length;
+  if (winningDays < 5) {
+    throw new HttpError(400, `You need 5 Winning Days (at least 0.5% / $${(size * 0.005).toFixed(0)} profit each) before requesting a payout. Current: ${winningDays}.`);
+  }
 
-  // Cap: 6% of the initial balance per 14-day period anchored at account creation.
+  // Flex Consistency: No single day may account for >20% of total profit
+  if (isFlex) {
+    const totalProfit = Math.max(0, acc.balance - size);
+    const bestDay = Math.max(0, ...byDay.values());
+    if (totalProfit > 0 && bestDay > totalProfit * 0.20) {
+      throw new HttpError(400, `Flex Consistency Rule: No single day may exceed 20% of total profit. Best day: $${bestDay.toFixed(2)} (${((bestDay / totalProfit) * 100).toFixed(1)}% of total profit).`);
+    }
+  }
+
+  // Minimum withdrawal: 1% of Initial Account Balance ($100 minimum for Flex)
+  const minWithdrawal = isFlex ? 100 : Math.max(100, (size * 0.01));
+  const remainingProfit = Math.max(0, acc.balance - size);
+  if (remainingProfit < minWithdrawal) {
+    throw new HttpError(400, `Minimum realized profit required to withdraw is $${minWithdrawal.toFixed(0)} (1% of starting balance). Current profit: $${remainingProfit.toFixed(2)}.`);
+  }
+
+  // Withdrawal Cap: 6% of Initial Account Balance per 14-day cycle. Flex accounts have NO withdrawal cap.
   const all = await db.select<DBPayout>("payouts", { accountId: eq(acc.id) });
   const periodMs = PAYOUT_PERIOD_DAYS * 864e5;
   const created = new Date(acc.createdAt).getTime();
@@ -45,16 +70,24 @@ export async function requestPayout(ctx: Ctx) {
   const requestedThisPeriod = all
     .filter((p) => p.status !== "rejected" && new Date(p.createdAt).getTime() >= periodStart)
     .reduce((s, p) => s + Number(p.amount), 0);
-  const remainingProfit = Math.max(0, acc.balance - size);
-  const withdrawalCap = Math.max(0, Math.min(remainingProfit, (size * PAYOUT_CAP_PERCENT) / 100 - requestedThisPeriod));
+
+  const withdrawalCap = isFlex
+    ? remainingProfit
+    : Math.max(0, Math.min(remainingProfit, (size * PAYOUT_CAP_PERCENT) / 100 - requestedThisPeriod));
+
   const amount = +Math.min(requested, withdrawalCap).toFixed(2);
-  if (amount < PAYOUT_MIN) throw new HttpError(400, `The minimum payout is $${PAYOUT_MIN}. Available this period: $${withdrawalCap.toFixed(2)}.`);
+  if (amount < minWithdrawal) {
+    throw new HttpError(400, `The minimum payout is $${minWithdrawal.toFixed(0)}. Available this period: $${withdrawalCap.toFixed(2)}.`);
+  }
   if (all.some((p) => p.status === "pending" || p.status === "approved" || p.status === "processing")) {
     throw new HttpError(400, "You already have a payout in progress on this account.");
   }
 
+  // Profit Split schedule: 1st: 70%, 2nd: 80%, 3rd: 90%, 4th+: up to 100%. Flex is 85% (or 90% with add-on).
   const paidCount = all.filter((p) => p.status === "paid").length;
-  const split = PROFIT_SPLIT_BY_WITHDRAWAL[Math.min(paidCount, PROFIT_SPLIT_BY_WITHDRAWAL.length - 1)]!;
+  const split = isFlex
+    ? (order?.gatewayRef?.includes("split90") ? 90 : 85)
+    : PROFIT_SPLIT_BY_WITHDRAWAL[Math.min(paidCount, PROFIT_SPLIT_BY_WITHDRAWAL.length - 1)]!;
   const [payout] = await db.insert<DBPayout>("payouts", {
     id: `pay-${randDigits(6)}`, accountId: acc.id, userId: user.id, amount,
     profitSplitAmount: +((amount * split) / 100).toFixed(2), firmShareAmount: +((amount * (100 - split)) / 100).toFixed(2),

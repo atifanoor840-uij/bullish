@@ -15,7 +15,7 @@ export type User = {
   role: Role; status: "active" | "suspended" | "banned";
   emailVerified?: boolean; referredBy?: string; createdAt: string;
 };
-export type PricingPlan = { id: string; model: "One Step" | "Two Step" | "Instant"; size: number; price: number; status: string };
+export type PricingPlan = { id: string; model: "One Step" | "Two Step" | "Instant" | "Flex"; size: number; price: number; status: string };
 export type Coupon = { code: string; discountPercent: number; status: string; expiresAt?: string; isExpired?: boolean };
 export type Offer = {
   id: string; name: string; type: "bogo" | "free_retry"; description?: string; status: "active" | "paused";

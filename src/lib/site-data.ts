@@ -34,10 +34,10 @@ type Rules = {
   payout: string; time: string; mult: number;
 };
 const rules: Record<PlanType, Rules> = {
-  // Mirrors the backend rulebook (CHALLENGE_RULES). Funded accounts on every model use 3% daily / 5% overall.
-  "1-Step": { target: "10%", daily: "4%", overall: "10%", days: "3 days", leverage: "1:100", split: "80% → 90%", payout: "Every 14 days", time: "Unlimited", mult: 1.1 },
-  "2-Step": { target: "8% / 5%", daily: "4%", overall: "10%", days: "3 days", leverage: "1:100", split: "80% → 90%", payout: "Every 14 days", time: "Unlimited", mult: 1 },
-  "Instant Funding": { target: "None", daily: "3%", overall: "5%", days: "5 (3 profitable)", leverage: "1:100", split: "80% → 90%", payout: "Every 14 days", time: "Unlimited", mult: 2.6 },
+  // Official Bullish4ex rules: 1-Step: 9% target, 6% max loss; 2-Step: 6%/5% target, 6% max loss; Instant: 6% max loss.
+  "1-Step": { target: "9%", daily: "4%", overall: "6%", days: "3 Winning Days", leverage: "1:100", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 1.1 },
+  "2-Step": { target: "6% / 5%", daily: "4%", overall: "6%", days: "3 Winning Days / phase", leverage: "1:100", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 1 },
+  "Instant Funding": { target: "None", daily: "3%", overall: "6%", days: "5 Winning Days", leverage: "1:100", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 2.6 },
 };
 
 export function getPlan(type: PlanType, size: number) {
@@ -45,13 +45,13 @@ export function getPlan(type: PlanType, size: number) {
   return {
     rows: [
       ["Profit target", r.target, "Profit you need to reach to pass"],
-      ["Max daily loss", r.daily, "Static, from initial balance"],
+      ["Max daily loss", r.daily, "Static, from initial balance. Resets 00:00 UTC"],
       ["Max overall loss", r.overall, "Static, from initial balance"],
-      ["Min trading days", r.days, "Profitable days close at least +0.5%"],
+      ["Min trading days", r.days, "Winning Days reach at least +0.5% on equity basis"],
       ["Trading period", r.time, "No deadline to pass"],
-      ["Leverage", r.leverage, "On forex majors"],
-      ["Profit split", r.split, "80%, then 85%, then 90% per payout"],
-      ["Payout cycle", r.payout, "Up to 6% of balance per cycle"],
+      ["Leverage", r.leverage, "1:100 across all asset classes"],
+      ["Profit split", r.split, "70% → 80% → 90% → up to 100%"],
+      ["Payout cycle", r.payout, "Bi-weekly, up to 6% of balance per cycle"],
     ] as [string, string, string][],
     fee: Math.round((baseFee[size] ?? 0) * r.mult),
   };
@@ -61,28 +61,28 @@ export const popular = { type: "2-Step" as PlanType, size: 100000 };
 export const planIncludes = [
   "Fee refunded with first payout",
   "Weekend holding with add-on (+20%)",
-  "EAs and copy trading allowed",
-  "Raw spreads from 0.0 pips",
-  "Free retry offers on selected plans",
+  "EAs and bots allowed (no HFT)",
+  "1:100 leverage on all asset classes",
+  "Scaling plan: +25% balance every 4 payouts",
 ];
 
 export const compareTypes: { label: string; values: Record<PlanType, string | boolean> }[] = [
   { label: "Evaluation phases", values: { "1-Step": "1", "2-Step": "2", "Instant Funding": "None" } },
-  { label: "Profit target", values: { "1-Step": "10%", "2-Step": "8% / 5%", "Instant Funding": "—" } },
+  { label: "Profit target", values: { "1-Step": "9%", "2-Step": "6% / 5%", "Instant Funding": "—" } },
   { label: "Max daily loss", values: { "1-Step": "4%", "2-Step": "4%", "Instant Funding": "3%" } },
-  { label: "Max overall loss", values: { "1-Step": "10%", "2-Step": "10%", "Instant Funding": "5%" } },
-  { label: "Profit split", values: { "1-Step": "Up to 90%", "2-Step": "Up to 90%", "Instant Funding": "Up to 90%" } },
-  { label: "News trading (outside ±5 min)", values: { "1-Step": true, "2-Step": true, "Instant Funding": true } },
+  { label: "Max overall loss", values: { "1-Step": "6% (static)", "2-Step": "6% (static)", "Instant Funding": "6% (static)" } },
+  { label: "Profit split", values: { "1-Step": "70% up to 100%", "2-Step": "70% up to 100%", "Instant Funding": "70% up to 100%" } },
+  { label: "News trading", values: { "1-Step": "Free in challenge; ±5m on funded", "2-Step": "Free in challenge; ±5m on funded", "Instant Funding": "10-min window (±5m)" } },
   { label: "Refundable fee", values: { "1-Step": true, "2-Step": true, "Instant Funding": false } },
-  { label: "Scaling plan", values: { "1-Step": true, "2-Step": true, "Instant Funding": true } },
+  { label: "Scaling plan (+25% every 4 payouts)", values: { "1-Step": true, "2-Step": true, "Instant Funding": true } },
 ];
 
 export const scaling = [
-  { step: "Funded", size: "$100K", split: "80%", req: "Pass evaluation" },
-  { step: "Level 1", size: "$125K", split: "85%", req: "+10% in 3 months" },
-  { step: "Level 2", size: "$250K", split: "90%", req: "+10% in 3 months" },
-  { step: "Level 3", size: "$500K", split: "90%", req: "+10% in 3 months" },
-  { step: "Elite", size: "$2M", split: "90%", req: "Consistent 12 months" },
+  { step: "Starting balance", size: "$100K", split: "70%", req: "Initial funded account" },
+  { step: "Cycle 1 (4 payouts)", size: "$125K", split: "100%", req: "4 clean payouts (+25% balance)" },
+  { step: "Cycle 2 (8 payouts)", size: "$150K", split: "100%", req: "8 clean payouts (+25% balance)" },
+  { step: "Cycle 3 (12 payouts)", size: "$175K", split: "100%", req: "12 clean payouts (+25% balance)" },
+  { step: "Cycle 4 (16 payouts)", size: "$200K", split: "100%", req: "16 clean payouts (+25% balance)" },
 ];
 
 export const payouts = [

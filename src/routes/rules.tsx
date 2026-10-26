@@ -66,25 +66,25 @@ function RulesPage() {
               <div className="space-y-6">
                 <div className="glass p-6 sm:p-8">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-display text-lg font-bold text-foreground">Maximum Daily Loss</h3>
-                    <span className="rounded bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">4% Daily · 3% Instant</span>
+                    <h3 className="font-display text-lg font-bold text-foreground">Maximum Daily Drawdown</h3>
+                    <span className="rounded bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">4% (1-Step / 2-Step / Flex) · 3% Instant</span>
                   </div>
                   <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                    The maximum daily loss is how much your account can lose in a single trading day — closed losses plus open floating loss. It is static, measured from your initial balance, and resets every day at 00:00 UTC. Funded accounts on every model use 3%.
+                    The Maximum Daily Drawdown is the maximum loss permitted within a single trading day (00:00 to 23:59 UTC). It includes closed trades and unrealized floating losses on open positions. It resets every day at strictly 00:00 UTC based on the dashboard countdown timer. Breaching this limit results in immediate, permanent account termination.
                   </p>
                   <div className="mt-4 rounded-lg bg-surface-alt p-4 text-xs font-mono text-muted-foreground">
-                    Calculation: Initial Balance × 4% = Daily Loss Limit (3% on Instant and funded accounts).<br />
-                    Example on a $100,000 2-Step account: losing more than $4,000 in one day breaches the rule.
+                    Calculation: Initial Balance × 4% (3% on Instant).<br />
+                    Example on a $100,000 account: maximum daily loss is $4,000 ($3,000 on Instant).
                   </div>
                 </div>
 
                 <div className="glass p-6 sm:p-8">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-display text-lg font-bold text-foreground">Maximum Overall Loss (Static)</h3>
-                    <span className="rounded bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">10% Overall · 5% Instant</span>
+                    <h3 className="font-display text-lg font-bold text-foreground">Maximum Loss (Overall)</h3>
+                    <span className="rounded bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">6% Static (1-Step, 2-Step, Instant) · 8% Trailing (Flex)</span>
                   </div>
                   <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                    Our overall loss is <strong>static</strong>, meaning it does not trail your high-water mark profits. On a $100K 1-Step or 2-Step challenge your equity can never drop below $90,000. Instant Funding and all funded accounts use a 5% limit ($95,000 on $100K).
+                    On 1-Step, 2-Step, and Instant accounts, the Maximum Loss is <strong>6% static</strong> calculated from the initial balance. It never trails upward with profits and never resets ($94,000 floor on a $100K account). On Flex accounts, it is <strong>8% trailing</strong> from your highest closed balance, locking at your starting balance once 8% in profit.
                   </p>
                 </div>
               </div>
@@ -93,13 +93,17 @@ function RulesPage() {
             {activeTab === "trading" && (
               <div className="space-y-6">
                 <div className="glass p-6 sm:p-8">
-                  <h3 className="font-display text-lg font-bold text-foreground">Allowed Trading Styles</h3>
+                  <h3 className="font-display text-lg font-bold text-foreground">Allowed Trading Styles & Conditions</h3>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     {[
-                      ["News Trading", "Allowed, except opening or closing trades within 5 minutes before or after high-impact news."],
-                      ["Weekend Holding", "Available with the weekend holding add-on (+20% at checkout)."],
-                      ["Expert Advisors (EAs)", "Allowed as long as they don't exploit system latency."],
-                      ["Scalping", "Allowed — every trade must be held for at least 3 minutes."],
+                      ["News Trading", "Unrestricted in Challenge & Flex Eval. On Funded & Instant, 10-minute restricted window applies (±5 min around high-impact news)."],
+                      ["Weekend Holding", "Allowed with Weekend Holding Add-on on 1-Step/2-Step/Instant. Flex accounts allow weekend and overnight holding by default."],
+                      ["Overnight Holding", "Prohibited on 1-Step, 2-Step, and Instant: all trades must close before 00:00 UTC daily reset. Allowed on Flex."],
+                      ["Trade Layering", "Funded & Instant: new trade may only open ≥ 10 minutes after previous trade's open. Instant: max 2 concurrent layers."],
+                      ["1% Per-Trade Risk", "Funded & Instant: floating loss on any single open position must never exceed 1% of the initial account balance."],
+                      ["Minimum Holding Time", "Every trade must be held for at least 3 minutes (180s) before closing. Hard breach if under 3 min."],
+                      ["Winning Days (≥0.5%)", "3 Winning Days for Challenge (Phase 1 & 2); 5 Winning Days before each payout for Funded & Instant."],
+                      ["Expert Advisors & Bots", "Allowed if compliant with all risk rules. HFT bots, latency exploits, and tick scalping are prohibited."],
                     ].map(([title, desc]) => (
                       <div key={title} className="rounded-lg border border-border bg-surface-alt p-4">
                         <p className="font-semibold text-xs text-foreground flex items-center gap-1.5">
@@ -114,16 +118,17 @@ function RulesPage() {
                 <div className="glass p-6 sm:p-8 border-loss/20">
                   <div className="flex items-center gap-2 text-loss">
                     <AlertTriangle className="h-5 w-5" />
-                    <h3 className="font-display text-lg font-bold text-foreground">Prohibited Practices</h3>
+                    <h3 className="font-display text-lg font-bold text-foreground">Prohibited Trading Practices</h3>
                   </div>
                   <ul className="mt-4 space-y-2 text-xs text-muted-foreground list-disc list-inside">
-                    <li>Latency arbitrage, high-frequency quoting exploit bots, and server delay abuse.</li>
-                    <li>Tick scalping: 3 or more trades held under 10 seconds within one hour.</li>
-                    <li>Trade layering: opening a new trade within 5 minutes of the previous one.</li>
-                    <li>Losing more than 1% of the initial balance on a single trade.</li>
-                    <li>Inactivity: no trade for 30 days.</li>
-                    <li>Account sharing or passing evaluations through 3rd party commercial pass services.</li>
-                    <li>Reverse arbitrage or opposite hedging between multiple Bullish 4ex accounts.</li>
+                    <li>Tick scalping: closing 3 or more trades held under 10 seconds within a 1-hour window.</li>
+                    <li>Closing any trade in under 3 minutes (Minimum Holding Time breach).</li>
+                    <li>Latency arbitrage, reverse arbitrage, and platform feed exploitation.</li>
+                    <li>Opening 3rd concurrent layer on Instant accounts, or opening new trades inside 10 minutes of previous open on Funded accounts.</li>
+                    <li>Exceeding 1% floating loss on a single position on Funded and Instant accounts.</li>
+                    <li>Holding overnight past 00:00 UTC or over the weekend without add-on on 1-Step, 2-Step, and Instant.</li>
+                    <li>Inactivity: no executed trade for 30 consecutive calendar days.</li>
+                    <li>Account sharing, pass services, commercial copiers, or opposite hedging between multiple accounts.</li>
                   </ul>
                 </div>
               </div>
@@ -132,30 +137,36 @@ function RulesPage() {
             {activeTab === "instruments" && (
               <div className="glass p-6 sm:p-8">
                 <h3 className="font-display text-lg font-bold text-foreground">Trading Leverage</h3>
+                <p className="mt-2 text-xs text-muted-foreground">Bullish4ex offers uniform 1:100 leverage across all accounts and asset classes:</p>
                 <div className="mt-6 overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-border text-muted-foreground">
                         <th className="pb-3 font-medium">Asset Class</th>
-                        <th className="pb-3 font-medium">All accounts</th>
+                        <th className="pb-3 font-medium">Maximum Leverage</th>
+                        <th className="pb-3 font-medium">Platforms</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       <tr>
                         <td className="py-3 font-semibold text-foreground">Forex Majors & Minors</td>
                         <td className="py-3 text-muted-foreground">1:100</td>
+                        <td className="py-3 text-muted-foreground">MT4 / MT5</td>
                       </tr>
                       <tr>
-                        <td className="py-3 font-semibold text-foreground">Gold & Silver (Commodities)</td>
-                        <td className="py-3 text-muted-foreground">1:50</td>
+                        <td className="py-3 font-semibold text-foreground">Commodities (Gold, Silver, Oil)</td>
+                        <td className="py-3 text-muted-foreground">1:100</td>
+                        <td className="py-3 text-muted-foreground">MT4 / MT5</td>
                       </tr>
                       <tr>
                         <td className="py-3 font-semibold text-foreground">Indices (NAS100, US30, GER40)</td>
-                        <td className="py-3 text-muted-foreground">1:20</td>
+                        <td className="py-3 text-muted-foreground">1:100</td>
+                        <td className="py-3 text-muted-foreground">MT4 / MT5</td>
                       </tr>
                       <tr>
                         <td className="py-3 font-semibold text-foreground">Cryptocurrency</td>
-                        <td className="py-3 text-muted-foreground">1:2</td>
+                        <td className="py-3 text-muted-foreground">1:100</td>
+                        <td className="py-3 text-muted-foreground">MT4 / MT5</td>
                       </tr>
                     </tbody>
                   </table>
@@ -165,20 +176,28 @@ function RulesPage() {
 
             {activeTab === "payouts" && (
               <div className="glass p-6 sm:p-8">
-                <h3 className="font-display text-lg font-bold text-foreground">Payout Terms & Profit Split</h3>
+                <h3 className="font-display text-lg font-bold text-foreground">Payout Terms & Profit Split Schedule</h3>
                 <div className="mt-4 space-y-3 text-sm text-muted-foreground leading-relaxed">
                   <p>
-                    • <strong>Eligibility:</strong> Approved KYC, a funded account, and at least 3 profitable days (each closing +0.5% or more). Instant Funding needs 5 qualifying days.
+                    • <strong>Eligibility:</strong> At least 14 days since funded, approved KYC, signed Trader Agreement, zero rule violations, all open positions closed, and at least 5 Winning Days (each reaching ≥0.5% profit on starting balance).
                   </p>
                   <p>
-                    • <strong>Payout Cycle:</strong> Request once every 14 days, up to 6% of your initial balance per cycle. Minimum withdrawal is $100.
+                    • <strong>Profit Split Schedule:</strong> 1st payout: 70% · 2nd payout: 80% · 3rd payout: 90% · 4th and subsequent: up to 100%. Flex accounts have a fixed 85% split (90% with add-on).
                   </p>
                   <p>
-                    • <strong>Profit Split:</strong> 80% on your first payout, 85% on the second and 90% from the third onwards.<br />
-                    • <strong>Fee Refund:</strong> Your full challenge registration fee is returned with your very first payout.
+                    • <strong>Withdrawal Cap:</strong> Capped at 6% of initial balance per 14-day cycle on 1-Step, 2-Step, and Instant. Flex accounts have NO withdrawal cap.
                   </p>
                   <p>
-                    • <strong>Payout Channels:</strong> Crypto (USDT TRC20 / ERC20, BTC), Rise, and Direct Bank Wire.
+                    • <strong>Minimum Withdrawal:</strong> 1% of initial account balance in realized profit ($100 on $10K, $250 on $25K, $500 on $50K, $1,000 on $100K, $2,000 on $200K; $100 for Flex).
+                  </p>
+                  <p>
+                    • <strong>Fee Return:</strong> Full account fee refunded with your first successful withdrawal on 1-Step and 2-Step accounts.
+                  </p>
+                  <p>
+                    • <strong>Scaling Plan:</strong> After every 4 successful payouts with no rule violations, account balance is increased by 25% of the original account size (1-Step, 2-Step, Instant).
+                  </p>
+                  <p>
+                    • <strong>Payout Channels:</strong> Cryptocurrency (USDT) and Bank Transfer.
                   </p>
                 </div>
               </div>
