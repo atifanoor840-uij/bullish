@@ -5,7 +5,7 @@ import {
 import { HttpError, body, isAdmin, numv, query, rand, requireAdmin, requireUser, str, type Ctx } from "../http";
 import type { DBAccount, DBChallengePlan, DBCoupon, DBOffer, DBOfferRedemption, DBOrder, DBPricingPlan } from "../types";
 
-const MODELS = ["One Step", "Two Step", "Instant"] as const;
+const MODELS = ["One Step", "Two Step", "Instant", "Flex"] as const;
 
 /* ---------------- pricing plans ---------------- */
 
@@ -19,14 +19,23 @@ export async function savePricingPlan(ctx: Ctx) {
   const b = await body(ctx);
   const model = str(b.model) as DBPricingPlan["model"];
   const size = numv(b.size), price = numv(b.price);
-  if (!MODELS.includes(model) || size <= 0 || price < 0) throw new HttpError(400, "model (One Step | Two Step | Instant), size and price are required.");
+  const realPrice = b.realPrice !== undefined && b.realPrice !== null ? numv(b.realPrice) : undefined;
+  if (!MODELS.includes(model) || size <= 0 || price < 0) throw new HttpError(400, "model (One Step | Two Step | Instant | Flex), size and price are required.");
   const id = `pp-${model.toLowerCase().replace(/\s+/g, "-")}-${size / 1000}k`;
   const [plan] = await db.upsert<DBPricingPlan>(
     "pricing_plans",
-    { id, model, size, price, status: str(b.status) || "active", createdAt: new Date().toISOString() },
+    {
+      id,
+      model,
+      size,
+      price,
+      ...(realPrice !== undefined ? { realPrice } : {}),
+      status: str(b.status) || "active",
+      createdAt: new Date().toISOString(),
+    },
     "id",
   );
-  await audit(admin, "pricing_plan_save", id, "pricing_plan", `${model} ${size} → $${price}`);
+  await audit(admin, "pricing_plan_save", id, "pricing_plan", `${model} ${size} → $${price}${realPrice ? ` (real: $${realPrice})` : ""}`);
   return { plan };
 }
 

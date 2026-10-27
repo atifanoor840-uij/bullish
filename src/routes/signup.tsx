@@ -4,13 +4,26 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff, Lock, Mail, User, ArrowRight, ShieldCheck, Check, Sparkles, AlertCircle } from "lucide-react";
 import { Logo, Candle } from "@/components/site/primitives";
 import { propApi } from "@/lib/propApi";
+import { trackPixel } from "@/lib/metaPixel";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
       { title: "Register Trader Account — Bullish 4ex" },
-      { name: "description", content: "Create your Bullish 4ex account, start your funded trading evaluation, and keep up to 90% profits." },
+      {
+        name: "description",
+        content: "Create your Bullish 4ex account, start your simulated trading evaluation, and keep up to 90% profits upon getting funded.",
+      },
+      { property: "og:title", content: "Create Your Trader Account — Bullish 4ex" },
+      {
+        property: "og:description",
+        content: "Join Bullish 4ex today. Access simulated accounts up to $200K, low-latency execution, and bi-weekly payouts.",
+      },
+      { property: "og:url", content: "https://bullish4ex.com/signup" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://bullish4ex.com/signup" }],
   }),
   component: SignupPage,
 });
@@ -28,6 +41,7 @@ function SignupPage() {
   const [collabCode, setCollabCode] = useState<string | undefined>();
 
   useEffect(() => {
+    trackPixel("PageView");
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const ref = params.get("ref");
@@ -61,6 +75,18 @@ function SignupPage() {
       if (collabCode) signupPayload.collaboratorCode = collabCode;
 
       await propApi.auth.signup(signupPayload);
+
+      // Meta Pixel: Track successful registration and lead
+      trackPixel("CompleteRegistration", {
+        content_name: "Trader Signup",
+        status: "success",
+        currency: "USD",
+        value: 0,
+      });
+      trackPixel("Lead", {
+        content_name: "New Trader Lead",
+        currency: "USD",
+      });
 
       // Auto login right after signup
       try {

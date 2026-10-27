@@ -8,6 +8,7 @@ import { CtaButton, Reveal, SectionHead, fmt } from "./primitives";
 import { propApi, type Offer, type PricingPlan } from "@/lib/propApi";
 import { bogoBadge, bogoFor, isLive, isPublic, offerSummary } from "@/lib/offers";
 import { price as fmtPrice, sizeLabel } from "@/lib/portal";
+import { trackPixel } from "@/lib/metaPixel";
 
 const MODEL_OF: Record<PlanType, PricingPlan["model"]> = { "1-Step": "One Step", "2-Step": "Two Step", "Instant Funding": "Instant" };
 
@@ -303,7 +304,19 @@ export function Pricing() {
             </ul>
 
             <div className="mt-auto pt-8">
-              <CtaButton href={checkoutHref} className="w-full justify-between">Start {fmt(activeSize)} challenge</CtaButton>
+              <CtaButton
+                href={checkoutHref}
+                onClick={() => {
+                  trackPixel("InitiateCheckout", {
+                    content_name: `${activeType} ${sizeLabel(activeSize)}`,
+                    value: fee,
+                    currency: "USD",
+                  });
+                }}
+                className="w-full justify-between"
+              >
+                Start {fmt(activeSize)} challenge
+              </CtaButton>
               <p className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
                 <Lock className="h-3 w-3" /> Secure checkout · Card, crypto & bank transfer
               </p>

@@ -99,29 +99,67 @@ export function FinalCta() {
 
 export function Footer() {
   const cols = [
-    ["Challenges", ["1-Step Evaluation", "2-Step Evaluation", "Instant Funding", "Scaling Plan"]],
-    ["Company", ["About Us", "Payout Proof", "Affiliate Program", "Careers"]],
-    ["Support", ["Help Center", "Trading Rules", "Contact Us", "Discord Community"]],
-    ["Legal", ["Terms of Service", "Privacy Policy", "Risk Disclosure", "Refund Policy"]],
+    [
+      "Challenges",
+      [
+        { label: "1-Step Evaluation", href: "/#challenges" },
+        { label: "2-Step Evaluation", href: "/#challenges" },
+        { label: "Instant Funding", href: "/#challenges" },
+        { label: "Flex Challenge ($9)", href: "/#challenges" },
+        { label: "Scaling Plan", href: "/#scaling" },
+      ],
+    ],
+    [
+      "Company",
+      [
+        { label: "About Bullish 4ex", href: "/#how" },
+        { label: "Payout Proof", href: "/#payouts" },
+        { label: "Trading Markets", href: "/#markets" },
+        { label: "Partner Platforms", href: "/#how" },
+      ],
+    ],
+    [
+      "Support",
+      [
+        { label: "Trading Rules", href: "/rules" },
+        { label: "24/7 Live Support", href: "/contact" },
+        { label: "Help Center & FAQ", href: "/#faq" },
+        { label: "Trader Dashboard", href: "/dashboard" },
+      ],
+    ],
+    [
+      "Legal & Policies",
+      [
+        { label: "Terms of Service", href: "/rules" },
+        { label: "Privacy Policy", href: "/rules" },
+        { label: "Risk Disclosure", href: "/rules" },
+        { label: "Refund Policy", href: "/rules" },
+      ],
+    ],
   ] as const;
 
   return (
-    <footer className="border-t border-white/[0.06] bg-black/40">
+    <footer className="border-t border-white/[0.06] bg-black/60">
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
         <div>
           <Logo />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            Empowering disciplined forex traders globally with transparent criteria, low-latency execution, and fast payouts.
+            A premier educational and trader skill development platform empowering disciplined traders worldwide with transparent criteria, low-latency execution, and swift payouts.
           </p>
+          <div className="mt-5 flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <ShieldCheck className="h-3.5 w-3.5" /> Educational Skill Evaluation
+            </span>
+          </div>
         </div>
         {cols.map(([t, links]) => (
           <div key={t}>
             <p className="mb-4 font-display text-sm font-semibold tracking-wide text-foreground">{t}</p>
             <ul className="space-y-2.5">
-              {links.map((l) => (
-                <li key={l}>
-                  <a href="#" className="text-sm text-muted-foreground transition hover:text-primary">
-                    {l}
+              {links.map((item) => (
+                <li key={item.label}>
+                  <a href={item.href} className="text-sm text-muted-foreground transition hover:text-primary">
+                    {item.label}
                   </a>
                 </li>
               ))}
@@ -129,10 +167,45 @@ export function Footer() {
           </div>
         ))}
       </div>
-      <div className="border-t border-white/[0.04]">
+
+      {/* Detailed Regulatory, Educational & Simulated Accounts Disclaimer */}
+      <div className="border-t border-white/[0.06] bg-white/[0.015] px-5 py-10">
+        <div className="mx-auto max-w-7xl space-y-5 text-[11px] leading-relaxed text-muted-foreground/80">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
+            <span className="font-display text-xs font-semibold uppercase tracking-wider text-foreground/90">
+              Regulatory, Risk & Simulated Trading Disclaimer
+            </span>
+            <span className="rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              Skill Development Platform • Virtual Demo Accounts Only
+            </span>
+          </div>
+
+          <p>
+            <strong className="text-foreground/90">Educational & Skill Development Platform:</strong> Bullish 4ex is operated strictly as an educational and trader skill evaluation platform. All services, programs, challenges, and evaluations provided to users are designed exclusively to test, analyze, and nurture trading abilities. Bullish 4ex is not a broker-dealer, financial intermediary, investment manager, custodian, or commodity trading advisor (CTA). Bullish 4ex does not provide financial advice, solicit investor funds, hold client deposits, or execute retail financial transactions on behalf of users.
+          </p>
+
+          <p>
+            <strong className="text-foreground/90">Simulated Trading Environment & Virtual Funds:</strong> All accounts provided by Bullish 4ex—including evaluation accounts, verification phases, and funded stage accounts—are 100% simulated demo accounts operating in a simulated market environment with fictitious, virtual balances. At no point do traders trade or interact with live retail market liquidity or manage actual client capital. All references on this website and in the trader dashboard to "funded account", "account size", "profit split", "payouts", "balance", or "trading capital" are purely hypothetical terms referring solely to performance milestones and conditional reward compensation within our simulated skill development program.
+          </p>
+
+          <p>
+            <strong className="text-foreground/90">Hypothetical Performance Limitations:</strong> Simulated or hypothetical trading performance has inherent limitations. Unlike actual market performance, simulated trading does not represent real financial transactions and does not account for certain market conditions such as real-time liquidity constraints, broker slippage, or psychological stress of risking real capital. No representation is being made that any account will or is likely to achieve profits or losses similar to those shown. Past simulated performance is neither a guarantee nor a reliable indicator of future results.
+          </p>
+
+          <p>
+            <strong className="text-foreground/90">High Risk Disclosure:</strong> Foreign exchange (Forex), CFD, indices, and commodities trading carry significant market risks and are not suitable for all individuals. You should carefully consider your financial situation and risk appetite. None of the materials, software, or tools provided by Bullish 4ex constitute investment, legal, financial, or tax advice.
+          </p>
+
+          <p>
+            <strong className="text-foreground/90">Jurisdictional Limitations:</strong> The information and services on this site are not directed toward residents of any jurisdiction or country where such distribution, marketing, or use would violate local regulatory statutes or legal provisions (including jurisdictions subject to international sanctions or restrictions).
+          </p>
+        </div>
+      </div>
+
+      <div className="border-t border-white/[0.04] bg-black/40">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 text-xs text-muted-foreground md:flex-row">
           <p>
-            Bullish 4ex offers simulated trading accounts for educational and skill evaluation purposes only.
+            Bullish 4ex Ltd. — Empowering disciplined traders through simulated skill evaluation.
           </p>
           <p>© 2026 Bullish 4ex Ltd. All rights reserved.</p>
         </div>

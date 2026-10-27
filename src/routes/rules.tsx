@@ -7,9 +7,21 @@ import { Footer } from "@/components/site/bottom";
 export const Route = createFileRoute("/rules")({
   head: () => ({
     meta: [
-      { title: "Trading Rules & Guidelines — Bullish 4ex" },
-      { name: "description", content: "Complete breakdown of Bullish 4ex trading rules: drawdown calculations, daily limits, news trading, overnight holding, and prohibited strategies." },
+      { title: "Trading Rules, Drawdown & Guidelines — Bullish 4ex" },
+      {
+        name: "description",
+        content: "Transparent breakdown of Bullish 4ex simulated trading rules: daily loss limits, static & trailing drawdown, profit targets, weekend holding, news trading, and payout eligibility.",
+      },
+      { property: "og:title", content: "Trading Rules & Guidelines — Bullish 4ex" },
+      {
+        property: "og:description",
+        content: "Learn the transparent evaluation rules, drawdown metrics, and payout guidelines for Bullish 4ex simulated trading challenges.",
+      },
+      { property: "og:url", content: "https://bullish4ex.com/rules" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://bullish4ex.com/rules" }],
   }),
   component: RulesPage,
 });

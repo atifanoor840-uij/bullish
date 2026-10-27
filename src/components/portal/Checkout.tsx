@@ -3,6 +3,7 @@ import { Upload } from "lucide-react";
 import { Button, CopyButton, Field, Note, inputCls, useAction } from "./ui";
 import { propApi } from "@/lib/propApi";
 import { money } from "@/lib/portal";
+import { trackPixel } from "@/lib/metaPixel";
 
 /** Firm deposit wallets for manual "Crypto QR" payments. Set the VITE_WALLET_* env vars. */
 export const WALLETS = [
@@ -31,6 +32,12 @@ export function PayOrder({ orderId, amount, paymentMethod, platform = "MT5", onD
           variant="primary"
           busy={busy === "pay"}
           onClick={() => run("pay", async () => {
+            trackPixel("AddPaymentInfo", {
+              content_name: `Order ${orderId}`,
+              value: amount,
+              currency: "USD",
+              payment_method: paymentMethod,
+            });
             const { checkoutUrl } = await propApi.orders.pay(orderId, platform);
             window.location.href = checkoutUrl;
           })}
@@ -69,7 +76,24 @@ export function PayOrder({ orderId, amount, paymentMethod, platform = "MT5", onD
         variant="primary"
         disabled={!txid || !file}
         busy={busy === "proof"}
-        onClick={async () => (await run("proof", () => propApi.orders.submitManualPayment({ orderId, walletId: wallet, txid: txid.trim(), screenshot: file! }), "Payment proof submitted. We will confirm it shortly.")) && onDone?.()}
+        onClick={async () => {
+          trackPixel("AddPaymentInfo", {
+            content_name: `Order ${orderId}`,
+            value: amount,
+            currency: "USD",
+            payment_method: "Crypto QR",
+          });
+          const ok = await run("proof", () => propApi.orders.submitManualPayment({ orderId, walletId: wallet, txid: txid.trim(), screenshot: file! }), "Payment proof submitted. We will confirm it shortly.");
+          if (ok) {
+            trackPixel("Purchase", {
+              content_name: `Order ${orderId}`,
+              value: amount,
+              currency: "USD",
+              num_items: 1,
+            });
+            onDone?.();
+          }
+        }}
       >
         Submit payment proof
       </Button>

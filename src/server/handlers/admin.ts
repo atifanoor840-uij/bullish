@@ -321,7 +321,7 @@ export async function news() {
 
 export async function conversions(ctx: Ctx) {
   const b = await body(ctx);
-  const pixel = process.env["NEXT_PUBLIC_META_PIXEL_ID"], token = process.env["META_CONVERSIONS_API_ACCESS_TOKEN"];
+  const pixel = process.env["NEXT_PUBLIC_META_PIXEL_ID"] || "1152513827733713", token = process.env["META_CONVERSIONS_API_ACCESS_TOKEN"];
   if (!pixel || !token || !str(b.eventName)) return {};
   await fetch(`https://graph.facebook.com/v19.0/${pixel}/events?access_token=${encodeURIComponent(token)}`, {
     method: "POST",

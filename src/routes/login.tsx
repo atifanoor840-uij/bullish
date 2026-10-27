@@ -9,8 +9,20 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Trader Portal Login — Bullish 4ex" },
-      { name: "description", content: "Access your Bullish 4ex trading dashboard, monitor challenge metrics, and request payouts." },
+      {
+        name: "description",
+        content: "Access your Bullish 4ex trading dashboard, monitor challenge metrics, review drawdown limits, and request payouts.",
+      },
+      { property: "og:title", content: "Trader Portal Login — Bullish 4ex" },
+      {
+        property: "og:description",
+        content: "Sign in to your Bullish 4ex trader portal to manage your simulated challenges and funded accounts.",
+      },
+      { property: "og:url", content: "https://bullish4ex.com/login" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://bullish4ex.com/login" }],
   }),
   component: LoginPage,
 });

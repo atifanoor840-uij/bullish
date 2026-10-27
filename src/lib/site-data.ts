@@ -17,7 +17,7 @@ export const stats = [
 
 export const partners = ["MetaTrader 5", "cTrader", "Match-Trader", "TradingView", "Visa", "Mastercard", "USDT · TRC20", "Rise", "Skrill", "Apple Pay"];
 
-export const sizes = [5000, 10000, 25000, 50000, 100000, 200000];
+export const sizes = [3000, 5000, 10000, 25000, 50000, 100000, 200000];
 export type PlanType = "1-Step" | "2-Step" | "Instant Funding";
 export const planTypes: PlanType[] = ["1-Step", "2-Step", "Instant Funding"];
 
@@ -27,7 +27,7 @@ export const planMeta: Record<PlanType, { tagline: string; phases: string }> = {
   "Instant Funding": { tagline: "Skip the evaluation and trade a funded account today.", phases: "No evaluation" },
 };
 
-const baseFee: Record<number, number> = { 5000: 49, 10000: 89, 25000: 179, 50000: 299, 100000: 529, 200000: 999 };
+const baseFee: Record<number, number> = { 3000: 35, 5000: 49, 10000: 89, 25000: 179, 50000: 299, 100000: 529, 200000: 999 };
 
 type Rules = {
   target: string; daily: string; overall: string; days: string; leverage: string; split: string;

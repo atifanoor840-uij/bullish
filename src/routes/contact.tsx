@@ -8,8 +8,20 @@ export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
       { title: "24/7 Trader Support & Contact — Bullish 4ex" },
-      { name: "description", content: "Contact the Bullish 4ex trader support team via live chat, email, or community discord. Average response time under 5 minutes." },
+      {
+        name: "description",
+        content: "Get in touch with the Bullish 4ex trader support team via 24/7 live chat, ticket, email, or community discord. Average response time under 5 minutes.",
+      },
+      { property: "og:title", content: "24/7 Trader Support — Bullish 4ex" },
+      {
+        property: "og:description",
+        content: "Contact Bullish 4ex trader support for challenge inquiries, payouts, platform setup, and account verification.",
+      },
+      { property: "og:url", content: "https://bullish4ex.com/contact" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://bullish4ex.com/contact" }],
   }),
   component: ContactPage,
 });

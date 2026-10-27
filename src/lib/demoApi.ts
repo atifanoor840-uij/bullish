@@ -53,14 +53,15 @@ const users = [
   { id: "u-admin-01", name: "Admin", email: "admin@bullish4ex.com", phone: "", country: "PK", role: "admin", status: "active", emailVerified: true, createdAt: daysAgo(120) },
 ];
 
-const sizes = [5000, 10000, 25000, 50000, 100000, 200000];
-const base: Record<number, number> = { 5000: 49, 10000: 89, 25000: 179, 50000: 299, 100000: 529, 200000: 999 };
-const plans = (["One Step", "Two Step", "Instant"] as const).flatMap((model) =>
+const sizes = [3000, 5000, 10000, 25000, 50000, 100000, 200000];
+const base: Record<number, number> = { 3000: 35, 5000: 49, 10000: 89, 25000: 179, 50000: 299, 100000: 529, 200000: 999 };
+const plans = (["One Step", "Two Step", "Instant", "Flex"] as const).flatMap((model) =>
   sizes.map((size) => ({
     id: `pp-${model.toLowerCase().replace(" ", "-")}-${size / 1000}k`,
     model,
     size,
-    price: Math.round(base[size]! * (model === "One Step" ? 1.1 : model === "Instant" ? 2.6 : 1)),
+    price: model === "Flex" ? 9 : Math.round(base[size]! * (model === "One Step" ? 1.1 : model === "Instant" ? 2.6 : 1)),
+    realPrice: base[size],
     status: size === 200000 && model === "Instant" ? "inactive" : "active",
     createdAt: daysAgo(100),
   })),

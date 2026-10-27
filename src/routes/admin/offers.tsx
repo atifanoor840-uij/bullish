@@ -100,7 +100,7 @@ function EditOffer({ offer, onClose, onChanged }: { offer: Partial<Offer>; onClo
         )}
         <Field label="Max redemptions" hint="0 = unlimited"><input type="number" min={0} value={f.maxRedemptions} onChange={set("maxRedemptions")} className={inputCls} /></Field>
         <Field label="Account sizes" hint="Comma separated, e.g. 50000, 100000 — empty = all"><input value={f.accountSizes} onChange={set("accountSizes")} className={inputCls} /></Field>
-        <Field label="Models" hint="One Step, Two Step, Instant — empty = all"><input value={f.models} onChange={set("models")} className={inputCls} /></Field>
+        <Field label="Models" hint="One Step, Two Step, Instant, Flex — empty = all"><input value={f.models} onChange={set("models")} className={inputCls} /></Field>
         <Field label="Starts"><input type="date" value={f.startsAt} onChange={set("startsAt")} className={inputCls} /></Field>
         <Field label="Ends"><input type="date" value={f.expiresAt} onChange={set("expiresAt")} className={inputCls} /></Field>
         {note && <div className="sm:col-span-2"><Note tone={note.tone}>{note.text}</Note></div>}

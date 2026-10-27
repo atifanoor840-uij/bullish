@@ -8,7 +8,7 @@ export type DBUser = {
   referredBy?: string | null; emailVerified?: boolean | null; emailVerifiedAt?: string | null;
 };
 
-export type DBPricingPlan = { id: string; model: "One Step" | "Two Step" | "Instant"; size: number; price: number; status: string; createdAt?: string };
+export type DBPricingPlan = { id: string; model: "One Step" | "Two Step" | "Instant" | "Flex"; size: number; price: number; realPrice?: number; status: string; createdAt?: string };
 
 export type DBChallengePlan = {
   id: string; name: string; size: number; price: number; profitTargetP1: number; profitTargetP2: number;

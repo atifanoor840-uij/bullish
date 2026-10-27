@@ -15,7 +15,7 @@ export type User = {
   role: Role; status: "active" | "suspended" | "banned";
   emailVerified?: boolean; referredBy?: string; createdAt: string;
 };
-export type PricingPlan = { id: string; model: "One Step" | "Two Step" | "Instant" | "Flex"; size: number; price: number; status: string };
+export type PricingPlan = { id: string; model: "One Step" | "Two Step" | "Instant" | "Flex"; size: number; price: number; realPrice?: number; status: string };
 export type Coupon = { code: string; discountPercent: number; status: string; expiresAt?: string; isExpired?: boolean };
 export type Offer = {
   id: string; name: string; type: "bogo" | "free_retry"; description?: string; status: "active" | "paused";
@@ -123,7 +123,7 @@ export const propApi = {
 
   catalog: {
     pricingPlans: () => get<{ success: true; plans: PricingPlan[] }>("/api/pricing-plans"),
-    savePricingPlan: (b: { model: PricingPlan["model"]; size: number; price: number; status?: string }) => post<{ plan: PricingPlan }>("/api/pricing-plans", b),
+    savePricingPlan: (b: { model: PricingPlan["model"]; size: number; price: number; realPrice?: number; status?: string }) => post<{ plan: PricingPlan }>("/api/pricing-plans", b),
     deletePricingPlan: (id: string) => del(`/api/pricing-plans${q({ id })}`),
     legacyPlans: () => get("/api/plans"),
     coupons: () => get<{ success: true; coupons: Coupon[] }>("/api/coupons"),

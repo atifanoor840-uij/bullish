@@ -90,7 +90,9 @@ export function AccountDetail({ accountId, backHref = "/dashboard", admin = fals
   const actions = (
     <>
       {!admin && a.status === "Passed" && (
-        <Button size="sm" variant="primary" busy={busy === "next"} onClick={async () => (await run("next", () => propApi.accounts.requestNextStage(a.id), "Next stage requested.")) && reload()}>Request next stage</Button>
+        <Button size="sm" variant="primary" busy={busy === "next"} onClick={async () => (await run("next", () => propApi.accounts.requestNextStage(a.id), "Next stage requested.")) && reload()}>
+          {info.model === "Flex" ? "Pay Remaining & Get Funded" : "Request next stage"}
+        </Button>
       )}
       {a.graphLink && <a href={a.graphLink} target="_blank" rel="noreferrer" className={outlineAccent}><ExternalLink className="size-4" />Public stats</a>}
       {!pending && <button onClick={() => setCreds(true)} className={outlineAccent}><Lock className="size-4" />Login info</button>}
