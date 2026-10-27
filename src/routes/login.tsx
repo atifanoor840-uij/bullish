@@ -8,15 +8,15 @@ import { propApi } from "@/lib/propApi";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Trader Portal Login — Bullish 4ex" },
+      { title: "Trader Portal Login — Bullish4ex Prop Firm" },
       {
         name: "description",
-        content: "Access your Bullish 4ex trading dashboard, monitor challenge metrics, review drawdown limits, and request payouts.",
+        content: "Sign in to the Bullish4ex trader portal to monitor simulated trading challenge metrics, review evaluation objectives, and track performance payouts.",
       },
-      { property: "og:title", content: "Trader Portal Login — Bullish 4ex" },
+      { property: "og:title", content: "Trader Portal Login — Bullish4ex" },
       {
         property: "og:description",
-        content: "Sign in to your Bullish 4ex trader portal to manage your simulated challenges and funded accounts.",
+        content: "Sign in to your Bullish4ex trader portal to manage your simulated trading challenges and track evaluation progress.",
       },
       { property: "og:url", content: "https://bullish4ex.com/login" },
       { property: "og:type", content: "website" },

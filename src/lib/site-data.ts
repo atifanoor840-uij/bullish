@@ -9,8 +9,8 @@ export const navLinks = [
 ];
 
 export const stats = [
-  { label: "Total paid to traders", value: 18.4, prefix: "$", suffix: "M+", decimals: 1, note: "Since 2023" },
-  { label: "Funded traders", value: 12500, suffix: "+", decimals: 0, note: "Across all plans" },
+  { label: "Simulated rewards paid", value: 18.4, prefix: "$", suffix: "M+", decimals: 1, note: "Since 2023" },
+  { label: "Traders evaluated", value: 12500, suffix: "+", decimals: 0, note: "Across all plans" },
   { label: "Countries served", value: 140, suffix: "+", decimals: 0, note: "Worldwide access" },
   { label: "Average payout time", value: 8, suffix: "h", decimals: 0, note: "From request to wallet" },
 ];
@@ -22,9 +22,9 @@ export type PlanType = "1-Step" | "2-Step" | "Instant Funding";
 export const planTypes: PlanType[] = ["1-Step", "2-Step", "Instant Funding"];
 
 export const planMeta: Record<PlanType, { tagline: string; phases: string }> = {
-  "1-Step": { tagline: "One phase. Hit the target, get funded.", phases: "1 phase" },
-  "2-Step": { tagline: "Our most balanced evaluation with relaxed limits.", phases: "2 phases" },
-  "Instant Funding": { tagline: "Skip the evaluation and trade a funded account today.", phases: "No evaluation" },
+  "1-Step": { tagline: "One phase evaluation. Hit the target to unlock funded access.", phases: "1 phase" },
+  "2-Step": { tagline: "Our most balanced evaluation with relaxed risk limits.", phases: "2 phases" },
+  "Instant Funding": { tagline: "Direct access to a performance-rewarded simulated account.", phases: "No evaluation" },
 };
 
 const baseFee: Record<number, number> = { 3000: 35, 5000: 49, 10000: 89, 25000: 179, 50000: 299, 100000: 529, 200000: 999 };
@@ -78,7 +78,7 @@ export const compareTypes: { label: string; values: Record<PlanType, string | bo
 ];
 
 export const scaling = [
-  { step: "Starting balance", size: "$100K", split: "70%", req: "Initial funded account" },
+  { step: "Starting balance", size: "$100K", split: "70%", req: "Initial funded account access" },
   { step: "Cycle 1 (4 payouts)", size: "$125K", split: "100%", req: "4 clean payouts (+25% balance)" },
   { step: "Cycle 2 (8 payouts)", size: "$150K", split: "100%", req: "8 clean payouts (+25% balance)" },
   { step: "Cycle 3 (12 payouts)", size: "$175K", split: "100%", req: "12 clean payouts (+25% balance)" },
@@ -112,20 +112,20 @@ export const comparison: { label: string; us: string | boolean; them: string | b
  */
 export type Story = { name: string; country: string; total: string; quote: string; image?: string; video?: string };
 export const stories: Story[] = [
-  { name: "Hamza", country: "PK", total: "$52,431", quote: "Bullish 4ex gave me the structure and confidence to scale consistently." },
+  { name: "Hamza", country: "PK", total: "$52,431", quote: "Bullish4ex gave me the structure and confidence to scale consistently." },
   { name: "Jonathan", country: "US", total: "$24,186", quote: "The rules are clear, the support is real, and the payouts are fast." },
-  { name: "Stephen", country: "GB", total: "$201,095", quote: "Hitting six figures changed my life. Bullish 4ex made it possible." },
-  { name: "Elena", country: "ES", total: "$15,845", quote: "This firm gave me the leverage to actually start earning in the game." },
-  { name: "Omar", country: "AE", total: "$86,320", quote: "I never thought I would get paid this fast — fee refunded on my first payout." },
-  { name: "Yuki", country: "JP", total: "$31,760", quote: "Clean dashboard, clear drawdown. I always know exactly where I stand." },
+  { name: "Stephen", country: "GB", total: "$201,095", quote: "Hitting six figures in performance rewards changed my life. Bullish4ex made it possible." },
+  { name: "Elena", country: "ES", total: "$15,845", quote: "This firm gave me the disciplined framework to develop my trading edge." },
+  { name: "Omar", country: "AE", total: "$86,320", quote: "I never thought I would get rewarded this fast — fee refunded on my first payout." },
+  { name: "Yuki", country: "JP", total: "$31,760", quote: "Clean dashboard, clear drawdown metrics. I always know exactly where I stand." },
 ];
 
 export const faqs = [
-  ["What are the trading rules?", "Respect the max daily and overall loss limits, hit the profit target, and trade the minimum days. No time limits."],
-  ["How fast are payouts?", "Most payouts are processed within 24 hours, with an average of 8 hours."],
-  ["Is the challenge fee refundable?", "Yes. Your fee is refunded with your first payout as a funded trader."],
-  ["Do I need to complete KYC?", "KYC is required only once you pass the evaluation and before your funded account is issued."],
+  ["What are the trading rules?", "Respect the max daily and overall loss limits, hit the profit target, and trade the minimum days on your simulated account. No time limits."],
+  ["How fast are payouts?", "Most simulated performance reward payouts are processed within 24 hours, with an average of 8 hours."],
+  ["Is the challenge fee refundable?", "Yes. Your evaluation fee is 100% refunded with your first simulated profit payout upon passing."],
+  ["Do I need to complete KYC?", "KYC is required only once you pass the skill evaluation and before your funded account access is issued."],
   ["Which platforms can I use?", "MetaTrader 5, cTrader and Match-Trader on desktop, web and mobile."],
   ["Can I trade news and weekends?", "News trading is allowed, except opening or closing trades within 5 minutes of high-impact releases. Holding over the weekend needs the weekend holding add-on (+20%) at checkout."],
-  ["Is there a scaling plan?", "Consistent traders can scale their account up to $2,000,000."],
+  ["Is there a scaling plan?", "Consistent disciplined traders can scale their simulated balance up to $2,000,000."],
 ];

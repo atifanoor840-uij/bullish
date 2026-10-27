@@ -7,15 +7,15 @@ import { Footer } from "@/components/site/bottom";
 export const Route = createFileRoute("/rules")({
   head: () => ({
     meta: [
-      { title: "Trading Rules, Drawdown & Guidelines — Bullish 4ex" },
+      { title: "Trading Rules, Drawdown & Guidelines — Bullish4ex" },
       {
         name: "description",
-        content: "Transparent breakdown of Bullish 4ex simulated trading rules: daily loss limits, static & trailing drawdown, profit targets, weekend holding, news trading, and payout eligibility.",
+        content: "Transparent breakdown of Bullish4ex simulated trading rules: daily loss limits, static & trailing drawdown, profit targets, news guidelines, and performance payout terms.",
       },
-      { property: "og:title", content: "Trading Rules & Guidelines — Bullish 4ex" },
+      { property: "og:title", content: "Trading Rules & Guidelines — Bullish4ex" },
       {
         property: "og:description",
-        content: "Learn the transparent evaluation rules, drawdown metrics, and payout guidelines for Bullish 4ex simulated trading challenges.",
+        content: "Learn the transparent evaluation rules, drawdown metrics, and performance payout guidelines for Bullish4ex simulated trading challenges.",
       },
       { property: "og:url", content: "https://bullish4ex.com/rules" },
       { property: "og:type", content: "website" },
@@ -51,7 +51,7 @@ function RulesPage() {
               Trading Rules & Risk Parameters
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground">
-              Straightforward and transparent guidelines. We want you to succeed, pass your evaluation, and get funded without hidden surprises.
+              Straightforward and transparent guidelines for our skill-based programs. We want you to succeed, pass your evaluation on simulated accounts, and earn access to a funded account without hidden surprises.
             </p>
           </div>
 

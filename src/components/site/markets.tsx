@@ -138,9 +138,9 @@ export function Markets() {
     <section id="markets" className="relative py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-5">
         <SectionHead
-          label="Markets"
-          title={<>200+ instruments.<br />One funded account.</>}
-          sub="Trade forex, gold, indices, energy and crypto with live pricing and the same transparent rules."
+          label="Simulated Markets"
+          title={<>200+ simulated instruments.<br />One evaluation program.</>}
+          sub="Demonstrate your trading discipline across forex, gold, indices, energy and crypto with live simulated pricing and transparent rules."
         />
 
         <Reveal className="mb-6 flex justify-center">
@@ -213,7 +213,7 @@ export function Markets() {
         </div>
 
         <Reveal className="mt-12 flex justify-center">
-          <CtaButton>Start Trading Today</CtaButton>
+          <CtaButton href="#challenges">Start Your Evaluation</CtaButton>
         </Reveal>
       </div>
     </section>

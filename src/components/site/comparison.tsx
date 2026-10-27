@@ -8,9 +8,9 @@ export function Comparison() {
     <section className="relative py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-5">
         <SectionHead
-          label="Why Bullish 4ex"
-          title={<>Built for traders,<br />not against them.</>}
-          sub="See how our rules and conditions compare to traditional prop trading firms."
+          label="Why Bullish4ex"
+          title={<>Trader-focused rules.<br />Transparent evaluations.</>}
+          sub="Compare our skill-based evaluation parameters and simulated trading conditions with industry alternatives."
         />
 
         <Reveal className="glass mx-auto max-w-4xl overflow-hidden p-2 sm:p-6">
@@ -76,8 +76,8 @@ export function ScalingPlan() {
         <SectionHead
           align="left"
           label="Scaling roadmap"
-          title={<>Scale your balance up to $2,000,000.</>}
-          sub="Consistent profitability unlocks exponential account scaling and up to a 90% profit share."
+          title={<>Scale your simulated balance up to $2,000,000.</>}
+          sub="Consistent disciplined trading unlocks exponential account scaling and up to a 90% profit share."
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

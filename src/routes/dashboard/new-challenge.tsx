@@ -8,7 +8,18 @@ import { money, num, price, sizeLabel } from "@/lib/portal";
 import { bogoBadge, bogoFor, isLive, isPublic, offerSummary } from "@/lib/offers";
 import { trackPixel } from "@/lib/metaPixel";
 
-export const Route = createFileRoute("/dashboard/new-challenge")({ component: NewChallenge });
+export const Route = createFileRoute("/dashboard/new-challenge")({
+  head: () => ({
+    meta: [
+      { title: "Buy Trading Challenge — Bullish4ex Prop Firm Evaluation" },
+      {
+        name: "description",
+        content: "Select your simulated trading challenge, choose your account size and platform, and begin your prop firm evaluation with Bullish4ex.",
+      },
+    ],
+  }),
+  component: NewChallenge,
+});
 
 const MODELS: PricingPlan["model"][] = ["One Step", "Two Step", "Instant", "Flex"];
 const DEFAULT_REAL_PRICE: Record<number, number> = {
@@ -268,7 +279,7 @@ function NewChallenge() {
                     </span>
                   </div>
                   <p className="mt-2 border-t border-white/10 pt-1.5 text-[11px] text-muted-foreground">
-                    ✨ Pay only <strong>{price(plan?.price ?? 9)}</strong> to trade Phase 1. You only pay the remaining price after passing evaluation to get funded.
+                    ✨ Pay only <strong>{price(plan?.price ?? 9)}</strong> to trade Phase 1. You only pay the remaining price after passing the evaluation to unlock funded account access.
                   </p>
                 </div>
               )}

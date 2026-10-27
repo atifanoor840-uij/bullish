@@ -12,28 +12,28 @@ import { faqs } from "@/lib/site-data";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Bullish 4ex — Trade Our Simulated Capital, Keep Up to 90%" },
+      { title: "Bullish4ex — Trading Challenges & Forex Evaluation Program | Get Funded as a Trader" },
       {
         name: "description",
-        content: "Prove your trading skills with Bullish 4ex. Choose 1-Step, 2-Step, Instant Funding, or $9 Flex challenge. Trade simulated forex & commodities up to $200,000 with bi-weekly payouts and 100% refundable fees.",
+        content: "Join Bullish4ex skill-based programs. Complete a trading challenge on simulated accounts for educational purposes to earn access to a funded account upon successful evaluation with up to 90% profit splits.",
       },
       {
         name: "keywords",
-        content: "forex prop firm, funded trader program, simulated trading challenge, forex evaluation, instant funding prop firm, 90% profit split, metatrader 5 prop firm",
+        content: "trading challenge, prop firm evaluation, get funded as a trader, forex evaluation program, simulated accounts, skill-based programs, educational purposes, funded account upon successful evaluation, bullish4ex",
       },
-      { property: "og:title", content: "Bullish 4ex — Leading Forex Prop Trading & Skill Evaluation" },
+      { property: "og:title", content: "Bullish4ex — Prop Firm Evaluation & Forex Trading Challenges" },
       {
         property: "og:description",
-        content: "Get funded up to $200K on simulated accounts. Keep up to 90% profits. Bi-weekly payouts, 100% refundable fees, and transparent rules.",
+        content: "Skill-based trading evaluations on simulated accounts. Pass the trading challenge to earn access to a funded account upon successful evaluation with up to 90% performance rewards.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://bullish4ex.com/" },
       { property: "og:image", content: "https://bullish4ex.com/hero-candle.webp" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Bullish 4ex — Trade Our Simulated Capital, Keep Up to 90%" },
+      { name: "twitter:title", content: "Bullish4ex — Trading Challenges & Forex Evaluation Program" },
       {
         name: "twitter:description",
-        content: "Simulated forex prop firm evaluations up to $200K. Bi-weekly payouts, refundable evaluation fee, and up to 90% profit split.",
+        content: "Skill-based programs and prop firm evaluations on simulated accounts. Get funded as a trader upon successful evaluation with bi-weekly reward payouts.",
       },
     ],
     links: [{ rel: "canonical", href: "https://bullish4ex.com/" }],

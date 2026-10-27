@@ -78,35 +78,35 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=5" },
-      { title: "Bullish 4ex — Forex Prop Trading & Skill Evaluation Platform" },
+      { title: "Bullish4ex — Prop Firm Evaluation & Trading Challenges | Get Funded as a Trader" },
       {
         name: "description",
-        content: "Empowering disciplined forex traders globally with simulated evaluation accounts up to $200K. Choose 1-Step, 2-Step, Instant Funding, or $9 Flex challenge. Keep up to 90% profits with bi-weekly payouts.",
+        content: "Bullish4ex offers skill-based trading evaluations and simulated accounts designed for educational purposes. Complete a trading challenge or forex evaluation program to earn access to a funded account upon successful evaluation with up to 90% profit splits.",
       },
       {
         name: "keywords",
-        content: "prop firm, forex prop firm, funded trader, forex trading challenge, simulated trading evaluation, funded account, prop trading, instant funding, 1 step evaluation, 2 step evaluation, flex challenge, forex funding, metatrader 5 prop firm",
+        content: "trading challenge, prop firm evaluation, get funded as a trader, forex evaluation program, simulated accounts, skill-based programs, educational purposes, funded account upon successful evaluation, bullish4ex",
       },
-      { name: "author", content: "Bullish 4ex" },
+      { name: "author", content: "Bullish4ex" },
       { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
       { name: "theme-color", content: "#0a0a0c" },
-      { property: "og:site_name", content: "Bullish 4ex" },
+      { property: "og:site_name", content: "Bullish4ex" },
       { property: "og:type", content: "website" },
-      { property: "og:title", content: "Bullish 4ex — Trade Our Simulated Capital, Keep Up to 90%" },
+      { property: "og:title", content: "Bullish4ex — Trading Challenges & Prop Firm Evaluation" },
       {
         property: "og:description",
-        content: "Educational trader skill development and simulated prop firm. Get funded up to $200K with transparent rules and bi-weekly payouts.",
+        content: "Skill-based trading evaluations and simulated accounts for educational purposes. Pass your trading challenge to unlock access to a funded account with up to 90% profit split.",
       },
       { property: "og:url", content: "https://bullish4ex.com" },
       { property: "og:image", content: "https://bullish4ex.com/hero-candle.webp" },
-      { property: "og:image:alt", content: "Bullish 4ex Trading Platform" },
+      { property: "og:image:alt", content: "Bullish4ex Simulated Trading Evaluation Platform" },
       { property: "og:locale", content: "en_US" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@bullish4ex" },
-      { name: "twitter:title", content: "Bullish 4ex — Forex Prop Firm & Trader Skill Evaluation" },
+      { name: "twitter:title", content: "Bullish4ex — Prop Firm Evaluation & Forex Trading Challenges" },
       {
         name: "twitter:description",
-        content: "Simulated forex prop evaluations up to $200K. Fast payouts, refundable fee, and up to 90% profit splits.",
+        content: "Complete a forex evaluation program on simulated accounts. Earn access to a funded account upon successful evaluation with fast reward payouts.",
       },
       { name: "twitter:image", content: "https://bullish4ex.com/hero-candle.webp" },
     ],
@@ -144,10 +144,10 @@ function RootShell({ children }: { children: ReactNode }) {
                 {
                   "@type": "Organization",
                   "@id": "https://bullish4ex.com/#organization",
-                  "name": "Bullish 4ex",
+                  "name": "Bullish4ex",
                   "url": "https://bullish4ex.com",
                   "logo": "https://bullish4ex.com/logo-mark.png",
-                  "description": "Educational platform and trader skill evaluation prop firm offering simulated trading evaluations up to $200,000.",
+                  "description": "Educational platform providing skill-based trading evaluations and simulated accounts for traders aiming to get funded through performance-based programs.",
                   "contactPoint": {
                     "@type": "ContactPoint",
                     "contactType": "Customer Support",
@@ -158,14 +158,15 @@ function RootShell({ children }: { children: ReactNode }) {
                   "@type": "WebSite",
                   "@id": "https://bullish4ex.com/#website",
                   "url": "https://bullish4ex.com",
-                  "name": "Bullish 4ex",
-                  "publisher": { "@id": "https://bullish4ex.com/#organization" }
+                  "name": "Bullish4ex",
+                  "publisher": { "@id": "https://bullish4ex.com/#organization" },
+                  "description": "Skill-based prop firm evaluations and trading challenges for educational purposes."
                 },
                 {
                   "@type": "EducationalOrganization",
-                  "name": "Bullish 4ex Trader Evaluation",
+                  "name": "Bullish4ex Trader Evaluation Programs",
                   "url": "https://bullish4ex.com",
-                  "description": "Simulated trading educational platform with structured 1-Step, 2-Step, Instant, and Flex evaluations."
+                  "description": "Educational forex evaluation programs and simulated accounts designed to help traders demonstrate disciplined risk management and gain access to a funded account upon successful evaluation."
                 }
               ]
             }),

@@ -64,13 +64,13 @@ export function FinalCta() {
                 Take the next step
               </span>
               <h2 className="text-silver mt-4 text-3xl font-bold tracking-tight md:text-4xl">
-                Ready to trade with <span className="text-gold">our capital?</span>
+                Ready to begin your <span className="text-gold">trading evaluation?</span>
               </h2>
               <p className="mx-auto mt-3 max-w-sm text-sm text-muted-foreground lg:mx-0">
-                Join 12,500+ traders earning up to 90% profit splits — with zero risk to your savings.
+                Join 12,500+ traders in our skill-based programs. Pass your evaluation to unlock simulated funded account access with up to 90% profit splits.
               </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
-                <CtaButton href="#challenges">Get Started Today</CtaButton>
+                <CtaButton href="#challenges">Start Your Evaluation</CtaButton>
                 <GhostButton href="#faq">Have Questions?</GhostButton>
               </div>
             </div>

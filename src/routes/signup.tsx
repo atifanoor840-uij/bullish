@@ -9,15 +9,15 @@ import { trackPixel } from "@/lib/metaPixel";
 export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
-      { title: "Register Trader Account — Bullish 4ex" },
+      { title: "Register Trader Account — Bullish4ex Prop Firm Evaluation" },
       {
         name: "description",
-        content: "Create your Bullish 4ex account, start your simulated trading evaluation, and keep up to 90% profits upon getting funded.",
+        content: "Create your Bullish4ex account and start your simulated trading challenge. Pass our skill-based evaluation to gain access to a funded account with up to 90% profit splits.",
       },
-      { property: "og:title", content: "Create Your Trader Account — Bullish 4ex" },
+      { property: "og:title", content: "Create Your Trader Account — Bullish4ex Evaluation" },
       {
         property: "og:description",
-        content: "Join Bullish 4ex today. Access simulated accounts up to $200K, low-latency execution, and bi-weekly payouts.",
+        content: "Join Bullish4ex today. Complete your trading evaluation on simulated accounts for educational purposes and earn access to a funded account.",
       },
       { property: "og:url", content: "https://bullish4ex.com/signup" },
       { property: "og:type", content: "website" },
@@ -103,10 +103,10 @@ function SignupPage() {
   };
 
   const perks = [
-    "Instant dashboard credentials upon purchase",
-    "Keep up to 90% of all simulated profits",
+    "Instant dashboard credentials upon registration",
+    "Keep up to 90% of simulated performance gains",
     "100% refundable evaluation fee with 1st payout",
-    "Zero time limit to complete evaluation",
+    "Zero time limit to pass your trading challenge",
   ];
 
   return (
@@ -134,13 +134,13 @@ function SignupPage() {
             </div>
             <div className="mt-10">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <Sparkles className="h-3.5 w-3.5" /> Start Trading Today
+                <Sparkles className="h-3.5 w-3.5" /> Skill-Based Trading Programs
               </span>
               <h2 className="text-silver mt-4 font-display text-3xl font-bold leading-tight">
-                Join 12,500+ funded traders globally.
+                Join 12,500+ evaluated traders globally.
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Get funded up to $200K, scale up to $2M, and enjoy biometric fast payouts directly to USDT or bank.
+                Pass your evaluation to unlock simulated accounts up to $200K, scale up to $2M, and earn up to 90% performance rewards.
               </p>
             </div>
 

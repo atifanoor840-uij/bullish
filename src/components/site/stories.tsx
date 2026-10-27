@@ -80,8 +80,8 @@ export function StoriesSection() {
         <Reveal className="mb-12 flex flex-wrap items-end justify-between gap-6">
           <div>
             <Pill>Trader stories</Pill>
-            <h2 className="text-silver mt-5 text-4xl font-semibold tracking-tight md:text-5xl">Real stories. Real success.</h2>
-            <p className="mt-4 text-base text-muted-foreground md:text-lg">Discover how our traders are earning real payouts.</p>
+            <h2 className="text-silver mt-5 text-4xl font-semibold tracking-tight md:text-5xl">Real discipline. Real performance.</h2>
+            <p className="mt-4 text-base text-muted-foreground md:text-lg">Discover how disciplined traders pass evaluations and earn simulated performance payouts.</p>
           </div>
           <div className="flex gap-3">
             {([-1, 1] as const).map((d) => (

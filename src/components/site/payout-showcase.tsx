@@ -7,8 +7,8 @@ import {
 import { SectionHead } from "./primitives";
 
 const features = [
-  { icon: Wallet, t: "Flexible Payout", d: "Secure payouts via Rise or crypto. Your capital, your way." },
-  { icon: CalendarClock, t: "Rapid Liquidity", d: "Request a payout every 14 days, up to 6% of your balance per cycle." },
+  { icon: Wallet, t: "Flexible Payouts", d: "Secure performance payouts via Rise or crypto. Fast, compliant, your way." },
+  { icon: CalendarClock, t: "Rapid Liquidity", d: "Request performance payouts every 14 days, up to 6% of your balance per cycle." },
   { icon: ShieldCheck, t: "Fast Payouts", d: "Approved payouts are processed in 1 hour on average." },
   { icon: TrendingUp, t: "Maximised Edge", d: "Start at 80% and grow to 90% from your third payout." },
 ];
@@ -218,9 +218,9 @@ export function PayoutShowcase() {
     <section id="payouts" className="relative">
       <div className="mx-auto max-w-7xl px-5 pt-24 md:pt-32">
         <SectionHead
-          label="Payouts"
-          title={<>Your profits,<br /><span className="text-gold">on your terms.</span></>}
-          sub="Flexible methods, rapid schedules and some of the fastest processing times in the industry."
+          label="Performance Rewards"
+          title={<>Simulated performance payouts,<br /><span className="text-gold">on your terms.</span></>}
+          sub="Flexible payout methods, rapid bi-weekly schedules, and performance-based reward processing."
         />
       </div>
 

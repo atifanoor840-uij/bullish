@@ -89,23 +89,23 @@ export function Hero() {
             <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary/25">
               <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-gold" />
             </span>
-            Up to 90% profit split
+            Skill-Based Trading Evaluations · Up to 90% Profit Split
           </span>
         </Reveal>
         <Reveal delay={0.1}>
           <h1 className="text-silver mt-8 text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl">
             Prove Your Skills.<br />
-            Trade with Our Capital.
+            Earn Funded Account Access.
           </h1>
         </Reveal>
         <Reveal delay={0.2}>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
-            Pass the evaluation, get funded up to $200K, and keep up to 90% of your profits. Payouts in 24 hours.
+            Pass our skill-based prop firm evaluation on simulated accounts designed for educational purposes. Gain access to a funded account upon successful evaluation and earn up to 90% performance rewards.
           </p>
         </Reveal>
         <Reveal delay={0.3} className="mt-10 flex flex-wrap items-center justify-center gap-6">
           <a href="#challenges" className="group inline-flex items-center gap-4 rounded-full bg-gold py-2 pr-2 pl-7 font-semibold text-primary-foreground shadow-gold transition hover:scale-[1.03]">
-            Start Challenge
+            Start Trading Challenge
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-background text-primary transition group-hover:rotate-45">
               <ArrowRight className="h-4 w-4 -rotate-45" />
             </span>
@@ -113,10 +113,10 @@ export function Hero() {
           <div className="flex items-center gap-3">
             <div className="flex -space-x-3">
               {avatars.map((a) => (
-                <img key={a} src={a} alt="Funded trader"className="h-10 w-10 rounded-full border-2 border-background bg-secondary object-cover" />
+                <img key={a} src={a} alt="Evaluated trader" className="h-10 w-10 rounded-full border-2 border-background bg-secondary object-cover" />
               ))}
             </div>
-            <p className="text-sm text-muted-foreground"><span className="font-bold text-foreground">12.5K+</span> Funded Traders</p>
+            <p className="text-sm text-muted-foreground"><span className="font-bold text-foreground">12.5K+</span> Traders Evaluated</p>
           </div>
         </Reveal>
       </div>

@@ -15,9 +15,9 @@ const MODEL_OF: Record<PlanType, PricingPlan["model"]> = { "1-Step": "One Step",
 /* ---------------- How it works ---------------- */
 
 const steps = [
-  { icon: UserRound, t: "Choose Your Account", d: "Select your evaluation model, account size and platform to begin your challenge." },
-  { icon: Target, t: "Pass The Evaluation", d: "Trade on your platform and hit the objectives in your dashboard with clear, simple rules." },
-  { icon: Wallet, t: "Get Funded & Paid", d: "Trade our capital and request payouts on demand — keep up to 90% via Rise or crypto." },
+  { icon: UserRound, t: "Choose Your Trading Challenge", d: "Select your prop firm evaluation model, simulated account size, and platform to begin." },
+  { icon: Target, t: "Complete The Skill Evaluation", d: "Trade on simulated accounts for educational purposes and meet risk objectives with simple rules." },
+  { icon: Wallet, t: "Access Funded Account Rewards", d: "Gain access to a funded account upon successful evaluation and earn up to 90% performance payouts." },
 ];
 
 /** Glowing "staircase" line used as side decoration. */
@@ -113,8 +113,8 @@ export function HowItWorks() {
       <div className="relative mx-auto max-w-5xl px-5">
         <SectionHead
           label="How it works"
-          title={<>From Evaluation to<br /><span className="text-gold">Funded Trader</span></>}
-          sub="Follow these steps to join Bullish 4ex, complete your evaluation and start earning as a funded trader."
+          title={<>From Skill Evaluation to<br /><span className="text-gold">Funded Account Access</span></>}
+          sub="Follow our transparent, skill-based evaluation path designed for educational purposes and performance rewards."
         />
 
         <div ref={track} className="relative">
@@ -224,9 +224,9 @@ export function Pricing() {
       <div className="spotlight pointer-events-none absolute top-40 left-1/2 h-[500px] w-[900px] -translate-x-1/2 opacity-60" />
       <div className="relative mx-auto max-w-7xl px-5">
         <SectionHead
-          label="Pricing"
-          title={<>Choose your account.<br />Pay once, trade forever.</>}
-          sub="One-time fee, no subscriptions. Your fee is refunded in full with your first payout."
+          label="Trading Challenges"
+          title={<>Choose your evaluation program.<br />Pay once, get evaluated.</>}
+          sub="One-time evaluation fee with zero recurring subscriptions. 100% refundable upon passing your evaluation."
         />
 
         {/* Plan type selector */}
