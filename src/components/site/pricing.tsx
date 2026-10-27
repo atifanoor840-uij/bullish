@@ -1,11 +1,11 @@
 import { motion, useMotionValueEvent, useScroll, useSpring, useTransform, type MotionValue } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
-import { Check, ShieldCheck, Info, Lock, Sparkles, UserRound, Target, Wallet, Gift } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ShieldCheck, Info, Lock, Sparkles, UserRound, Target, Wallet, Gift, Tag } from "lucide-react";
 import {
   sizes, planTypes, planMeta, getPlan, popular, planIncludes, type PlanType,
 } from "@/lib/site-data";
 import { CtaButton, Reveal, SectionHead, fmt } from "./primitives";
-import { propApi, type Offer, type PricingPlan } from "@/lib/propApi";
+import { propApi, type Coupon, type Offer, type PricingPlan } from "@/lib/propApi";
 import { bogoBadge, bogoFor, isLive, isPublic, offerSummary } from "@/lib/offers";
 import { price as fmtPrice, sizeLabel } from "@/lib/portal";
 import { trackPixel } from "@/lib/metaPixel";
@@ -179,13 +179,28 @@ export function Pricing() {
   // Live catalog from the CRM; the static site-data is only a fallback when the API is unreachable.
   const [catalog, setCatalog] = useState<PricingPlan[] | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+
   useEffect(() => {
     propApi.catalog.pricingPlans().then((r) => {
       const active = r.plans.filter((p) => p.status === "active");
       if (active.length) setCatalog(active);
     }).catch(() => {});
     propApi.catalog.offers().then((r) => setOffers(r.offers.filter((o) => isLive(o) && isPublic(o)))).catch(() => {});
+    propApi.catalog.coupons().then((r) => setCoupons(r.coupons ?? [])).catch(() => {});
   }, []);
+
+  const activeCoupons = coupons.filter((c) => c.status === "active" && !c.isExpired);
+  const appliedCoupon = useMemo(() => {
+    if (typeof window !== "undefined") {
+      const fromUrl = new URLSearchParams(window.location.search).get("coupon")?.trim().toUpperCase();
+      if (fromUrl) {
+        const match = activeCoupons.find((c) => c.code === fromUrl);
+        if (match) return match;
+      }
+    }
+    return [...activeCoupons].sort((a, b) => b.discountPercent - a.discountPercent)[0] ?? null;
+  }, [activeCoupons]);
 
   const types = catalog ? planTypes.filter((t) => catalog.some((p) => p.model === MODEL_OF[t])) : planTypes;
   const activeType = types.includes(type) ? type : (types[0] ?? type);
@@ -194,8 +209,12 @@ export function Pricing() {
   const activeSize = sizeList.includes(size) ? size : (sizeList[0] ?? size);
   const live = typePlans.find((p) => p.size === activeSize);
   const plan = getPlan(activeType, activeSize);
-  const fee = live ? live.price : plan.fee;
-  const checkoutHref = live ? `/dashboard/new-challenge?plan=${encodeURIComponent(live.id)}` : "/dashboard/new-challenge";
+  const rawFee = live ? live.price : plan.fee;
+  const discountPercent = appliedCoupon ? appliedCoupon.discountPercent : 0;
+  const fee = discountPercent > 0 ? Math.round(rawFee * (1 - discountPercent / 100)) : rawFee;
+  const checkoutHref = live
+    ? `/dashboard/new-challenge?plan=${encodeURIComponent(live.id)}${appliedCoupon ? `&coupon=${encodeURIComponent(appliedCoupon.code)}` : ""}`
+    : `/dashboard/new-challenge${appliedCoupon ? `?coupon=${encodeURIComponent(appliedCoupon.code)}` : ""}`;
   const sizeOffer = (s: number) => bogoFor(offers, MODEL_OF[activeType], s)[0];
   const planOffer = sizeOffer(activeSize);
   const isPopular = activeType === popular.type && activeSize === popular.size;
@@ -280,13 +299,33 @@ export function Pricing() {
               </span>
             )}
             <p className="text-sm text-muted-foreground">One-time evaluation fee</p>
-            <div className="mt-2 flex items-end gap-2">
-              <motion.span key={fee} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-gold font-display text-6xl font-semibold tracking-tight">
-                {fmtPrice(fee)}
-              </motion.span>
-              <span className="mb-2 text-sm text-muted-foreground">USD</span>
+            <div className="mt-2 flex flex-wrap items-end gap-2">
+              {discountPercent > 0 ? (
+                <>
+                  <motion.span key={fee} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-gold font-display text-6xl font-semibold tracking-tight">
+                    {fmtPrice(fee)}
+                  </motion.span>
+                  <div className="mb-2 flex flex-col">
+                    <span className="text-sm line-through text-muted-foreground/60">{fmtPrice(rawFee)}</span>
+                    <span className="text-xs font-semibold text-profit">{appliedCoupon?.code} (-{discountPercent}%)</span>
+                  </div>
+                  <span className="mb-2 text-sm text-muted-foreground">USD</span>
+                </>
+              ) : (
+                <>
+                  <motion.span key={fee} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-gold font-display text-6xl font-semibold tracking-tight">
+                    {fmtPrice(fee)}
+                  </motion.span>
+                  <span className="mb-2 text-sm text-muted-foreground">USD</span>
+                </>
+              )}
             </div>
             <p className="mt-2 text-xs text-muted-foreground">≈ {((fee / activeSize) * 100).toFixed(2)}% of account size</p>
+            {appliedCoupon && (
+              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-profit/30 bg-profit/10 px-3 py-1 text-xs font-medium text-profit">
+                <Sparkles className="h-3.5 w-3.5" /> Promo auto-applied: {appliedCoupon.code} ({appliedCoupon.discountPercent}% OFF)
+              </div>
+            )}
             {planOffer && (
               <div className="mt-4 flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs">
                 <Gift className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />

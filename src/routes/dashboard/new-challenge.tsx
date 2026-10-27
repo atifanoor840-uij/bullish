@@ -63,12 +63,31 @@ function NewChallenge() {
   const activeModel = models.includes(model) ? model : (models[0] ?? model);
   const sizes = useMemo(() => (data?.plans ?? []).filter((p) => p.model === activeModel).sort((a, b) => a.size - b.size), [data, activeModel]);
 
-  // Deep link from the landing pricing: /dashboard/new-challenge?plan=<planId>
+  // Deep link from the landing pricing: /dashboard/new-challenge?plan=<planId>&coupon=<couponCode>
   useEffect(() => {
     trackPixel("PageView");
-    const id = new URLSearchParams(window.location.search).get("plan");
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("plan");
     const p = data?.plans.find((x) => x.id === id);
     if (p) { setModel(p.model); setSize(p.size); }
+
+    // Auto-apply coupon from URL or find best active promo coupon
+    if (data?.coupons && !code) {
+      const urlCoupon = params.get("coupon")?.trim().toUpperCase();
+      const validUrlCoupon = urlCoupon
+        ? data.coupons.find((c) => c.code === urlCoupon && c.status === "active" && !c.isExpired)
+        : null;
+      if (validUrlCoupon) {
+        setCode(validUrlCoupon.code);
+      } else {
+        const bestActive = [...data.coupons]
+          .filter((c) => c.status === "active" && !c.isExpired)
+          .sort((a, b) => b.discountPercent - a.discountPercent)[0];
+        if (bestActive) {
+          setCode(bestActive.code);
+        }
+      }
+    }
   }, [data]);
 
   const plan = sizes.find((p) => p.size === size) ?? sizes[0];
@@ -265,7 +284,14 @@ function NewChallenge() {
                   <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter code" className={cx(inputCls, "pl-9 uppercase")} />
                 </div>
               </Field>
-              {code && (coupon ? <p className="text-xs text-profit">{coupon.code} applied — {coupon.discountPercent}% off</p> : <p className="text-xs text-muted-foreground">Code will be checked at checkout.</p>)}
+              {code && (coupon ? (
+                <div className="flex items-center gap-1.5 text-xs font-medium text-profit">
+                  <Check className="h-3.5 w-3.5" />
+                  <span>Promo {coupon.code} auto-applied — {coupon.discountPercent}% off</span>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Code will be checked at checkout.</p>
+              ))}
               {data.referralBalance > 0 && (
                 <label className="flex items-center justify-between text-sm">
                   <span>Use referral balance <span className="text-muted-foreground">({money(data.referralBalance)})</span></span>
