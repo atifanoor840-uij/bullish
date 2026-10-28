@@ -154,7 +154,91 @@ export async function payOrder(ctx: Ctx) {
   const platform = ["MT4", "MT5", "cTrader"].includes(str(b.platform)) ? str(b.platform) : "MT5";
   const method = order.paymentMethod.toLowerCase();
   if (method.includes("crypto qr")) throw new HttpError(400, "Submit your crypto payment proof instead.");
-  if (!method.includes("paddle")) throw new HttpError(503, `${order.paymentMethod} payments are not available. Please choose card (Paddle) or Crypto QR.`);
+  if (method.includes("whop")) {
+    if (!env.whop.apiKey && !env.whop.checkoutUrl && !env.whop.variantId) {
+      throw new HttpError(503, "Whop payments are not configured yet (WHOP_API_KEY).");
+    }
+    const { planName } = await orderPlan(order);
+    const returnUrl = `${env.appUrl || new URL(ctx.req.url).origin}/dashboard/orders`;
+
+    const plan = await db.one<DBPricingPlan>("pricing_plans", { id: eq(order.planId) });
+    const modelKey = plan?.model ? plan.model.toUpperCase().replace(/\s+/g, "_") : "";
+    const sizeKey = plan?.size ? String(plan.size) : "";
+    const variantId =
+      (modelKey && sizeKey ? (process.env[`WHOP_VARIANT_${modelKey}_${sizeKey}`] || "") : "") ||
+      (order.planId ? (process.env[`WHOP_VARIANT_${order.planId.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`] || "") : "") ||
+      env.whop.variantId ||
+      "";
+
+    const directCheckout = variantId
+      ? `https://whop.com/checkout/${variantId}?metadata[orderId]=${encodeURIComponent(order.id)}&metadata[platform]=${encodeURIComponent(platform)}&redirect_url=${encodeURIComponent(returnUrl)}`
+      : env.whop.checkoutUrl
+        ? `${env.whop.checkoutUrl}${env.whop.checkoutUrl.includes("?") ? "&" : "?"}metadata_order_id=${encodeURIComponent(order.id)}&metadata_platform=${encodeURIComponent(platform)}`
+        : "";
+
+    if (!variantId && !directCheckout) {
+      throw new HttpError(
+        400,
+        "Whop variant_id is required. Please set WHOP_VARIANT_ID (e.g. plan_xxxxxxxx) in .env.local or configure WHOP_CHECKOUT_URL."
+      );
+    }
+
+    if (env.whop.apiKey && variantId) {
+      try {
+        const payload: Record<string, unknown> = {
+          account_id: env.whop.companyId || "biz_D8AC4pUxTJ5rvh",
+          variant_id: variantId,
+          redirect_url: returnUrl,
+          metadata: { orderId: order.id, userId: user.id, platform },
+        };
+        const res = await fetch("https://api.whop.com/api/v1/checkout_configurations", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${env.whop.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          id?: string;
+          purchase_url?: string;
+          checkout_url?: string;
+          error?: { message?: string };
+        };
+
+        const url = data.purchase_url || data.checkout_url;
+        if (res.ok && url) {
+          const gatewayRef = `whop:${data.id || variantId}:platform=${platform}`;
+          await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
+          return { provider: "whop", checkoutUrl: url, gatewayRef };
+        }
+
+        if (directCheckout) {
+          const gatewayRef = `whop:${variantId || "hosted"}:platform=${platform}`;
+          await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
+          return { provider: "whop", checkoutUrl: directCheckout, gatewayRef };
+        }
+
+        throw new HttpError(502, data.error?.message || "Could not start Whop checkout.");
+      } catch (err) {
+        if (err instanceof HttpError) throw err;
+        if (directCheckout) {
+          const gatewayRef = `whop:${variantId || "hosted"}:platform=${platform}`;
+          await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
+          return { provider: "whop", checkoutUrl: directCheckout, gatewayRef };
+        }
+        throw new HttpError(502, err instanceof Error ? err.message : "Failed to initiate Whop checkout");
+      }
+    }
+
+    if (directCheckout) {
+      const gatewayRef = `whop:${variantId || "hosted"}:platform=${platform}`;
+      await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
+      return { provider: "whop", checkoutUrl: directCheckout, gatewayRef };
+    }
+  }
+
+  if (!method.includes("paddle")) throw new HttpError(503, `${order.paymentMethod} payments are not available. Please choose Whop, Card (Paddle) or Crypto QR.`);
   if (!env.paddle.apiKey) throw new HttpError(503, "Card payments are not configured yet (PADDLE_API_KEY).");
 
   const { planName } = await orderPlan(order);
@@ -197,6 +281,53 @@ export async function paddleWebhook(ctx: Ctx) {
   if (order.status !== "Pending") return json({ success: true, alreadyProcessed: true });
   const platform = event.data?.custom_data?.platform || "MT5";
   await activateOrder(order, { status: "Paid", gatewayRef: `paddle:${event.data?.id}:platform=${platform}` });
+  return json({ success: true });
+}
+
+export async function whopWebhook(ctx: Ctx) {
+  const raw = await ctx.req.text();
+  const secret = env.whop.webhookSecret;
+  if (secret) {
+    const sig = ctx.req.headers.get("webhook-signature") || ctx.req.headers.get("x-whop-signature") || "";
+    const ts = ctx.req.headers.get("webhook-timestamp") || "";
+    if (sig && ts) {
+      const toSign = `${ts}.${raw}`;
+      const expected = await hmacHex(secret, toSign);
+      if (!sig.includes(expected) && !safeEqual(sig, expected)) return json({ error: "Invalid signature." }, 401);
+    }
+  }
+
+  let event: { type?: string; action?: string; event?: string; id?: string; data?: any } = {};
+  try {
+    event = JSON.parse(raw);
+  } catch {
+    return json({ error: "Invalid JSON" }, 400);
+  }
+
+  const eventType = event.type || event.action || event.event;
+  if (eventType !== "payment.succeeded" && eventType !== "payment.created" && eventType !== "membership.went_valid") {
+    return json({ success: true, ignored: true, eventType });
+  }
+
+  const orderId =
+    event.data?.metadata?.orderId ||
+    event.data?.metadata?.order_id ||
+    event.data?.checkout_configuration?.metadata?.orderId ||
+    event.data?.custom_fields?.orderId ||
+    event.data?.line_items?.[0]?.metadata?.orderId;
+
+  const order = orderId ? await db.one<DBOrder>("orders", { id: eq(orderId) }) : null;
+  if (!order) return json({ success: true, ignored: "order not found" });
+  if (order.status !== "Pending") return json({ success: true, alreadyProcessed: true });
+
+  const platform =
+    event.data?.metadata?.platform ||
+    event.data?.checkout_configuration?.metadata?.platform ||
+    event.data?.custom_fields?.platform ||
+    "MT5";
+
+  const paymentId = event.data?.id || event.id || "whop_payment";
+  await activateOrder(order, { status: "Paid", gatewayRef: `whop:${paymentId}:platform=${platform}` });
   return json({ success: true });
 }
 

@@ -52,6 +52,7 @@ const routes: Record<string, Handler> = {
   "DELETE /orders": orders.deleteOrder,
   "POST /orders/pay": orders.payOrder,
   "POST /orders/pay/paddle-webhook": orders.paddleWebhook,
+  "POST /orders/pay/whop-webhook": orders.whopWebhook,
   "POST /orders/manual-payment": orders.submitManualPayment,
   "GET /orders/manual-payment": orders.viewManualPayment,
 

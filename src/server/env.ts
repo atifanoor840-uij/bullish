@@ -31,6 +31,17 @@ export const env = {
       sandbox: (read("PADDLE_ENVIRONMENT") || "sandbox") !== "production",
     };
   },
+  get whop() {
+    return {
+      apiKey: read("WHOP_API_KEY"),
+      appId: read("NEXT_PUBLIC_WHOP_APP_ID") || read("WHOP_APP_ID") || "app_7buyTjZWrgIEwl",
+      productId: read("WHOP_PRODUCT_ID") || "prod_lZuuCJlAqAwo8",
+      companyId: read("WHOP_COMPANY_ID") || read("WHOP_BIZ_ID") || "biz_D8AC4pUxTJ5rvh",
+      webhookSecret: read("WHOP_WEBHOOK_SECRET"),
+      checkoutUrl: read("WHOP_CHECKOUT_URL"),
+      variantId: read("WHOP_VARIANT_ID") || read("WHOP_PLAN_ID") || "plan_EE7OocLy4ExcR",
+    };
+  },
   get didit() {
     return {
       apiKey: read("DIDIT_API_KEY"),

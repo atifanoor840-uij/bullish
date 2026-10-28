@@ -27,7 +27,7 @@ export function PayOrder({ orderId, amount, paymentMethod, platform = "MT5", onD
   if (!manual) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">You will be redirected to our secure payment partner to pay <strong className="text-foreground">{money(amount)}</strong>.</p>
+        <p className="text-sm text-muted-foreground">You will be redirected to {paymentMethod.toLowerCase().includes("whop") ? "Whop" : "our secure payment partner"} to pay <strong className="text-foreground">{money(amount)}</strong>.</p>
         <Button
           variant="primary"
           busy={busy === "pay"}
