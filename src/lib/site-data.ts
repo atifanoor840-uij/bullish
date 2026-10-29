@@ -10,7 +10,7 @@ export const navLinks = [
 
 export const stats = [
   { label: "Simulated rewards paid", value: 18.4, prefix: "$", suffix: "M+", decimals: 1, note: "Since 2023" },
-  { label: "Traders evaluated", value: 12500, suffix: "+", decimals: 0, note: "Across all plans" },
+  { label: "Profit split", value: 90, prefix: "Up to ", suffix: "%", decimals: 0, note: "On funded accounts" },
   { label: "Countries served", value: 140, suffix: "+", decimals: 0, note: "Worldwide access" },
   { label: "Average payout time", value: 8, suffix: "h", decimals: 0, note: "From request to wallet" },
 ];
@@ -18,29 +18,29 @@ export const stats = [
 export const partners = ["MetaTrader 5", "cTrader", "Match-Trader", "TradingView", "Visa", "Mastercard", "USDT · TRC20", "Rise", "Skrill", "Apple Pay"];
 
 export const sizes = [3000, 5000, 10000, 25000, 50000, 100000, 200000];
-export type PlanType = "1-Step" | "2-Step" | "Instant Funding" | "Flex";
-export const planTypes: PlanType[] = ["1-Step", "2-Step", "Instant Funding", "Flex"];
+export type PlanType = "1-Step" | "2-Step" | "Express Program" | "Flex";
+export const planTypes: PlanType[] = ["1-Step", "2-Step", "Express Program", "Flex"];
 
 export const planMeta: Record<PlanType, { tagline: string; phases: string }> = {
   "1-Step": { tagline: "One phase evaluation. Hit the target to unlock funded access.", phases: "1 phase" },
   "2-Step": { tagline: "Our most balanced evaluation with relaxed risk limits.", phases: "2 phases" },
-  "Instant Funding": { tagline: "Direct access to a performance-rewarded simulated account.", phases: "No evaluation" },
+  "Express Program": { tagline: "Direct access to a performance-rewarded simulated account.", phases: "No evaluation" },
   Flex: { tagline: "Pay a small entry fee today, the rest only when you pass.", phases: "1 phase" },
 };
 
 const baseFee: Record<number, number> = { 3000: 35, 5000: 49, 10000: 89, 25000: 179, 50000: 299, 100000: 529, 200000: 999 };
 
 type Rules = {
-  target: string; daily: string; overall: string; days: string; leverage: string; split: string;
+  target: string; daily: string; overall: string; days: string; split: string;
   payout: string; time: string; mult: number;
 };
 const rules: Record<PlanType, Rules> = {
   // Official Bullish4ex rules: 1-Step: 9% target, 6% max loss; 2-Step: 6%/5% target, 6% max loss; Instant: 6% max loss.
-  "1-Step": { target: "9%", daily: "4%", overall: "6%", days: "3 Winning Days", leverage: "1:100", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 1.1 },
-  "2-Step": { target: "6% / 5%", daily: "4%", overall: "6%", days: "3 Winning Days / phase", leverage: "1:100", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 1 },
-  "Instant Funding": { target: "None", daily: "3%", overall: "6%", days: "5 Winning Days", leverage: "1:100", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 2.6 },
+  "1-Step": { target: "9%", daily: "4%", overall: "6%", days: "3 Winning Days", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 1.1 },
+  "2-Step": { target: "6% / 5%", daily: "4%", overall: "6%", days: "3 Winning Days / phase", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 1 },
+  "Express Program": { target: "None", daily: "3%", overall: "6%", days: "5 Winning Days", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 2.6 },
   // Flex: 4% target, 4% daily, 8% trailing max loss; no min days in eval, 5 on funded.
-  Flex: { target: "4%", daily: "4%", overall: "8% (trailing)", days: "None (Eval) / 5 (Funded)", leverage: "1:100", split: "85% (90% w/ add-on)", payout: "Every 14 days", time: "Unlimited", mult: 1 },
+  Flex: { target: "4%", daily: "4%", overall: "8% (trailing)", days: "None (Eval) / 5 (Funded)", split: "85% (90% w/ add-on)", payout: "Every 14 days", time: "Unlimited", mult: 1 },
 };
 
 export function getPlan(type: PlanType, size: number) {
@@ -53,7 +53,6 @@ export function getPlan(type: PlanType, size: number) {
       ["Max overall loss", r.overall, flex ? "Trailing from highest closed balance" : "Static, from initial balance"],
       ["Min trading days", r.days, flex ? "No minimum during evaluation" : "Winning Days reach at least +0.5% on equity basis"],
       ["Trading period", r.time, "No deadline to pass"],
-      ["Leverage", r.leverage, "1:100 across all asset classes"],
       ["Profit split", r.split, flex ? "90% with the profit split add-on" : "70% → 80% → 90% → up to 100%"],
       ["Payout cycle", r.payout, "Bi-weekly, up to 6% of balance per cycle"],
     ] as [string, string, string][],
@@ -66,19 +65,18 @@ export const planIncludes = [
   "Fee refunded with first payout",
   "Weekend holding with add-on (+20%)",
   "EAs and bots allowed (no HFT)",
-  "1:100 leverage on all asset classes",
   "Scaling plan: +25% balance every 4 payouts",
 ];
 
 export const compareTypes: { label: string; values: Record<PlanType, string | boolean> }[] = [
-  { label: "Evaluation phases", values: { "1-Step": "1", "2-Step": "2", "Instant Funding": "None", Flex: "1" } },
-  { label: "Profit target", values: { "1-Step": "9%", "2-Step": "6% / 5%", "Instant Funding": "—", Flex: "4%" } },
-  { label: "Max daily loss", values: { "1-Step": "4%", "2-Step": "4%", "Instant Funding": "3%", Flex: "4%" } },
-  { label: "Max overall loss", values: { "1-Step": "6% (static)", "2-Step": "6% (static)", "Instant Funding": "6% (static)", Flex: "8% (trailing)" } },
-  { label: "Profit split", values: { "1-Step": "70% up to 100%", "2-Step": "70% up to 100%", "Instant Funding": "70% up to 100%", Flex: "85% (90% w/ add-on)" } },
-  { label: "News trading", values: { "1-Step": "Free in challenge; ±5m on funded", "2-Step": "Free in challenge; ±5m on funded", "Instant Funding": "10-min window (±5m)", Flex: "Free in challenge; ±5m on funded" } },
-  { label: "Refundable fee", values: { "1-Step": true, "2-Step": true, "Instant Funding": false, Flex: false } },
-  { label: "Scaling plan (+25% every 4 payouts)", values: { "1-Step": true, "2-Step": true, "Instant Funding": true, Flex: true } },
+  { label: "Evaluation phases", values: { "1-Step": "1", "2-Step": "2", "Express Program": "None", Flex: "1" } },
+  { label: "Profit target", values: { "1-Step": "9%", "2-Step": "6% / 5%", "Express Program": "—", Flex: "4%" } },
+  { label: "Max daily loss", values: { "1-Step": "4%", "2-Step": "4%", "Express Program": "3%", Flex: "4%" } },
+  { label: "Max overall loss", values: { "1-Step": "6% (static)", "2-Step": "6% (static)", "Express Program": "6% (static)", Flex: "8% (trailing)" } },
+  { label: "Profit split", values: { "1-Step": "70% up to 100%", "2-Step": "70% up to 100%", "Express Program": "70% up to 100%", Flex: "85% (90% w/ add-on)" } },
+  { label: "News trading", values: { "1-Step": "Free in challenge; ±5m on funded", "2-Step": "Free in challenge; ±5m on funded", "Express Program": "10-min window (±5m)", Flex: "Free in challenge; ±5m on funded" } },
+  { label: "Refundable fee", values: { "1-Step": true, "2-Step": true, "Express Program": false, Flex: false } },
+  { label: "Scaling plan (+25% every 4 payouts)", values: { "1-Step": true, "2-Step": true, "Express Program": true, Flex: true } },
 ];
 
 export const scaling = [
@@ -110,19 +108,12 @@ export const comparison: { label: string; us: string | boolean; them: string | b
 ];
 
 /**
- * Trader stories carousel. Placeholder content — swap in real traders.
+ * Trader stories carousel. Only add real, verifiable traders (with their consent) — the section is hidden from the homepage while empty.
  * `image`: thumbnail path (e.g. "/stories/booker.jpg" in /public); without it a styled placeholder is shown.
  * `video`: embeddable URL (e.g. "https://www.youtube.com/embed/<id>"); the play button is disabled without it.
  */
 export type Story = { name: string; country: string; total: string; quote: string; image?: string; video?: string };
-export const stories: Story[] = [
-  { name: "Hamza", country: "PK", total: "$52,431", quote: "Bullish4ex gave me the structure and confidence to scale consistently." },
-  { name: "Jonathan", country: "US", total: "$24,186", quote: "The rules are clear, the support is real, and the payouts are fast." },
-  { name: "Stephen", country: "GB", total: "$201,095", quote: "Hitting six figures in performance rewards changed my life. Bullish4ex made it possible." },
-  { name: "Elena", country: "ES", total: "$15,845", quote: "This firm gave me the disciplined framework to develop my trading edge." },
-  { name: "Omar", country: "AE", total: "$86,320", quote: "I never thought I would get rewarded this fast — fee refunded on my first payout." },
-  { name: "Yuki", country: "JP", total: "$31,760", quote: "Clean dashboard, clear drawdown metrics. I always know exactly where I stand." },
-];
+export const stories: Story[] = [];
 
 export const faqs = [
   ["What are the trading rules?", "Respect the max daily and overall loss limits, hit the profit target, and trade the minimum days on your simulated account. No time limits."],

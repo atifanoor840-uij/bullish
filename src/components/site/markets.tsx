@@ -162,7 +162,7 @@ export function Markets() {
             <table className="w-full min-w-[680px] text-left text-sm">
               <thead className="text-xs text-muted-foreground">
                 <tr className="border-b border-white/[0.08]">
-                  {["Instrument", "Price", "Change", "Trend", "Spread", "Leverage", ""].map((h) => <th key={h} className="px-5 py-4 font-medium">{h}</th>)}
+                  {["Instrument", "Price", "Change", "Trend", "Spread", ""].map((h) => <th key={h} className="px-5 py-4 font-medium">{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -183,7 +183,6 @@ export function Markets() {
                       <td className="px-5 py-3.5"><Change q={q} className="text-xs" /></td>
                       <td className="px-5 py-3.5"><Spark price={q.price} up={changePct(q) >= 0} /></td>
                       <td className="px-5 py-3.5 text-muted-foreground">{a.spread}</td>
-                      <td className="px-5 py-3.5 text-muted-foreground">{a.leverage}</td>
                       <td className="px-5 py-3.5 text-right">
                         <a href="#challenges" className="rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium transition hover:border-primary/50 hover:text-primary">Trade</a>
                       </td>

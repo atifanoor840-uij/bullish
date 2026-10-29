@@ -13,7 +13,7 @@ import { trackPixel } from "@/lib/metaPixel";
 /** Static grid classes so the type selector fits however many types the CRM has active. */
 const COLS = ["", "sm:grid-cols-1", "sm:grid-cols-2", "sm:grid-cols-3", "sm:grid-cols-2 lg:grid-cols-4"];
 
-const MODEL_OF: Record<PlanType, PricingPlan["model"]> = { "1-Step": "One Step", "2-Step": "Two Step", "Instant Funding": "Instant", Flex: "Flex" };
+const MODEL_OF: Record<PlanType, PricingPlan["model"]> = { "1-Step": "One Step", "2-Step": "Two Step", "Express Program": "Instant", Flex: "Flex" };
 
 /* ---------------- How it works ---------------- */
 

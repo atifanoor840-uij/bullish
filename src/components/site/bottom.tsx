@@ -104,7 +104,7 @@ export function Footer() {
       [
         { label: "1-Step Evaluation", href: "/#challenges" },
         { label: "2-Step Evaluation", href: "/#challenges" },
-        { label: "Instant Funding", href: "/#challenges" },
+        { label: "Express Program", href: "/#challenges" },
         { label: "Flex Challenge ($9)", href: "/#challenges" },
         { label: "Scaling Plan", href: "/#scaling" },
       ],

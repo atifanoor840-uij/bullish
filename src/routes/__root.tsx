@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=5" },
-      { title: "Bullish4ex — Prop Firm Evaluation & Trading Challenges | Get Funded as a Trader" },
+      { title: "Bullish4ex — Prop Firm Evaluation & Trading Challenges" },
       {
         name: "description",
-        content: "Bullish4ex offers skill-based trading evaluations and simulated accounts designed for educational purposes. Complete a trading challenge or forex evaluation program to earn access to a funded account upon successful evaluation with up to 90% profit splits.",
+        content: "Bullish4ex offers skill-based trading evaluations and simulated accounts designed for educational purposes. Complete a trading challenge to earn access to a funded account upon successful evaluation with up to 90% profit splits.",
       },
       {
         name: "keywords",
-        content: "trading challenge, prop firm evaluation, get funded as a trader, forex evaluation program, simulated accounts, skill-based programs, educational purposes, funded account upon successful evaluation, bullish4ex",
+        content: "trading challenge, prop firm evaluation, simulated accounts, skill-based programs, educational purposes, funded account upon successful evaluation, bullish4ex",
       },
       { name: "author", content: "Bullish4ex" },
       { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
@@ -106,7 +106,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "Bullish4ex — Prop Firm Evaluation & Forex Trading Challenges" },
       {
         name: "twitter:description",
-        content: "Complete a forex evaluation program on simulated accounts. Earn access to a funded account upon successful evaluation with fast reward payouts.",
+        content: "Complete a skill-based trading evaluation on simulated accounts. Earn access to a funded account upon successful evaluation with fast reward payouts.",
       },
       { name: "twitter:image", content: "https://bullish4ex.com/hero-candle.webp" },
     ],
@@ -166,7 +166,7 @@ function RootShell({ children }: { children: ReactNode }) {
                   "@type": "EducationalOrganization",
                   "name": "Bullish4ex Trader Evaluation Programs",
                   "url": "https://bullish4ex.com",
-                  "description": "Educational forex evaluation programs and simulated accounts designed to help traders demonstrate disciplined risk management and gain access to a funded account upon successful evaluation."
+                  "description": "Educational trading evaluations and simulated accounts designed to help traders demonstrate disciplined risk management and gain access to a funded account upon successful evaluation."
                 }
               ]
             }),

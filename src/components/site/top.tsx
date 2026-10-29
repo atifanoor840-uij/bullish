@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { ArrowRight, Menu, X, Star } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { navLinks, partners, stats } from "@/lib/site-data";
 import { Counter, Logo, Reveal } from "./primitives";
 
@@ -25,7 +25,7 @@ export function Navbar() {
         <div className="hidden items-center gap-2 lg:flex">
           <a href="/login" className="rounded-full px-4 py-2 text-sm font-medium text-foreground/90 hover:text-primary">Login</a>
           <a href="/signup" className="inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-gold transition hover:brightness-110">
-            Get Funded
+            Start Evaluation
           </a>
         </div>
         <button className="lg:hidden" onClick={() => setOpen(!open)} aria-label="Menu">
@@ -39,7 +39,7 @@ export function Navbar() {
           ))}
           <div className="mt-4 flex gap-2">
             <a href="/login" className="flex-1 rounded-full border border-white/10 py-2.5 text-center text-sm font-medium">Login</a>
-            <a href="/signup" onClick={() => setOpen(false)} className="flex-1 rounded-full bg-gold py-2.5 text-center text-sm font-semibold text-primary-foreground">Get Funded</a>
+            <a href="/signup" onClick={() => setOpen(false)} className="flex-1 rounded-full bg-gold py-2.5 text-center text-sm font-semibold text-primary-foreground">Start Evaluation</a>
           </div>
         </div>
       )}
@@ -48,12 +48,6 @@ export function Navbar() {
 }
 
 export function Hero() {
-  const avatars = [
-    "https://randomuser.me/api/portraits/men/32.jpg",
-    "https://randomuser.me/api/portraits/women/44.jpg",
-    "https://randomuser.me/api/portraits/men/75.jpg",
-    "https://randomuser.me/api/portraits/men/86.jpg",
-  ];
   return (
     <section className="hero-bg relative overflow-hidden pt-36 pb-24 md:pt-44 md:pb-32">
       {/* Diagonal light beams (top-right) */}
@@ -110,32 +104,18 @@ export function Hero() {
               <ArrowRight className="h-4 w-4 -rotate-45" />
             </span>
           </a>
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-3">
-              {avatars.map((a) => (
-                <img key={a} src={a} alt="Evaluated trader" className="h-10 w-10 rounded-full border-2 border-background bg-secondary object-cover" />
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground"><span className="font-bold text-foreground">12.5K+</span> Traders Evaluated</p>
-          </div>
         </Reveal>
       </div>
     </section>
   );
 }
 
-/** Scrolling strip of platforms / payment partners with a rating badge. */
+/** Scrolling strip of platforms / payment partners. */
 export function TrustBar() {
   const list = [...partners, ...partners];
   return (
     <section className="relative border-y border-white/[0.05] bg-white/[0.01]">
       <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-5 py-6 md:flex-row">
-        <div className="flex shrink-0 items-center gap-3 md:border-r md:border-white/[0.06] md:pr-8">
-          <div className="flex gap-0.5">
-            {Array.from({ length: 5 }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-primary text-primary" />)}
-          </div>
-          <p className="text-sm"><span className="font-semibold">4.8</span> <span className="text-muted-foreground">· 3,200+ reviews</span></p>
-        </div>
         <div className="mask-fade-x w-full overflow-hidden">
           <div className="marquee gap-12" style={{ ["--marquee-duration" as string]: "35s" }}>
             {list.map((p, i) => (

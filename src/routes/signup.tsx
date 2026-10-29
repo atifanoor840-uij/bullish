@@ -155,16 +155,6 @@ function SignupPage() {
               ))}
             </ul>
           </div>
-
-          <div className="border-t border-white/[0.06] pt-6">
-            <div className="flex items-center gap-2">
-              <div className="flex gap-0.5 text-primary">
-                {"★".repeat(5)}
-              </div>
-              <span className="text-xs font-bold text-foreground">4.8 / 5</span>
-              <span className="text-xs text-muted-foreground">from 3,200+ reviews</span>
-            </div>
-          </div>
         </div>
 
         {/* Right Side: Signup Form */}

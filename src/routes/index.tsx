@@ -4,7 +4,6 @@ import { HowItWorks, Pricing } from "@/components/site/pricing";
 import { Comparison, ScalingPlan } from "@/components/site/comparison";
 import { LiveTicker, Markets } from "@/components/site/markets";
 import { PayoutShowcase } from "@/components/site/payout-showcase";
-import { StoriesSection } from "@/components/site/stories";
 import { FaqSection, FinalCta, Footer } from "@/components/site/bottom";
 
 import { faqs } from "@/lib/site-data";
@@ -12,14 +11,14 @@ import { faqs } from "@/lib/site-data";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Bullish4ex — Trading Challenges & Forex Evaluation Program | Get Funded as a Trader" },
+      { title: "Bullish4ex — Skill-Based Trading Evaluations" },
       {
         name: "description",
         content: "Join Bullish4ex skill-based programs. Complete a trading challenge on simulated accounts for educational purposes to earn access to a funded account upon successful evaluation with up to 90% profit splits.",
       },
       {
         name: "keywords",
-        content: "trading challenge, prop firm evaluation, get funded as a trader, forex evaluation program, simulated accounts, skill-based programs, educational purposes, funded account upon successful evaluation, bullish4ex",
+        content: "trading challenge, prop firm evaluation, simulated accounts, skill-based programs, educational purposes, funded account upon successful evaluation, bullish4ex",
       },
       { property: "og:title", content: "Bullish4ex — Prop Firm Evaluation & Forex Trading Challenges" },
       {
@@ -30,10 +29,10 @@ export const Route = createFileRoute("/")({
       { property: "og:url", content: "https://bullish4ex.com/" },
       { property: "og:image", content: "https://bullish4ex.com/hero-candle.webp" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Bullish4ex — Trading Challenges & Forex Evaluation Program" },
+      { name: "twitter:title", content: "Bullish4ex — Skill-Based Trading Evaluations" },
       {
         name: "twitter:description",
-        content: "Skill-based programs and prop firm evaluations on simulated accounts. Get funded as a trader upon successful evaluation with bi-weekly reward payouts.",
+        content: "Skill-based programs and prop firm evaluations on simulated accounts. Earn funded account access upon successful evaluation with bi-weekly reward payouts.",
       },
     ],
     links: [{ rel: "canonical", href: "https://bullish4ex.com/" }],
@@ -73,7 +72,6 @@ function Index() {
         <Markets />
         <Comparison />
         <PayoutShowcase />
-        <StoriesSection />
         <FaqSection />
         <FinalCta />
       </main>
