@@ -10,7 +10,10 @@ import { bogoBadge, bogoFor, isLive, isPublic, offerSummary } from "@/lib/offers
 import { price as fmtPrice, sizeLabel } from "@/lib/portal";
 import { trackPixel } from "@/lib/metaPixel";
 
-const MODEL_OF: Record<PlanType, PricingPlan["model"]> = { "1-Step": "One Step", "2-Step": "Two Step", "Instant Funding": "Instant" };
+/** Static grid classes so the type selector fits however many types the CRM has active. */
+const COLS = ["", "sm:grid-cols-1", "sm:grid-cols-2", "sm:grid-cols-3", "sm:grid-cols-2 lg:grid-cols-4"];
+
+const MODEL_OF: Record<PlanType, PricingPlan["model"]> = { "1-Step": "One Step", "2-Step": "Two Step", "Instant Funding": "Instant", Flex: "Flex" };
 
 /* ---------------- How it works ---------------- */
 
@@ -230,7 +233,7 @@ export function Pricing() {
         />
 
         {/* Plan type selector */}
-        <Reveal className="mx-auto grid max-w-3xl gap-2 sm:grid-cols-3">
+        <Reveal className={`mx-auto grid gap-2 ${types.length > 3 ? "max-w-5xl" : "max-w-3xl"} ${COLS[types.length] ?? COLS[4]}`}>
           {types.map((t) => (
             <button
               key={t}

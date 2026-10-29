@@ -183,7 +183,7 @@ function NewChallenge() {
         <div className="space-y-5">
           <Card>
             <CardHeader title="1. Evaluation model" />
-            <div className="grid gap-3 p-5 sm:grid-cols-3">
+            <div className={cx("grid gap-3 p-5", models.length > 3 ? "sm:grid-cols-2 2xl:grid-cols-4" : "sm:grid-cols-3")}>
               {models.map((m) => (
                 <button key={m} onClick={() => setModel(m)} className={cx("rounded-xl border p-4 text-left transition", m === activeModel ? "border-primary/60 bg-primary/[0.08]" : "border-white/[0.06] hover:border-white/15")}>
                   <div className="flex items-center justify-between">
