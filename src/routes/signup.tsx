@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Lock, Mail, User, ArrowRight, ShieldCheck, Check, Sparkles, AlertCircle } from "lucide-react";
-import { Logo, Candle } from "@/components/site/primitives";
+import { Eye, EyeOff, Lock, Mail, User, ArrowRight, AlertCircle } from "lucide-react";
+import { Logo } from "@/components/site/primitives";
 import { propApi } from "@/lib/propApi";
 import { trackPixel } from "@/lib/metaPixel";
 
@@ -102,73 +102,22 @@ function SignupPage() {
     }
   };
 
-  const perks = [
-    "Instant dashboard credentials upon registration",
-    "Keep up to 90% of simulated performance gains",
-    "100% refundable evaluation fee with 1st payout",
-    "Zero time limit to pass your trading challenge",
-  ];
-
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-12">
-      {/* Ambient background glows */}
-      <div className="hero-beams pointer-events-none absolute inset-0 opacity-40" />
-      <div className="spotlight pointer-events-none absolute top-1/4 left-1/2 h-[550px] w-[900px] -translate-x-1/2 -translate-y-1/2 opacity-30" />
-      <div className="dot-map pointer-events-none absolute inset-0 opacity-20" />
-
-      {/* Floating 3D Candle Decoration */}
-      <Candle className="-top-12 -left-8 w-36 opacity-70 sm:w-48 lg:left-12 lg:top-14" delay={0} drift={14} rotate={-10} />
-      <Candle className="-bottom-10 -right-8 w-32 opacity-70 sm:w-44 lg:right-16 lg:bottom-12" delay={0.2} drift={12} rotate={8} />
-
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="glass-gold relative z-10 grid w-full max-w-4xl overflow-hidden md:grid-cols-[1.1fr_1.3fr]"
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8"
       >
-        {/* Left Side: Brand & Benefits */}
-        <div className="relative hidden flex-col justify-between border-r border-white/[0.08] bg-white/[0.02] p-8 md:flex">
-          <div>
-            <div className="inline-block transition hover:opacity-90">
+        <div>
+          <div className="text-center">
+            <div className="mb-6 flex justify-center">
               <Logo />
             </div>
-            <div className="mt-10">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <Sparkles className="h-3.5 w-3.5" /> Skill-Based Trading Programs
-              </span>
-              <h2 className="text-silver mt-4 font-display text-3xl font-bold leading-tight">
-                Join 12,500+ evaluated traders globally.
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Pass your evaluation to unlock simulated accounts up to $200K, scale up to $2M, and earn up to 90% performance rewards.
-              </p>
-            </div>
-
-            <ul className="mt-8 space-y-3.5">
-              {perks.map((p) => (
-                <li key={p} className="flex items-center gap-3 text-xs text-foreground/90 font-medium">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-                    <Check className="h-3 w-3" />
-                  </span>
-                  {p}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Right Side: Signup Form */}
-        <div className="p-6 sm:p-8">
-          <div className="text-center md:text-left">
-            <div className="md:hidden flex justify-center mb-4">
-              <Logo />
-            </div>
-            <h1 className="text-silver font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              Create trader account
+            <h1 className="text-silver font-display text-2xl font-bold tracking-tight">
+              Create account
             </h1>
-            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-              Instant setup in under 60 seconds
-            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-3.5">
