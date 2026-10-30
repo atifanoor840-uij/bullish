@@ -103,11 +103,11 @@ export function Logo({ href = "/", markOnly = false }: { href?: string; markOnly
   );
 }
 
-/** Counts up from 0 when scrolled into view. */
+/** Counts up from 0 when scrolled into view. Server HTML (and crawlers) get the final value. */
 export function Counter({ value, prefix = "", suffix = "", decimals = 0 }: { value: number; prefix?: string; suffix?: string; decimals?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
-  const [v, setV] = useState(0);
+  const [v, setV] = useState(value);
   useEffect(() => {
     if (!inView) return;
     const c = animate(0, value, { duration: 2, ease: "easeOut", onUpdate: setV });

@@ -12,12 +12,12 @@ export const Route = createFileRoute("/signup")({
       { title: "Register Trader Account — Bullish4ex Prop Firm Evaluation" },
       {
         name: "description",
-        content: "Create your Bullish4ex account and start your simulated trading challenge. Pass our skill-based evaluation to gain access to a funded account with up to 90% profit splits.",
+        content: "Create your Bullish4ex account and start your simulated trading challenge. Build your trading skills with virtual funds.",
       },
       { property: "og:title", content: "Create Your Trader Account — Bullish4ex Evaluation" },
       {
         property: "og:description",
-        content: "Join Bullish4ex today. Complete your trading evaluation on simulated accounts for educational purposes and earn access to a funded account.",
+        content: "Join Bullish4ex today. Complete your trading evaluation on simulated accounts for educational purposes.",
       },
       { property: "og:url", content: "https://bullish4ex.com/signup" },
       { property: "og:type", content: "website" },

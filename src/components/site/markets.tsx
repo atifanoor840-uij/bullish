@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  TrendingUp, TrendingDown, Bot, Newspaper, CalendarClock, BarChart3, Droplet,
+  TrendingUp, TrendingDown, BarChart3, Droplet,
 } from "lucide-react";
-import { assets, getQuote, changePct, fmtPrice, useQuotes, type Asset, type AssetClass, type Quote } from "@/lib/live-prices";
+import { assets, getQuote, changePct, fmtPrice, useQuotes, type Asset, type Quote } from "@/lib/live-prices";
 import { CtaButton, Reveal, SectionHead } from "./primitives";
 
 function Change({ q, className = "" }: { q: Quote; className?: string }) {
@@ -112,8 +112,6 @@ function AssetIcon({ a }: { a: Asset }) {
 
 /* ---------------- Markets table ---------------- */
 
-const classes: (AssetClass | "All")[] = ["All", "Forex", "Metals", "Indices", "Energy", "Crypto"];
-
 /** Tiny sparkline built from the ticks seen while the page is open. */
 function Spark({ price, up }: { price: number; up: boolean }) {
   const [pts, setPts] = useState<number[]>([]);
@@ -132,30 +130,14 @@ function Spark({ price, up }: { price: number; up: boolean }) {
 
 export function Markets() {
   const quotes = useQuotes();
-  const [tab, setTab] = useState<(typeof classes)[number]>("All");
-  const rows = assets.filter((a) => tab === "All" || a.cls === tab);
+  const rows = assets;
   return (
     <section id="markets" className="relative py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-5">
         <SectionHead
           label="Simulated Markets"
-          title={<>200+ simulated instruments.<br />One evaluation program.</>}
-          sub="Demonstrate your trading discipline across forex, gold, indices, energy and crypto with live simulated pricing and transparent rules."
+          title={<>Practice on <span className="text-gold">Global Markets</span></>}
         />
-
-        <Reveal className="mb-6 flex justify-center">
-          <div className="no-scrollbar flex gap-1 overflow-x-auto rounded-full border border-white/[0.06] bg-white/[0.02] p-1">
-            {classes.map((c) => (
-              <button
-                key={c}
-                onClick={() => setTab(c)}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-sm transition ${tab === c ? "bg-gold font-semibold text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </Reveal>
 
         <Reveal className="glass overflow-hidden">
           <div className="overflow-x-auto">
@@ -193,23 +175,6 @@ export function Markets() {
             </table>
           </div>
         </Reveal>
-
-        {/* Trading conditions */}
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {[
-            { i: Newspaper, t: "News trading allowed", d: "Trade the news — just stay out 5 minutes either side of high-impact releases." },
-            { i: CalendarClock, t: "Weekend holding add-on", d: "Add weekend holding at checkout (+20%) to keep swing trades open." },
-            { i: Bot, t: "EAs & copy trading", d: "Run your own expert advisors and trade copiers." },
-          ].map(({ i: Icon, t, d }, k) => (
-            <Reveal key={t} delay={k * 0.08} className="glass flex items-start gap-4 p-5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span>
-              <div>
-                <h3 className="text-sm font-semibold">{t}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{d}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
 
         <Reveal className="mt-12 flex justify-center">
           <CtaButton href="#challenges">Start Your Evaluation</CtaButton>

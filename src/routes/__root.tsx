@@ -81,11 +81,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Bullish4ex — Prop Firm Evaluation & Trading Challenges" },
       {
         name: "description",
-        content: "Bullish4ex offers skill-based trading evaluations and simulated accounts designed for educational purposes. Complete a trading challenge to earn access to a funded account upon successful evaluation with up to 90% profit splits.",
+        content: "Bullish4ex offers skill-based trading evaluations and simulated accounts designed for educational purposes. Complete a trading challenge and build disciplined risk-management skills.",
       },
       {
         name: "keywords",
-        content: "trading challenge, prop firm evaluation, simulated accounts, skill-based programs, educational purposes, funded account upon successful evaluation, bullish4ex",
+        content: "trading challenge, prop firm evaluation, simulated accounts, skill-based programs, educational purposes, bullish4ex",
       },
       { name: "author", content: "Bullish4ex" },
       { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
@@ -95,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Bullish4ex — Trading Challenges & Prop Firm Evaluation" },
       {
         property: "og:description",
-        content: "Skill-based trading evaluations and simulated accounts for educational purposes. Pass your trading challenge to unlock access to a funded account with up to 90% profit split.",
+        content: "Skill-based trading evaluations and simulated accounts for educational purposes. Learn and practice with clear risk-management rules.",
       },
       { property: "og:url", content: "https://bullish4ex.com" },
       { property: "og:image", content: "https://bullish4ex.com/hero-candle.webp" },
@@ -106,7 +106,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "Bullish4ex — Prop Firm Evaluation & Forex Trading Challenges" },
       {
         name: "twitter:description",
-        content: "Complete a skill-based trading evaluation on simulated accounts. Earn access to a funded account upon successful evaluation with fast reward payouts.",
+        content: "Complete a skill-based trading evaluation on simulated accounts. Track your progress and learn at your own pace.",
       },
       { name: "twitter:image", content: "https://bullish4ex.com/hero-candle.webp" },
     ],
@@ -147,7 +147,7 @@ function RootShell({ children }: { children: ReactNode }) {
                   "name": "Bullish4ex",
                   "url": "https://bullish4ex.com",
                   "logo": "https://bullish4ex.com/logo-mark.png",
-                  "description": "Educational platform providing skill-based trading evaluations and simulated accounts for traders aiming to get funded through performance-based programs.",
+                  "description": "Educational platform providing skill-based trading evaluations and simulated accounts for traders who want to build disciplined trading habits.",
                   "contactPoint": {
                     "@type": "ContactPoint",
                     "contactType": "Customer Support",
@@ -166,7 +166,7 @@ function RootShell({ children }: { children: ReactNode }) {
                   "@type": "EducationalOrganization",
                   "name": "Bullish4ex Trader Evaluation Programs",
                   "url": "https://bullish4ex.com",
-                  "description": "Educational trading evaluations and simulated accounts designed to help traders demonstrate disciplined risk management and gain access to a funded account upon successful evaluation."
+                  "description": "Educational trading evaluations and simulated accounts designed to help traders demonstrate disciplined risk management."
                 }
               ]
             }),

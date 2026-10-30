@@ -92,7 +92,7 @@ export function DashboardTablet() {
             {[
               ["Balance", "$122,788.50", "+$22,788.50 · +22.8%", true],
               ["Equity", "$122,788.50", "No open position", false],
-              ["PnL", "+$22,788.50", "+22.79% since funded", true],
+              ["PnL", "+$22,788.50", "+22.79% since start", true],
             ].map(([k, v, sub, up], i) => (
               <div key={k as string} className={`rounded-lg border p-3 ${i === 0 ? "border-primary/40 bg-primary/[0.08]" : "border-white/[0.06] bg-card"}`}>
                 <p className="text-muted-foreground">{k}</p>
@@ -113,7 +113,7 @@ export function DashboardTablet() {
               <span className="h-px flex-1 bg-gradient-to-r from-primary to-white/10" />
               <span className="rounded-md bg-white/[0.06] px-2 py-0.5 text-muted-foreground">Phase 2</span>
               <span className="h-px flex-1 bg-white/10" />
-              <span className="flex items-center gap-1 rounded-md bg-white/[0.06] px-2 py-0.5 text-muted-foreground"><Sparkles className="h-3 w-3" />Funded</span>
+              <span className="flex items-center gap-1 rounded-md bg-white/[0.06] px-2 py-0.5 text-muted-foreground"><Sparkles className="h-3 w-3" />Passed</span>
             </div>
           </div>
 

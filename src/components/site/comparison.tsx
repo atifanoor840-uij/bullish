@@ -1,112 +1,92 @@
-import { motion } from "framer-motion";
-import { Check, X, Minus, Shield, ArrowUpRight } from "lucide-react";
-import { comparison, scaling } from "@/lib/site-data";
-import { Reveal, SectionHead, CtaButton } from "./primitives";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { ArrowUpRight, Zap, Clock, ListChecks, MonitorSmartphone, ShieldCheck } from "lucide-react";
+import { Pill, Reveal } from "./primitives";
 
+const features = [
+  { icon: Zap, t: "Fast Account Delivery", d: "Get your simulated account details soon after checkout." },
+  { icon: Clock, t: "No Time Limits", d: "Take as long as you need to complete your evaluation." },
+  { icon: ListChecks, t: "Clear Trading Rules", d: "Simple targets and drawdown limits, tracked live on your dashboard." },
+  { icon: MonitorSmartphone, t: "Simulated Environment", d: "Practice on demo accounts only. No live market execution." },
+  { icon: ShieldCheck, t: "Secure Platform", d: "Secure checkout with card, crypto and bank transfer." },
+];
+
+/** "Why Bullish4ex" — numbered feature list (auto-advancing) with a visual for the active item. */
 export function Comparison() {
-  return (
-    <section className="relative py-24 md:py-32">
-      <div className="mx-auto max-w-7xl px-5">
-        <SectionHead
-          label="Why Bullish4ex"
-          title={<>Trader-focused rules.<br />Transparent evaluations.</>}
-          sub="Compare our skill-based evaluation parameters and simulated trading conditions with industry alternatives."
-        />
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setActive((a) => (a + 1) % features.length), 5000);
+    return () => clearInterval(id);
+  }, [active]);
+  const cur = features[active]!;
+  const CurIcon = cur.icon;
 
-        <Reveal className="glass mx-auto max-w-4xl overflow-hidden p-2 sm:p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.08]">
-                  <th className="p-4 font-medium text-muted-foreground">Key Feature</th>
-                  <th className="p-4 font-display font-semibold text-primary">Bullish 4ex</th>
-                  <th className="p-4 font-medium text-muted-foreground">Other Prop Firms</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparison.map((c, i) => (
-                  <tr key={c.label} className="border-b border-white/[0.04] transition hover:bg-white/[0.02]">
-                    <td className="p-4 font-medium text-foreground/90">{c.label}</td>
-                    <td className="p-4">
-                      {typeof c.us === "boolean" ? (
-                        c.us ? (
-                          <span className="inline-flex items-center gap-1.5 font-medium text-primary">
-                            <Check className="h-4 w-4" /> Allowed
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                            <Minus className="h-4 w-4" /> No
-                          </span>
-                        )
-                      ) : (
-                        <span className="font-display font-bold text-foreground">{c.us}</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-muted-foreground">
-                      {typeof c.them === "boolean" ? (
-                        c.them ? (
-                          <span className="inline-flex items-center gap-1.5 text-foreground/80">
-                            <Check className="h-4 w-4" /> Allowed
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-loss/80">
-                            <X className="h-4 w-4" /> Restricted
-                          </span>
-                        )
-                      ) : (
-                        <span>{c.them}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+  return (
+    <section id="why" className="relative py-24 md:py-32">
+      <div className="mx-auto max-w-7xl px-5">
+        <Reveal>
+          <Pill>Why Bullish4ex</Pill>
+          <h2 className="text-silver mt-5 text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl">Built For Traders</h2>
         </Reveal>
-      </div>
-    </section>
-  );
-}
 
-export function ScalingPlan() {
-  return (
-    <section id="scaling" className="relative py-24 md:py-32">
-      <div className="spotlight pointer-events-none absolute top-1/2 left-1/2 h-[450px] w-[800px] -translate-x-1/2 -translate-y-1/2 opacity-40" />
-      <div className="mx-auto max-w-7xl px-5">
-        <SectionHead
-          align="left"
-          label="Scaling roadmap"
-          title={<>Scale your simulated balance up to $2,000,000.</>}
-          sub="Consistent disciplined trading unlocks exponential account scaling and up to a 90% profit share."
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {scaling.map((s, idx) => (
-            <Reveal
-              key={s.step}
-              delay={idx * 0.1}
-              className={`glass flex flex-col justify-between p-6 ${
-                idx === scaling.length - 1 ? "glass-gold border-primary/40" : "glass-hover"
-              }`}
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-                    {s.step}
+        <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
+          <Reveal className="border-t border-white/[0.08]">
+            {features.map((f, i) => {
+              const on = i === active;
+              return (
+                <button
+                  key={f.t}
+                  onClick={() => setActive(i)}
+                  className="flex w-full items-center gap-5 border-b border-white/[0.08] py-6 text-left"
+                >
+                  <span className={`w-6 shrink-0 font-mono text-xs ${on ? "text-foreground" : "text-muted-foreground"}`}>0{i + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block font-display font-semibold tracking-tight transition-all ${on ? "text-2xl text-foreground md:text-3xl" : "text-xl text-muted-foreground md:text-2xl"}`}>{f.t}</span>
+                    <AnimatePresence initial={false}>
+                      {on && (
+                        <motion.span initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="block overflow-hidden">
+                          <span className="block pt-1.5 text-sm text-muted-foreground md:text-base">{f.d}</span>
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </span>
-                  <span className="text-[11px] text-muted-foreground">Tier 0{idx + 1}</span>
-                </div>
-                <p className="mt-4 font-display text-3xl font-bold tracking-tight text-foreground">
-                  {s.size}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-primary">{s.split} Profit Split</p>
+                  {on && (
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold text-primary-foreground shadow-gold">
+                      <ArrowUpRight className="h-5 w-5" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </Reveal>
+
+          <Reveal delay={0.1} className="rounded-3xl border border-primary/20 bg-white/[0.02] p-3">
+            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-b from-primary/[0.12] to-transparent">
+              {/* Concentric rings */}
+              {[90, 65, 40].map((s) => (
+                <span key={s} className="absolute rounded-full border border-primary/15" style={{ width: `${s}%`, aspectRatio: "1" }} />
+              ))}
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={active}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.35 }}
+                  className="relative flex h-28 w-28 items-center justify-center rounded-full bg-gold text-primary-foreground shadow-gold md:h-36 md:w-36"
+                >
+                  <CurIcon className="h-12 w-12 md:h-16 md:w-16" />
+                </motion.span>
+              </AnimatePresence>
+            </div>
+            <div className="flex items-center gap-4 px-3 pt-5 pb-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gold text-primary-foreground"><CurIcon className="h-5 w-5" /></span>
+              <div>
+                <p className="font-display text-lg font-semibold">{cur.t}</p>
+                <p className="text-sm text-muted-foreground">{cur.d}</p>
               </div>
-              <div className="mt-8 border-t border-white/[0.06] pt-4">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Requirement</p>
-                <p className="mt-1 text-xs text-foreground/80 font-medium">{s.req}</p>
-              </div>
-            </Reveal>
-          ))}
+            </div>
+          </Reveal>
         </div>
       </div>
     </section>

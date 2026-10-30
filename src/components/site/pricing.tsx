@@ -1,8 +1,8 @@
 import { motion, useMotionValueEvent, useScroll, useSpring, useTransform, type MotionValue } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ShieldCheck, Info, Lock, Sparkles, UserRound, Target, Wallet, Gift, Tag } from "lucide-react";
+import { Check, Lock, Sparkles, UserRound, Target, Wallet, Gift } from "lucide-react";
 import {
-  sizes, planTypes, planMeta, getPlan, popular, planIncludes, type PlanType,
+  sizes, planTypes, planMeta, getPlan, popular, type Objective, type PlanType,
 } from "@/lib/site-data";
 import { CtaButton, Reveal, SectionHead, fmt } from "./primitives";
 import { propApi, type Coupon, type Offer, type PricingPlan } from "@/lib/propApi";
@@ -13,14 +13,14 @@ import { trackPixel } from "@/lib/metaPixel";
 /** Static grid classes so the type selector fits however many types the CRM has active. */
 const COLS = ["", "sm:grid-cols-1", "sm:grid-cols-2", "sm:grid-cols-3", "sm:grid-cols-2 lg:grid-cols-4"];
 
-const MODEL_OF: Record<PlanType, PricingPlan["model"]> = { "1-Step": "One Step", "2-Step": "Two Step", "Express Program": "Instant", Flex: "Flex" };
+const MODEL_OF: Record<PlanType, PricingPlan["model"]> = { "1-Step": "One Step", "2-Step": "Two Step", "Instant": "Instant", Flex: "Flex" };
 
 /* ---------------- How it works ---------------- */
 
 const steps = [
-  { icon: UserRound, t: "Choose Your Trading Challenge", d: "Select your prop firm evaluation model, simulated account size, and platform to begin." },
-  { icon: Target, t: "Complete The Skill Evaluation", d: "Trade on simulated accounts for educational purposes and meet risk objectives with simple rules." },
-  { icon: Wallet, t: "Access Funded Account Rewards", d: "Gain access to a funded account upon successful evaluation and earn up to 90% performance payouts." },
+  { icon: UserRound, t: "Pick a Plan", d: "Choose your program and account size." },
+  { icon: Target, t: "Trade & Follow the Rules", d: "Practice on a demo account and stay within the risk limits." },
+  { icon: Wallet, t: "Pass & Move Up", d: "Hit the target to unlock the next stage." },
 ];
 
 /** Glowing "staircase" line used as side decoration. */
@@ -116,8 +116,7 @@ export function HowItWorks() {
       <div className="relative mx-auto max-w-5xl px-5">
         <SectionHead
           label="How it works"
-          title={<>From Skill Evaluation to<br /><span className="text-gold">Funded Account Access</span></>}
-          sub="Follow our transparent, skill-based evaluation path designed for educational purposes and performance rewards."
+          title={<>3 Simple <span className="text-gold">Steps</span></>}
         />
 
         <div ref={track} className="relative">
@@ -166,7 +165,7 @@ export function HowItWorks() {
             <p className="mt-5 text-[11px] font-semibold tracking-widest text-primary uppercase">Step 0{steps.length}</p>
             <h3 className={`mt-2 text-2xl font-semibold transition-colors duration-700 ${reached >= steps.length ? "text-gold" : "text-foreground/60"}`}>{last.t}</h3>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">{last.d}</p>
-            <CtaButton className="mt-8">Start Your Challenge</CtaButton>
+            <CtaButton className="mt-8">Start Evaluation</CtaButton>
           </Reveal>
         </div>
       </div>
@@ -179,6 +178,7 @@ export function HowItWorks() {
 export function Pricing() {
   const [type, setType] = useState<PlanType>("2-Step");
   const [size, setSize] = useState(100000);
+  const [showPct, setShowPct] = useState(true);
   // Live catalog from the CRM; the static site-data is only a fallback when the API is unreachable.
   const [catalog, setCatalog] = useState<PricingPlan[] | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -222,149 +222,137 @@ export function Pricing() {
   const planOffer = sizeOffer(activeSize);
   const isPopular = activeType === popular.type && activeSize === popular.size;
 
+  const objectiveValue = (o: Objective) =>
+    o.pct === undefined ? o.text : showPct ? `${o.pct}%` : fmt(Math.round((activeSize * o.pct) / 100));
+  const save = rawFee - fee;
+
   return (
     <section id="challenges" className="relative py-24 md:py-32">
       <div className="spotlight pointer-events-none absolute top-40 left-1/2 h-[500px] w-[900px] -translate-x-1/2 opacity-60" />
       <div className="relative mx-auto max-w-7xl px-5">
-        <SectionHead
-          label="Trading Challenges"
-          title={<>Choose your evaluation program.<br />Pay once, get evaluated.</>}
-          sub="One-time evaluation fee with zero recurring subscriptions. 100% refundable upon passing your evaluation."
-        />
+        <SectionHead align="left" label="Plans" title="Built For Your Success" />
 
         {/* Plan type selector */}
-        <Reveal className={`mx-auto grid gap-2 ${types.length > 3 ? "max-w-5xl" : "max-w-3xl"} ${COLS[types.length] ?? COLS[4]}`}>
-          {types.map((t) => (
-            <button
-              key={t}
-              onClick={() => setType(t)}
-              className={`rounded-2xl border p-4 text-left transition ${activeType === t ? "border-primary/60 bg-primary/[0.08]" : "border-white/[0.07] bg-white/[0.02] hover:border-white/20"}`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-display text-sm font-semibold">{t}</span>
-                <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${activeType === t ? "border-primary bg-primary" : "border-white/20"}`}>
-                  {activeType === t && <span className="h-1.5 w-1.5 rounded-full bg-background" />}
-                </span>
-              </div>
-              <p className="mt-1.5 text-xs leading-snug text-muted-foreground">{planMeta[t].tagline}</p>
-            </button>
-          ))}
-        </Reveal>
-
-        {/* Account size selector */}
-        <Reveal delay={0.05} className="mt-8 flex justify-center">
-          <div className="no-scrollbar flex max-w-full gap-1 overflow-x-auto rounded-full border border-white/[0.07] bg-white/[0.02] p-1">
-            {sizeList.map((s) => (
+        <Reveal className="grid gap-4 sm:grid-cols-2">
+          {types.map((t) => {
+            const on = activeType === t;
+            return (
               <button
-                key={s}
-                onClick={() => setSize(s)}
-                className={`relative rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition md:px-5 ${activeSize === s ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                key={t}
+                onClick={() => setType(t)}
+                className={`relative rounded-2xl border p-5 text-left transition ${on ? "border-primary bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-gold" : "border-white/[0.08] bg-white/[0.02] hover:border-white/20"}`}
               >
-                {activeSize === s && <motion.span layoutId="size-pill" className="absolute inset-0 rounded-full bg-gold" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
-                <span className="relative">{sizeLabel(s)}</span>
-                {sizeOffer(s) && <span className="relative ml-1.5 rounded-full bg-primary/20 px-1.5 text-[9px] font-bold text-primary">{bogoBadge(sizeOffer(s)!)}</span>}
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${on ? "border-primary-foreground bg-primary-foreground text-primary" : "border-white/25"}`}>
+                  {on && <Check className="h-3 w-3" />}
+                </span>
+                {planMeta[t].badge && (
+                  <span className="absolute top-5 right-5 rounded-full bg-loss px-2 py-0.5 text-[10px] font-bold text-white">{planMeta[t].badge}</span>
+                )}
+                <p className="mt-6 font-display text-lg font-semibold">{t}</p>
+                <p className={`mt-0.5 text-sm ${on ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{planMeta[t].tagline}</p>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </Reveal>
 
-        {/* Plan details + checkout summary */}
-        <div className="mt-10 grid gap-5 lg:grid-cols-[1.6fr_1fr]">
-          <Reveal className="glass p-6 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs tracking-widest text-muted-foreground uppercase">{activeType} · {planMeta[activeType].phases}</p>
-                <motion.p key={activeSize} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="text-silver mt-1 font-display text-4xl font-semibold tracking-tight">
-                  {fmt(activeSize)} <span className="text-base font-medium text-muted-foreground">account</span>
-                </motion.p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-profit/30 bg-profit/10 px-3 py-1 text-xs font-medium text-profit">
-                <ShieldCheck className="h-3.5 w-3.5" /> Refundable fee
-              </span>
+        {/* Sizes + objectives | price card */}
+        <Reveal delay={0.05} className="glass mt-4 grid gap-6 p-4 md:p-6 lg:grid-cols-[1.4fr_1fr]">
+          <div>
+            <div className="flex flex-wrap gap-2">
+              {sizeList.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSize(s)}
+                  className={`relative rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${activeSize === s ? "border-primary bg-gold text-primary-foreground" : "border-white/[0.08] bg-white/[0.02] text-foreground/90 hover:border-white/20"}`}
+                >
+                  {sizeLabel(s)}
+                  {sizeOffer(s) && <span className={`ml-1.5 rounded-full px-1.5 text-[9px] font-bold ${activeSize === s ? "bg-background/20 text-primary-foreground" : "bg-primary/20 text-primary"}`}>{bogoBadge(sizeOffer(s)!)}</span>}
+                </button>
+              ))}
             </div>
-            <div className="mt-8 grid gap-x-8 sm:grid-cols-2">
-              {plan.rows.map(([k, v, hint]) => (
-                <div key={k} className="group flex items-center justify-between border-t border-white/[0.06] py-4">
-                  <div>
-                    <p className="flex items-center gap-1.5 text-sm text-foreground/90">{k} <Info className="h-3 w-3 text-muted-foreground/60" /></p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>
-                  </div>
-                  <motion.span key={activeType + k} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-display text-sm font-semibold">{v}</motion.span>
+
+            <div className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <p className="text-sm text-muted-foreground">Trading Objectives</p>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-white/[0.06] px-3 py-1 text-xs font-medium">{planMeta[activeType].phases}</span>
+                  <button onClick={() => setShowPct(!showPct)} className="flex items-center gap-2 text-xs text-foreground/90" aria-pressed={showPct}>
+                    <span className={`relative h-5 w-9 rounded-full transition ${showPct ? "bg-primary" : "bg-white/15"}`}>
+                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${showPct ? "left-[18px]" : "left-0.5"}`} />
+                    </span>
+                    Show Percentage
+                  </button>
+                </div>
+              </div>
+              {plan.objectives.map((o) => (
+                <div key={o.label} className="grid grid-cols-2 border-t border-white/[0.06] px-4 py-3.5 text-sm">
+                  <span className="text-foreground/80">{o.label}</span>
+                  <motion.span key={activeType + activeSize + o.label + showPct} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-semibold">{objectiveValue(o)}</motion.span>
                 </div>
               ))}
             </div>
-          </Reveal>
+          </div>
 
-          <Reveal delay={0.1} className="glass-gold flex flex-col p-6 md:p-8">
-            {isPopular && (
-              <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-primary-foreground">
-                <Sparkles className="h-3 w-3" /> Most popular
-              </span>
-            )}
-            <p className="text-sm text-muted-foreground">One-time evaluation fee</p>
-            <div className="mt-2 flex flex-wrap items-end gap-2">
-              {discountPercent > 0 ? (
-                <>
-                  <motion.span key={fee} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-gold font-display text-6xl font-semibold tracking-tight">
-                    {fmtPrice(fee)}
-                  </motion.span>
-                  <div className="mb-2 flex flex-col">
-                    <span className="text-sm line-through text-muted-foreground/60">{fmtPrice(rawFee)}</span>
-                    <span className="text-xs font-semibold text-profit">{appliedCoupon?.code} (-{discountPercent}%)</span>
-                  </div>
-                  <span className="mb-2 text-sm text-muted-foreground">USD</span>
-                </>
-              ) : (
-                <>
-                  <motion.span key={fee} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-gold font-display text-6xl font-semibold tracking-tight">
-                    {fmtPrice(fee)}
-                  </motion.span>
-                  <span className="mb-2 text-sm text-muted-foreground">USD</span>
-                </>
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-primary/40 bg-white/[0.02]">
+            <div className="bg-gradient-to-br from-primary to-primary/60 px-5 pt-4 pb-6 text-primary-foreground">
+              <div className="flex items-start justify-between gap-2">
+                {isPopular ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-background px-3 py-1 text-[11px] font-bold text-primary"><Sparkles className="h-3 w-3" /> Most popular</span>
+                ) : <span />}
+                {discountPercent > 0 && <span className="rounded-md bg-loss px-2 py-1 text-[11px] font-bold text-white">{discountPercent}% OFF</span>}
+              </div>
+              <p className="mt-4 text-xs font-semibold tracking-[0.2em] uppercase opacity-80">Virtual Capital</p>
+              <motion.p key={activeSize} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="font-display text-5xl font-bold tracking-tight">
+                {sizeLabel(activeSize)}
+              </motion.p>
+            </div>
+
+            <div className="flex flex-1 flex-col px-4 pt-4 pb-5">
+              <div className="rounded-2xl border border-white/[0.08] bg-background p-4 text-center">
+                <div className="flex items-baseline justify-center gap-3">
+                  {save > 0 && <span className="text-base text-muted-foreground line-through">{fmtPrice(rawFee)}</span>}
+                  <motion.span key={fee} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="font-display text-4xl font-bold tracking-tight">{fmtPrice(fee)}</motion.span>
+                </div>
+                {save > 0 && <span className="mt-2 inline-block rounded-md bg-profit/15 px-2.5 py-1 text-xs font-semibold text-profit">Save {fmtPrice(save)}</span>}
+              </div>
+
+              {planOffer && (
+                <div className="mt-3 flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs">
+                  <Gift className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span><span className="font-semibold text-primary">{planOffer.name}</span> — {offerSummary(planOffer)}</span>
+                </div>
               )}
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">≈ {((fee / activeSize) * 100).toFixed(2)}% of account size</p>
-            {appliedCoupon && (
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-profit/30 bg-profit/10 px-3 py-1 text-xs font-medium text-profit">
-                <Sparkles className="h-3.5 w-3.5" /> Promo auto-applied: {appliedCoupon.code} ({appliedCoupon.discountPercent}% OFF)
-              </div>
-            )}
-            {planOffer && (
-              <div className="mt-4 flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs">
-                <Gift className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                <span><span className="font-semibold text-primary">{planOffer.name}</span> — {offerSummary(planOffer)}</span>
-              </div>
-            )}
 
-            <ul className="mt-7 space-y-3">
-              {planIncludes.map((x) => (
-                <li key={x} className="flex items-start gap-3 text-sm">
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15"><Check className="h-2.5 w-2.5 text-primary" /></span>
-                  {x}
-                </li>
-              ))}
-            </ul>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {plan.features.map((x) => (
+                  <div key={x} className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-xs">
+                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-profit/20"><Check className="h-2.5 w-2.5 text-profit" /></span>
+                    {x}
+                  </div>
+                ))}
+              </div>
 
-            <div className="mt-auto pt-8">
-              <CtaButton
-                href={checkoutHref}
-                onClick={() => {
-                  trackPixel("InitiateCheckout", {
-                    content_name: `${activeType} ${sizeLabel(activeSize)}`,
-                    value: fee,
-                    currency: "USD",
-                  });
-                }}
-                className="w-full justify-between"
-              >
-                Start {fmt(activeSize)} challenge
-              </CtaButton>
-              <p className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
-                <Lock className="h-3 w-3" /> Secure checkout · Card, crypto & bank transfer
-              </p>
+              <div className="mt-auto pt-5">
+                <CtaButton
+                  href={checkoutHref}
+                  onClick={() => {
+                    trackPixel("InitiateCheckout", {
+                      content_name: `${activeType} ${sizeLabel(activeSize)}`,
+                      value: fee,
+                      currency: "USD",
+                    });
+                  }}
+                  className="w-full justify-between"
+                >
+                  Start Evaluation
+                </CtaButton>
+                <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Lock className="h-3 w-3" /> Secure checkout · Card, crypto & bank transfer
+                </p>
+              </div>
             </div>
-          </Reveal>
-        </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );

@@ -13,7 +13,6 @@ export function FaqSection() {
         <SectionHead
           label="Frequently Asked Questions"
           title={<>Everything you need to know.</>}
-          sub="Transparent answers to all your questions about evaluation rules, scaling, and payout terms."
         />
 
         <div className="space-y-3">
@@ -66,9 +65,6 @@ export function FinalCta() {
               <h2 className="text-silver mt-4 text-3xl font-bold tracking-tight md:text-4xl">
                 Ready to begin your <span className="text-gold">trading evaluation?</span>
               </h2>
-              <p className="mx-auto mt-3 max-w-sm text-sm text-muted-foreground lg:mx-0">
-                Join 12,500+ traders in our skill-based programs. Pass your evaluation to unlock simulated funded account access with up to 90% profit splits.
-              </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
                 <CtaButton href="#challenges">Start Your Evaluation</CtaButton>
                 <GhostButton href="#faq">Have Questions?</GhostButton>
@@ -104,16 +100,14 @@ export function Footer() {
       [
         { label: "1-Step Evaluation", href: "/#challenges" },
         { label: "2-Step Evaluation", href: "/#challenges" },
-        { label: "Express Program", href: "/#challenges" },
+        { label: "Instant", href: "/#challenges" },
         { label: "Flex Challenge ($9)", href: "/#challenges" },
-        { label: "Scaling Plan", href: "/#scaling" },
       ],
     ],
     [
       "Company",
       [
         { label: "About Bullish 4ex", href: "/#how" },
-        { label: "Payout Proof", href: "/#payouts" },
         { label: "Trading Markets", href: "/#markets" },
         { label: "Partner Platforms", href: "/#how" },
       ],
@@ -168,46 +162,60 @@ export function Footer() {
         ))}
       </div>
 
-      {/* Detailed Regulatory, Educational & Simulated Accounts Disclaimer */}
+      {/* Disclaimer */}
       <div className="border-t border-white/[0.06] bg-white/[0.015] px-5 py-10">
-        <div className="mx-auto max-w-7xl space-y-5 text-[11px] leading-relaxed text-muted-foreground/80">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
-            <span className="font-display text-xs font-semibold uppercase tracking-wider text-foreground/90">
-              Regulatory, Risk & Simulated Trading Disclaimer
-            </span>
-            <span className="rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              Skill Development Platform • Virtual Demo Accounts Only
-            </span>
+        <div className="mx-auto max-w-7xl space-y-6 text-[11px] leading-relaxed text-muted-foreground/80">
+          <div className="space-y-2">
+            <h4 className="font-display text-xs font-semibold uppercase tracking-wider text-foreground/90">Simulated trading environment</h4>
+            <p>
+              All accounts provided by Bullish4ex are demo accounts operating exclusively in a simulated trading environment. No actual trades are executed on live financial markets. The services we offer are designed for educational and evaluation purposes only.
+            </p>
           </div>
 
-          <p>
-            <strong className="text-foreground/90">Educational & Skill Development Platform:</strong> Bullish 4ex is operated strictly as an educational and trader skill evaluation platform. All services, programs, challenges, and evaluations provided to users are designed exclusively to test, analyze, and nurture trading abilities. Bullish 4ex is not a broker-dealer, financial intermediary, investment manager, custodian, or commodity trading advisor (CTA). Bullish 4ex does not provide financial advice, solicit investor funds, hold client deposits, or execute retail financial transactions on behalf of users.
-          </p>
+          <div className="space-y-2">
+            <h4 className="font-display text-xs font-semibold uppercase tracking-wider text-foreground/90">No investment services</h4>
+            <p>
+              The simulated trading services are provided by Bullish4ex, operated by LOGIC GRATE SERVICES LTD. All content published and distributed by Bullish4ex and its related entities (collectively, the "Company") is for general informational purposes only.
+            </p>
+            <ul className="list-disc space-y-1 pl-4">
+              <li>The Company does not provide investment advice.</li>
+              <li>The Company does not solicit or recommend the purchase or sale of any financial instruments, securities, or funds.</li>
+              <li>The Company does not act as a broker, custodian, or financial intermediary.</li>
+            </ul>
+            <p>Participation in any program is voluntary, and all fees paid to the Company are strictly service fees only.</p>
+            <p>Program fees:</p>
+            <ul className="list-disc space-y-1 pl-4">
+              <li>are not deposits</li>
+              <li>do not represent client funds</li>
+              <li>are not investments</li>
+              <li>do not generate returns, interest, or profit</li>
+            </ul>
+            <p>
+              These fees are applied toward operational and administrative expenses, including platform infrastructure, technology, support services, and risk management systems. Payment of fees does not create any fiduciary, custodial, or investment relationship between participants and the Company. Participants should understand that such fees provide access only to simulated trading evaluations and related services in a demo environment. Nothing on this website or in our programs constitutes an offer to buy or sell futures, options, CFDs, forex, stocks, or any other financial instruments. All results displayed are based on simulated trading performance. Past simulated performance is not necessarily indicative of future results.
+            </p>
+          </div>
 
-          <p>
-            <strong className="text-foreground/90">Simulated Trading Environment & Virtual Funds:</strong> All accounts provided by Bullish 4ex—including evaluation accounts, verification phases, and funded stage accounts—are 100% simulated demo accounts operating in a simulated market environment with fictitious, virtual balances. At no point do traders trade or interact with live retail market liquidity or manage actual client capital. All references on this website and in the trader dashboard to "funded account", "account size", "profit split", "payouts", "balance", or "trading capital" are purely hypothetical terms referring solely to performance milestones and conditional reward compensation within our simulated skill development program.
-          </p>
+          <div className="space-y-2">
+            <h4 className="font-display text-xs font-semibold uppercase tracking-wider text-foreground/90">General risk warning</h4>
+            <p>
+              Trading financial markets involves a high level of risk. Even in a simulated environment, strategies and outcomes may not reflect real-world execution. Participants should carefully consider their experience, objectives, and risk tolerance before engaging in any trading-related activity.
+            </p>
+          </div>
 
-          <p>
-            <strong className="text-foreground/90">Hypothetical Performance Limitations:</strong> Simulated or hypothetical trading performance has inherent limitations. Unlike actual market performance, simulated trading does not represent real financial transactions and does not account for certain market conditions such as real-time liquidity constraints, broker slippage, or psychological stress of risking real capital. No representation is being made that any account will or is likely to achieve profits or losses similar to those shown. Past simulated performance is neither a guarantee nor a reliable indicator of future results.
-          </p>
-
-          <p>
-            <strong className="text-foreground/90">High Risk Disclosure:</strong> Foreign exchange (Forex), CFD, indices, and commodities trading carry significant market risks and are not suitable for all individuals. You should carefully consider your financial situation and risk appetite. None of the materials, software, or tools provided by Bullish 4ex constitute investment, legal, financial, or tax advice.
-          </p>
-
-          <p>
-            <strong className="text-foreground/90">Jurisdictional Limitations:</strong> The information and services on this site are not directed toward residents of any jurisdiction or country where such distribution, marketing, or use would violate local regulatory statutes or legal provisions (including jurisdictions subject to international sanctions or restrictions).
-          </p>
+          <div className="space-y-2">
+            <h4 className="font-display text-xs font-semibold uppercase tracking-wider text-foreground/90">Corporate & brand information</h4>
+            <p>Bullish4ex © 2026 is a brand name of LOGIC GRATE SERVICES LTD.</p>
+            <p>
+              The website https://bullish4ex.com is owned and operated by LOGIC GRATE SERVICES LTD, registered in United Kingdom (Company No. 16914973), with registered office at 5 Brayford Square, London, England E1 0S.
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="border-t border-white/[0.04] bg-black/40">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 text-xs text-muted-foreground md:flex-row">
-          <p>
-            Bullish 4ex Ltd. — Empowering disciplined traders through simulated skill evaluation.
-          </p>
-          <p>© 2026 Bullish 4ex Ltd. All rights reserved.</p>
+          <p>Bullish4ex is a brand name of LOGIC GRATE SERVICES LTD.</p>
+          <p>© 2026 Bullish4ex. All rights reserved.</p>
         </div>
       </div>
     </footer>

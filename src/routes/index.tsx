@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Navbar, Hero, TrustBar, Stats } from "@/components/site/top";
+import { Navbar, Hero, Stats } from "@/components/site/top";
 import { HowItWorks, Pricing } from "@/components/site/pricing";
-import { Comparison, ScalingPlan } from "@/components/site/comparison";
-import { LiveTicker, Markets } from "@/components/site/markets";
-import { PayoutShowcase } from "@/components/site/payout-showcase";
+import { Comparison } from "@/components/site/comparison";
+import { Markets } from "@/components/site/markets";
 import { FaqSection, FinalCta, Footer } from "@/components/site/bottom";
 
 import { faqs } from "@/lib/site-data";
@@ -14,16 +13,16 @@ export const Route = createFileRoute("/")({
       { title: "Bullish4ex — Skill-Based Trading Evaluations" },
       {
         name: "description",
-        content: "Join Bullish4ex skill-based programs. Complete a trading challenge on simulated accounts for educational purposes to earn access to a funded account upon successful evaluation with up to 90% profit splits.",
+        content: "Join Bullish4ex skill-based programs. Complete a trading challenge on simulated accounts for educational purposes and build disciplined risk-management skills.",
       },
       {
         name: "keywords",
-        content: "trading challenge, prop firm evaluation, simulated accounts, skill-based programs, educational purposes, funded account upon successful evaluation, bullish4ex",
+        content: "trading challenge, prop firm evaluation, simulated accounts, skill-based programs, educational purposes, bullish4ex",
       },
       { property: "og:title", content: "Bullish4ex — Prop Firm Evaluation & Forex Trading Challenges" },
       {
         property: "og:description",
-        content: "Skill-based trading evaluations on simulated accounts. Pass the trading challenge to earn access to a funded account upon successful evaluation with up to 90% performance rewards.",
+        content: "Skill-based trading evaluations on simulated accounts. Practice disciplined risk management with virtual funds.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://bullish4ex.com/" },
@@ -32,7 +31,7 @@ export const Route = createFileRoute("/")({
       { name: "twitter:title", content: "Bullish4ex — Skill-Based Trading Evaluations" },
       {
         name: "twitter:description",
-        content: "Skill-based programs and prop firm evaluations on simulated accounts. Earn funded account access upon successful evaluation with bi-weekly reward payouts.",
+        content: "Skill-based programs and prop firm evaluations on simulated accounts. Learn and practice with clear risk-management rules.",
       },
     ],
     links: [{ rel: "canonical", href: "https://bullish4ex.com/" }],
@@ -63,15 +62,11 @@ function Index() {
       <Navbar />
       <main>
         <Hero />
-        <LiveTicker />
-        <TrustBar />
         <Stats />
         <HowItWorks />
         <Pricing />
-        <ScalingPlan />
         <Markets />
         <Comparison />
-        <PayoutShowcase />
         <FaqSection />
         <FinalCta />
       </main>

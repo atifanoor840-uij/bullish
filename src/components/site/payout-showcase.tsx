@@ -68,7 +68,7 @@ function PayoutMethodScreen() {
 
 function LiquidityScreen() {
   const opts = [
-    { t: "Every 14 days", d: "All funded accounts · up to 6% of balance", tag: "Cycle" },
+    { t: "Every 14 days", d: "All performance accounts · up to 6% of balance", tag: "Cycle" },
     { t: "Minimum $100", d: "Smaller amounts roll into the next cycle", tag: "" },
     { t: "3 profitable days", d: "Each closing at least +0.5% · 5 days on Instant", tag: "Required" },
   ];
@@ -220,7 +220,6 @@ export function PayoutShowcase() {
         <SectionHead
           label="Performance Rewards"
           title={<>Simulated performance payouts,<br /><span className="text-gold">on your terms.</span></>}
-          sub="Flexible payout methods, rapid bi-weekly schedules, and performance-based reward processing."
         />
       </div>
 

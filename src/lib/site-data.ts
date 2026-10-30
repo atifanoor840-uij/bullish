@@ -9,78 +9,106 @@ export const navLinks = [
 ];
 
 export const stats = [
-  { label: "Simulated rewards paid", value: 18.4, prefix: "$", suffix: "M+", decimals: 1, note: "Since 2023" },
-  { label: "Profit split", value: 90, prefix: "Up to ", suffix: "%", decimals: 0, note: "On funded accounts" },
-  { label: "Countries served", value: 140, suffix: "+", decimals: 0, note: "Worldwide access" },
-  { label: "Average payout time", value: 8, suffix: "h", decimals: 0, note: "From request to wallet" },
+  { label: "Global Members", value: 10, suffix: "K+", decimals: 0 },
+  { label: "Total simulated rewards paid", value: 18.4, prefix: "$", suffix: "M+", decimals: 1 },
+  { label: "Simulated instruments on industry-standard platforms", value: 200, suffix: "+", decimals: 0 },
+  { label: "Countries served", value: 140, suffix: "+", decimals: 0 },
 ];
 
 export const partners = ["MetaTrader 5", "cTrader", "Match-Trader", "TradingView", "Visa", "Mastercard", "USDT · TRC20", "Rise", "Skrill", "Apple Pay"];
 
 export const sizes = [3000, 5000, 10000, 25000, 50000, 100000, 200000];
-export type PlanType = "1-Step" | "2-Step" | "Express Program" | "Flex";
-export const planTypes: PlanType[] = ["1-Step", "2-Step", "Express Program", "Flex"];
+export type PlanType = "1-Step" | "2-Step" | "Instant" | "Flex";
+export const planTypes: PlanType[] = ["1-Step", "2-Step", "Instant", "Flex"];
 
-export const planMeta: Record<PlanType, { tagline: string; phases: string }> = {
-  "1-Step": { tagline: "One phase evaluation. Hit the target to unlock funded access.", phases: "1 phase" },
-  "2-Step": { tagline: "Our most balanced evaluation with relaxed risk limits.", phases: "2 phases" },
-  "Express Program": { tagline: "Direct access to a performance-rewarded simulated account.", phases: "No evaluation" },
-  Flex: { tagline: "Pay a small entry fee today, the rest only when you pass.", phases: "1 phase" },
+export const planMeta: Record<PlanType, { tagline: string; phases: string; badge?: string }> = {
+  "1-Step": { tagline: "Single-phase evaluation", phases: "1-Phase" },
+  "2-Step": { tagline: "Two-phase evaluation", phases: "2-Phase" },
+  "Instant": { tagline: "No evaluation phase", phases: "Instant" },
+  Flex: { tagline: "Start for $9", phases: "Flex", badge: "NEW" },
 };
 
 const baseFee: Record<number, number> = { 3000: 35, 5000: 49, 10000: 89, 25000: 179, 50000: 299, 100000: 529, 200000: 999 };
 
-type Rules = {
-  target: string; daily: string; overall: string; days: string; split: string;
-  payout: string; time: string; mult: number;
-};
-const rules: Record<PlanType, Rules> = {
-  // Official Bullish4ex rules: 1-Step: 9% target, 6% max loss; 2-Step: 6%/5% target, 6% max loss; Instant: 6% max loss.
-  "1-Step": { target: "9%", daily: "4%", overall: "6%", days: "3 Winning Days", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 1.1 },
-  "2-Step": { target: "6% / 5%", daily: "4%", overall: "6%", days: "3 Winning Days / phase", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 1 },
-  "Express Program": { target: "None", daily: "3%", overall: "6%", days: "5 Winning Days", split: "70% → 100%", payout: "Every 14 days", time: "Unlimited", mult: 2.6 },
-  // Flex: 4% target, 4% daily, 8% trailing max loss; no min days in eval, 5 on funded.
-  Flex: { target: "4%", daily: "4%", overall: "8% (trailing)", days: "None (Eval) / 5 (Funded)", split: "85% (90% w/ add-on)", payout: "Every 14 days", time: "Unlimited", mult: 1 },
+/** A trading objective. `pct` values can also be shown as dollar amounts of the account size. */
+export type Objective = { label: string; pct?: number; text?: string };
+
+// Official Bullish4ex rules: 1-Step: 9% target, 6% max loss; 2-Step: 6%/5% target, 6% max loss; Instant: 6% max loss;
+// Flex: 4% target, 4% daily, 8% trailing max loss; no min days in eval, 5 on performance stage.
+const rules: Record<PlanType, { objectives: Objective[]; features: string[]; mult: number }> = {
+  "1-Step": {
+    objectives: [
+      { label: "Reward Target", pct: 9 },
+      { label: "Min Winning Days", text: "3" },
+      { label: "Max Trading Days", text: "None" },
+      { label: "Daily Drawdown", pct: 4 },
+      { label: "Max Drawdown (Static)", pct: 6 },
+      { label: "Reward Share", text: "70–100%" },
+      { label: "Rewards", text: "Every 14 days" },
+    ],
+    features: ["1-phase evaluation", "No time limit", "Refundable fee", "70–100% reward share"],
+    mult: 1.1,
+  },
+  "2-Step": {
+    objectives: [
+      { label: "Reward Target (Stage 1)", pct: 6 },
+      { label: "Reward Target (Stage 2)", pct: 5 },
+      { label: "Min Winning Days", text: "3" },
+      { label: "Max Trading Days", text: "None" },
+      { label: "Daily Drawdown", pct: 4 },
+      { label: "Max Drawdown (Static)", pct: 6 },
+      { label: "Reward Share", text: "70–100%" },
+      { label: "Rewards", text: "Every 14 days" },
+    ],
+    features: ["2-phase evaluation", "No time limit", "Refundable fee", "70–100% reward share"],
+    mult: 1,
+  },
+  "Instant": {
+    objectives: [
+      { label: "Min Winning Days", text: "5" },
+      { label: "Daily Drawdown", pct: 3 },
+      { label: "Max Drawdown (Static)", pct: 6 },
+      { label: "Reward Share", text: "70–100%" },
+      { label: "Rewards", text: "Every 14 days" },
+      { label: "No Evaluation Phase", text: "Direct access" },
+    ],
+    features: ["No evaluation phase", "No time limit", "Rewards every 14 days", "70–100% reward share"],
+    mult: 2.6,
+  },
+  Flex: {
+    objectives: [
+      { label: "Reward Target", pct: 4 },
+      { label: "Min Winning Days", text: "None" },
+      { label: "Max Trading Days", text: "None" },
+      { label: "Daily Drawdown", pct: 4 },
+      { label: "Max Drawdown (Trailing)", pct: 8 },
+      { label: "Reward Share", text: "85%" },
+      { label: "Rewards", text: "Every 14 days" },
+    ],
+    features: ["Pay $9 now, rest on pass", "No min days to pass", "No time limit", "85% reward share"],
+    mult: 1,
+  },
 };
 
 export function getPlan(type: PlanType, size: number) {
   const r = rules[type];
-  const flex = type === "Flex";
-  return {
-    rows: [
-      ["Profit target", r.target, "Profit you need to reach to pass"],
-      ["Max daily loss", r.daily, "Static, from initial balance. Resets 00:00 UTC"],
-      ["Max overall loss", r.overall, flex ? "Trailing from highest closed balance" : "Static, from initial balance"],
-      ["Min trading days", r.days, flex ? "No minimum during evaluation" : "Winning Days reach at least +0.5% on equity basis"],
-      ["Trading period", r.time, "No deadline to pass"],
-      ["Profit split", r.split, flex ? "90% with the profit split add-on" : "70% → 80% → 90% → up to 100%"],
-      ["Payout cycle", r.payout, "Bi-weekly, up to 6% of balance per cycle"],
-    ] as [string, string, string][],
-    fee: Math.round((baseFee[size] ?? 0) * r.mult),
-  };
+  return { objectives: r.objectives, features: r.features, fee: Math.round((baseFee[size] ?? 0) * r.mult) };
 }
 export const popular = { type: "2-Step" as PlanType, size: 100000 };
 
-export const planIncludes = [
-  "Fee refunded with first payout",
-  "Weekend holding with add-on (+20%)",
-  "EAs and bots allowed (no HFT)",
-  "Scaling plan: +25% balance every 4 payouts",
-];
-
 export const compareTypes: { label: string; values: Record<PlanType, string | boolean> }[] = [
-  { label: "Evaluation phases", values: { "1-Step": "1", "2-Step": "2", "Express Program": "None", Flex: "1" } },
-  { label: "Profit target", values: { "1-Step": "9%", "2-Step": "6% / 5%", "Express Program": "—", Flex: "4%" } },
-  { label: "Max daily loss", values: { "1-Step": "4%", "2-Step": "4%", "Express Program": "3%", Flex: "4%" } },
-  { label: "Max overall loss", values: { "1-Step": "6% (static)", "2-Step": "6% (static)", "Express Program": "6% (static)", Flex: "8% (trailing)" } },
-  { label: "Profit split", values: { "1-Step": "70% up to 100%", "2-Step": "70% up to 100%", "Express Program": "70% up to 100%", Flex: "85% (90% w/ add-on)" } },
-  { label: "News trading", values: { "1-Step": "Free in challenge; ±5m on funded", "2-Step": "Free in challenge; ±5m on funded", "Express Program": "10-min window (±5m)", Flex: "Free in challenge; ±5m on funded" } },
-  { label: "Refundable fee", values: { "1-Step": true, "2-Step": true, "Express Program": false, Flex: false } },
-  { label: "Scaling plan (+25% every 4 payouts)", values: { "1-Step": true, "2-Step": true, "Express Program": true, Flex: true } },
+  { label: "Evaluation phases", values: { "1-Step": "1", "2-Step": "2", "Instant": "None", Flex: "1" } },
+  { label: "Profit target", values: { "1-Step": "9%", "2-Step": "6% / 5%", "Instant": "—", Flex: "4%" } },
+  { label: "Max daily loss", values: { "1-Step": "4%", "2-Step": "4%", "Instant": "3%", Flex: "4%" } },
+  { label: "Max overall loss", values: { "1-Step": "6% (static)", "2-Step": "6% (static)", "Instant": "6% (static)", Flex: "8% (trailing)" } },
+  { label: "Profit split", values: { "1-Step": "70% up to 100%", "2-Step": "70% up to 100%", "Instant": "70% up to 100%", Flex: "85% (90% w/ add-on)" } },
+  { label: "News trading", values: { "1-Step": "Free in challenge; ±5m on performance stage", "2-Step": "Free in challenge; ±5m on performance stage", "Instant": "10-min window (±5m)", Flex: "Free in challenge; ±5m on performance stage" } },
+  { label: "Refundable fee", values: { "1-Step": true, "2-Step": true, "Instant": false, Flex: false } },
+  { label: "Scaling plan (+25% every 4 payouts)", values: { "1-Step": true, "2-Step": true, "Instant": true, Flex: true } },
 ];
 
 export const scaling = [
-  { step: "Starting balance", size: "$100K", split: "70%", req: "Initial funded account access" },
+  { step: "Starting balance", size: "$100K", split: "70%", req: "Initial performance stage" },
   { step: "Cycle 1 (4 payouts)", size: "$125K", split: "100%", req: "4 clean payouts (+25% balance)" },
   { step: "Cycle 2 (8 payouts)", size: "$150K", split: "100%", req: "8 clean payouts (+25% balance)" },
   { step: "Cycle 3 (12 payouts)", size: "$175K", split: "100%", req: "12 clean payouts (+25% balance)" },
@@ -116,11 +144,19 @@ export type Story = { name: string; country: string; total: string; quote: strin
 export const stories: Story[] = [];
 
 export const faqs = [
-  ["What are the trading rules?", "Respect the max daily and overall loss limits, hit the profit target, and trade the minimum days on your simulated account. No time limits."],
-  ["How fast are payouts?", "Most simulated performance reward payouts are processed within 24 hours, with an average of 8 hours."],
-  ["Is the challenge fee refundable?", "Yes. Your evaluation fee is 100% refunded with your first simulated profit payout upon passing."],
-  ["Do I need to complete KYC?", "KYC is required only once you pass the skill evaluation and before your funded account access is issued."],
-  ["Which platforms can I use?", "MetaTrader 5, cTrader and Match-Trader on desktop, web and mobile."],
-  ["Can I trade news and weekends?", "News trading is allowed, except opening or closing trades within 5 minutes of high-impact releases. Holding over the weekend needs the weekend holding add-on (+20%) at checkout."],
-  ["Is there a scaling plan?", "Consistent disciplined traders can scale their simulated balance up to $2,000,000."],
+  ["What is Flex, and how does the $9 work?", "Flex is a one-phase evaluation you start for $9. Hit the 4% reward target and you pass. You then pay the remaining fee to move to the performance stage. If you don't pass, you pay nothing beyond the $9."],
+  ["What are the Flex drawdown rules?", "4% daily and 8% maximum. The 8% maximum is trailing: it is measured from your highest closed balance. The same 4% and 8% limits apply at the performance stage."],
+  ["What is the Flex reward share?", "85% by default. You can upgrade to 90% with the reward share add-on."],
+  ["Which platforms do you support?", "MetaTrader 5, cTrader and Match-Trader on desktop, web and mobile. Your login details are issued from your dashboard after purchase."],
+  ["Is there a time limit to pass a challenge?", "No. There is no maximum number of trading days or calendar deadline to hit your reward target on any program."],
+  ["Do you use a consistency rule?", "Not on evaluations. On Flex performance accounts, no single trading day may make up more than 20% of your total profit when you request a reward."],
+  ["What drawdown limits apply to each program?", "1-Step and 2-Step: 4% daily and 6% maximum (static). Instant: 3% daily and 6% maximum (static). Flex: 4% daily and 8% maximum (trailing). The daily limit is measured from your starting balance and resets at 00:00 UTC."],
+  ["What is Instant?", "Instant gives you a simulated account without an evaluation phase. It uses a 3% daily drawdown and a 6% static maximum drawdown, and you need 5 winning days before requesting a reward."],
+  ["What reward targets apply to each program?", "1-Step: 9%. 2-Step: 6% in stage one and 5% in stage two. Flex: 4%. Instant has no reward target because there is no evaluation phase."],
+  ["What are minimum winning days?", "A winning day is a day that closes at least 0.5% in profit. 1-Step and each stage of 2-Step need 3 winning days. Flex has no minimum during the evaluation. At the performance stage, you need 5 winning days before requesting a reward."],
+  ["How often are rewards processed?", "Rewards follow a bi-weekly cycle. Your first request opens 14 days after you receive your performance account, and each request can be up to 6% of the account balance."],
+  ["What account sizes can I buy?", "Accounts are available from $3,000 up to $200,000. The exact sizes for each program are shown in the pricing section above."],
+  ["What payment options are available?", "You can pay by card, cryptocurrency or bank transfer. See checkout for the current methods."],
+  ["What are BOGO and weekend holding?", "BOGO (buy one, get one) gives you an extra account on the listed promotion. Weekend holding is an optional add-on (+20%) that lets you keep positions open over the weekend when you select it at checkout."],
+  ["Where can I read the full rules and policies?", "Read the full rules on our Rules page. The risk disclosure and legal policies are linked in the footer. For account-specific help, contact support from your dashboard."],
 ];
