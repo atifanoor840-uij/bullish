@@ -6,21 +6,31 @@ import { Counter, CtaButton, Logo, Pill, Reveal } from "./primitives";
 import { propApi } from "@/lib/propApi";
 import { isLive, isPublic } from "@/lib/offers";
 
-/** Promo strip above the navbar, built from live CRM offers/coupons; hidden when there are none. */
-function OfferBar() {
-  const [promo, setPromo] = useState<{ bogo: string | undefined; off: number | undefined } | null>(null);
+type Promo = { bogo: string | undefined; off: number | undefined };
+let promoRequest: Promise<Promo | null> | null = null;
+
+/** Current public promo from live CRM offers/coupons (fetched once per page); null when there is none. */
+function usePromo() {
+  const [promo, setPromo] = useState<Promo | null>(null);
   useEffect(() => {
-    Promise.all([
+    promoRequest ??= Promise.all([
       propApi.catalog.offers().then((r) => r.offers).catch(() => []),
       propApi.catalog.coupons().then((r) => r.coupons ?? []).catch(() => []),
     ]).then(([offers, coupons]) => {
       const bogo = offers.find((o) => o.type === "bogo" && isLive(o) && isPublic(o));
       const off = Math.max(0, ...coupons.filter((c) => c.status === "active" && !c.isExpired).map((c) => c.discountPercent));
-      if (!bogo && !off) return;
+      if (!bogo && !off) return null;
       const buy = bogo ? bogo.buyQuantity || 1 : 0;
-      setPromo({ bogo: bogo ? `Buy ${buy}, Get ${buy + (bogo.freeQuantity || 1)} Accounts` : undefined, off: off || undefined });
+      return { bogo: bogo ? `Buy ${buy}, Get ${buy + (bogo.freeQuantity || 1)} Accounts` : undefined, off: off || undefined };
     });
+    promoRequest.then(setPromo);
   }, []);
+  return promo;
+}
+
+/** Promo strip above the navbar; hidden when there is no live promo. */
+function OfferBar() {
+  const promo = usePromo();
   if (!promo) return null;
   return (
     <div className="bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-primary-foreground">
@@ -84,6 +94,7 @@ export function Navbar() {
 }
 
 export function Hero() {
+  const promo = usePromo();
   return (
     <section className="hero-bg relative overflow-hidden pt-44 pb-24 md:pt-52 md:pb-32">
       {/* Diagonal light beams (top-right) */}
@@ -114,14 +125,15 @@ export function Hero() {
       />
 
       <div className="relative mx-auto max-w-5xl px-5 text-center">
-        <Reveal>
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-sm text-foreground backdrop-blur">
-            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary/25">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-gold" />
-            </span>
-            Educational Trading Program · Simulated Accounts
-          </span>
-        </Reveal>
+        {promo && (
+          <Reveal>
+            <a href="#challenges" className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 py-1 pr-3 pl-1 text-sm font-medium text-foreground backdrop-blur transition hover:border-primary/60">
+              {promo.bogo && <span className="rounded-full bg-gold px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-primary-foreground">BOGO</span>}
+              {promo.bogo ?? `Up to ${promo.off}% off all plans`}
+              <ArrowUpRight className="h-3.5 w-3.5 text-primary" />
+            </a>
+          </Reveal>
+        )}
         <Reveal delay={0.1}>
           <h1 className="text-silver mt-8 text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl">
             Prove Your Skills.<br />
