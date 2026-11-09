@@ -184,20 +184,24 @@ export async function payOrder(ctx: Ctx) {
     const amount = Number(order.amountPaid.toFixed(2));
     if (!(amount > 0)) throw new HttpError(400, "This order has no amount to pay.");
 
-    // Inline one-time plan priced at the exact order total, so the Whop checkout shows the real amount.
+    // Inline one-time variant priced at the exact order total, so the Whop checkout shows the real amount.
     const payload = {
+      account_id: env.whop.companyId,
       mode: "payment",
       redirect_url: returnUrl,
       metadata: { orderId: order.id, userId: user.id, platform },
-      plan: {
-        company_id: env.whop.companyId,
+      variant: {
         product_id: env.whop.productId,
-        currency: "usd",
-        plan_type: "one_time",
+        account_id: env.whop.companyId,
+        title: `${planName} challenge`,
+        description: `Order ${order.id} · ${platform}`,
+        billing_type: "one_time",
         initial_price: amount,
-        title: `${planName} challenge · Order ${order.id}`,
+        currency: "usd",
         visibility: "hidden",
+        unlimited_stock: true,
         force_create_new_plan: true,
+        metadata: { orderId: order.id },
       },
     };
     let res: Response;
