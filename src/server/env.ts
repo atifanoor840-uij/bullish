@@ -42,6 +42,9 @@ export const env = {
       variantId: read("WHOP_VARIANT_ID") || read("WHOP_PLAN_ID") || "plan_EE7OocLy4ExcR",
     };
   },
+  get nowpayments() {
+    return { apiKey: read("NOWPAYMENTS_API_KEY"), ipnSecret: read("NOWPAYMENTS_IPN_SECRET") };
+  },
   get didit() {
     return {
       apiKey: read("DIDIT_API_KEY"),

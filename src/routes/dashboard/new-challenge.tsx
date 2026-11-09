@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Check, CreditCard, Bitcoin, Tag, ShieldCheck, Gift, Zap } from "lucide-react";
+import { Check, Tag, ShieldCheck, Gift } from "lucide-react";
 import { Button, Card, CardHeader, EmptyState, ErrorNote, Field, Loading, Note, PageHeader, cx, inputCls, useApi } from "@/components/portal/ui";
 import { PayOrder } from "@/components/portal/Checkout";
+import { CardBrands, CryptoCoins } from "@/components/portal/PaymentIcons";
 import { ApiError, computeCheckoutTotal, propApi, type Order, type PricingPlan } from "@/lib/propApi";
 import { money, num, price, sizeLabel } from "@/lib/portal";
 import { bogoBadge, bogoFor, isLive, isPublic, offerSummary } from "@/lib/offers";
@@ -61,7 +62,7 @@ function NewChallenge() {
   const [model, setModel] = useState<PricingPlan["model"]>("Two Step");
   const [size, setSize] = useState(100000);
   const [platform, setPlatform] = useState<(typeof PLATFORMS)[number]>("MT5");
-  const [method, setMethod] = useState<"Whop" | "Paddle" | "Crypto QR">("Whop");
+  const [method, setMethod] = useState<"Card" | "Crypto">("Card");
   const [weekend, setWeekend] = useState(false);
   const [code, setCode] = useState("");
   const [useRef, setUseRef] = useState(false);
@@ -102,7 +103,7 @@ function NewChallenge() {
   }, [data]);
 
   const plan = sizes.find((p) => p.size === size) ?? sizes[0];
-  const payMethod = data && !data.cardOk && method === "Paddle" ? "Whop" : method;
+  const payMethod = method;
   const coupon = data?.coupons.find((c) => c.code === code.trim().toUpperCase() && c.status === "active" && !c.isExpired);
 
   const total = plan
@@ -225,31 +226,28 @@ function NewChallenge() {
                   <button key={p} onClick={() => setPlatform(p)} className={cx("rounded-lg border px-4 py-2 text-sm font-medium transition", p === platform ? "border-primary/60 bg-primary/[0.08] text-primary" : "border-white/[0.08] text-muted-foreground hover:text-foreground")}>{p}</button>
                 ))}
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {([
-                  ["Whop", "Whop Checkout", "Card, Apple Pay, Google Pay", <Zap key="w" className="h-4 w-4" />, false],
-                  ["Paddle", "Card payment", "Card / Apple Pay", <CreditCard key="c" className="h-4 w-4" />, !data.cardOk],
-                  ["Crypto QR", "Crypto transfer", "USDT, BTC, SOL · extra 5% off", <Bitcoin key="b" className="h-4 w-4" />, false],
-                ] as const).map(([id, title, sub, icon, disabled]) => (
+                  ["Card", "Card payment", "Visa, Mastercard, Amex, Google Pay", <CardBrands key="c" />, true],
+                  ["Crypto", "Crypto payment", "BTC, USDT, ETH, TRX, USDC · extra 5% off", <CryptoCoins key="b" />, false],
+                ] as const).map(([id, title, sub, icons, popular]) => (
                   <button
                     key={id}
-                    disabled={disabled}
                     onClick={() => setMethod(id)}
                     className={cx(
-                      "flex items-center gap-3 rounded-xl border p-4 text-left transition disabled:opacity-40",
+                      "flex flex-col gap-3 rounded-xl border p-4 text-left transition",
                       payMethod === id ? "border-primary/60 bg-primary/[0.08]" : "border-white/[0.06] hover:border-white/15"
                     )}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-primary">{icon}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-semibold">{title}</p>
-                        {id === "Whop" && (
-                          <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">Popular</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">{disabled ? "Not available in your country" : sub}</p>
+                    <div className="flex items-center gap-2">
+                      <span className={cx("h-3.5 w-3.5 shrink-0 rounded-full border-2", payMethod === id ? "border-primary bg-primary" : "border-white/25")} />
+                      <p className="text-sm font-semibold">{title}</p>
+                      {popular && (
+                        <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">Popular</span>
+                      )}
                     </div>
+                    {icons}
+                    <p className="text-xs text-muted-foreground">{sub}</p>
                   </button>
                 ))}
               </div>
@@ -271,7 +269,7 @@ function NewChallenge() {
             <div className="space-y-4 p-5">
               <div>
                 <p className="font-display text-xl font-semibold">{activeModel} · {sizeLabel(plan?.size ?? 0)}</p>
-                <p className="text-xs text-muted-foreground">{platform} · {payMethod === "Crypto QR" ? "Crypto" : payMethod}</p>
+                <p className="text-xs text-muted-foreground">{platform} · {payMethod}</p>
               </div>
               <dl className="space-y-2 text-sm">
                 {RULES[activeModel].map(([k, v]) => (

@@ -154,9 +154,32 @@ export async function payOrder(ctx: Ctx) {
   const platform = ["MT4", "MT5", "cTrader"].includes(str(b.platform)) ? str(b.platform) : "MT5";
   const method = order.paymentMethod.toLowerCase();
   if (method.includes("crypto qr")) throw new HttpError(400, "Submit your crypto payment proof instead.");
-  if (method.includes("whop")) {
+  if (method.includes("crypto") || method.includes("nowpayments")) {
+    if (!env.nowpayments.apiKey) throw new HttpError(503, "Crypto payments are not configured yet (NOWPAYMENTS_API_KEY).");
+    const { planName } = await orderPlan(order);
+    const origin = env.appUrl || ctx.url.origin;
+    const res = await fetch("https://api.nowpayments.io/v1/invoice", {
+      method: "POST",
+      headers: { "x-api-key": env.nowpayments.apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        price_amount: Number(order.amountPaid.toFixed(2)),
+        price_currency: "usd",
+        order_id: order.id,
+        order_description: `Bullish 4ex ${planName} challenge (${platform})`,
+        ipn_callback_url: `${origin}/api/orders/pay/nowpayments-webhook`,
+        success_url: `${origin}/dashboard/orders?paid=${encodeURIComponent(order.id)}`,
+        cancel_url: `${origin}/dashboard/orders`,
+      }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { id?: string | number; invoice_url?: string; message?: string };
+    if (!res.ok || !data.invoice_url) throw new HttpError(502, data.message || "Could not start the crypto checkout.");
+    const gatewayRef = `nowpayments:${data.id}:platform=${platform}`;
+    await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
+    return { provider: "nowpayments", checkoutUrl: data.invoice_url, gatewayRef };
+  }
+  if (method.includes("whop") || method.includes("card")) {
     if (!env.whop.apiKey && !env.whop.checkoutUrl && !env.whop.variantId) {
-      throw new HttpError(503, "Whop payments are not configured yet (WHOP_API_KEY).");
+      throw new HttpError(503, "Card payments are not configured yet (WHOP_API_KEY).");
     }
     const { planName } = await orderPlan(order);
     const returnUrl = `${env.appUrl || new URL(ctx.req.url).origin}/dashboard/orders`;
@@ -238,7 +261,7 @@ export async function payOrder(ctx: Ctx) {
     }
   }
 
-  if (!method.includes("paddle")) throw new HttpError(503, `${order.paymentMethod} payments are not available. Please choose Whop, Card (Paddle) or Crypto QR.`);
+  if (!method.includes("paddle")) throw new HttpError(503, `${order.paymentMethod} payments are not available. Please choose Card or Crypto.`);
   if (!env.paddle.apiKey) throw new HttpError(503, "Card payments are not configured yet (PADDLE_API_KEY).");
 
   const { planName } = await orderPlan(order);
@@ -328,6 +351,37 @@ export async function whopWebhook(ctx: Ctx) {
 
   const paymentId = event.data?.id || event.id || "whop_payment";
   await activateOrder(order, { status: "Paid", gatewayRef: `whop:${paymentId}:platform=${platform}` });
+  return json({ success: true });
+}
+
+/** JSON with object keys sorted recursively — NOWPayments signs the IPN body this way. */
+function sortedJson(v: unknown): string {
+  const sort = (x: unknown): unknown =>
+    Array.isArray(x) ? x.map(sort)
+      : x && typeof x === "object" ? Object.fromEntries(Object.keys(x as object).sort().map((k) => [k, sort((x as Record<string, unknown>)[k])]))
+        : x;
+  return JSON.stringify(sort(v));
+}
+
+export async function nowpaymentsWebhook(ctx: Ctx) {
+  const raw = await ctx.req.text();
+  const secret = env.nowpayments.ipnSecret;
+  if (!secret) return json({ error: "IPN secret not configured." }, 503);
+  let event: { payment_id?: string | number; invoice_id?: string | number; payment_status?: string; order_id?: string } = {};
+  try {
+    event = JSON.parse(raw);
+  } catch {
+    return json({ error: "Invalid JSON" }, 400);
+  }
+  const sig = (ctx.req.headers.get("x-nowpayments-sig") || "").toLowerCase();
+  if (!sig || !safeEqual(sig, await hmacHex(secret, sortedJson(event), "SHA-512"))) return json({ error: "Invalid signature." }, 401);
+
+  if (event.payment_status !== "finished" && event.payment_status !== "confirmed") return json({ success: true, ignored: event.payment_status });
+  const order = event.order_id ? await db.one<DBOrder>("orders", { id: eq(event.order_id) }) : null;
+  if (!order) return json({ success: true, ignored: "order not found" });
+  if (order.status !== "Pending") return json({ success: true, alreadyProcessed: true });
+  const platform = /platform=([A-Za-z0-9]+)/.exec(order.gatewayRef || "")?.[1] || "MT5";
+  await activateOrder(order, { status: "Paid", gatewayRef: `nowpayments:${event.payment_id ?? event.invoice_id}:platform=${platform}` });
   return json({ success: true });
 }
 
