@@ -3,8 +3,8 @@
  * .env/.env.local into process.env; in production set them on the host.
  */
 /* ---- Hardcoded NOWPayments credentials (paste from NOWPayments dashboard → Settings → API keys / IPN) ---- */
-const NOWPAYMENTS_API_KEY = "";
-const NOWPAYMENTS_IPN_SECRET = "";
+const NOWPAYMENTS_API_KEY = "KVGA4YP-Q4VMENB-K3GQW46-6GG3XWG";
+const NOWPAYMENTS_IPN_SECRET = "IpxonvBa429Dke0jeAurSyGznWeqccgd";
 
 const read = (key: string) => (typeof process !== "undefined" ? process.env[key] : undefined)?.trim() || "";
 
