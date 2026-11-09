@@ -2,6 +2,10 @@
  * Server-only environment access. In development vite.config.ts copies
  * .env/.env.local into process.env; in production set them on the host.
  */
+/* ---- Hardcoded NOWPayments credentials (paste from NOWPayments dashboard → Settings → API keys / IPN) ---- */
+const NOWPAYMENTS_API_KEY = "";
+const NOWPAYMENTS_IPN_SECRET = "";
+
 const read = (key: string) => (typeof process !== "undefined" ? process.env[key] : undefined)?.trim() || "";
 
 export const env = {
@@ -42,8 +46,12 @@ export const env = {
       variantId: read("WHOP_VARIANT_ID") || read("WHOP_PLAN_ID") || "plan_EE7OocLy4ExcR",
     };
   },
+  /** NOWPayments (crypto). Hardcoded keys below are used when the env vars are not set. */
   get nowpayments() {
-    return { apiKey: read("NOWPAYMENTS_API_KEY"), ipnSecret: read("NOWPAYMENTS_IPN_SECRET") };
+    return {
+      apiKey: read("NOWPAYMENTS_API_KEY") || NOWPAYMENTS_API_KEY,
+      ipnSecret: read("NOWPAYMENTS_IPN_SECRET") || NOWPAYMENTS_IPN_SECRET,
+    };
   },
   get didit() {
     return {

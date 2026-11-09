@@ -178,87 +178,44 @@ export async function payOrder(ctx: Ctx) {
     return { provider: "nowpayments", checkoutUrl: data.invoice_url, gatewayRef };
   }
   if (method.includes("whop") || method.includes("card")) {
-    if (!env.whop.apiKey && !env.whop.checkoutUrl && !env.whop.variantId) {
-      throw new HttpError(503, "Card payments are not configured yet (WHOP_API_KEY).");
-    }
+    if (!env.whop.apiKey) throw new HttpError(503, "Card payments are not configured yet (WHOP_API_KEY).");
     const { planName } = await orderPlan(order);
     const returnUrl = `${env.appUrl || new URL(ctx.req.url).origin}/dashboard/orders`;
+    const amount = Number(order.amountPaid.toFixed(2));
+    if (!(amount > 0)) throw new HttpError(400, "This order has no amount to pay.");
 
-    const plan = await db.one<DBPricingPlan>("pricing_plans", { id: eq(order.planId) });
-    const modelKey = plan?.model ? plan.model.toUpperCase().replace(/\s+/g, "_") : "";
-    const sizeKey = plan?.size ? String(plan.size) : "";
-    const variantId =
-      (modelKey && sizeKey ? (process.env[`WHOP_VARIANT_${modelKey}_${sizeKey}`] || "") : "") ||
-      (order.planId ? (process.env[`WHOP_VARIANT_${order.planId.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`] || "") : "") ||
-      env.whop.variantId ||
-      "";
-
-    const directCheckout = variantId
-      ? `https://whop.com/checkout/${variantId}?metadata[orderId]=${encodeURIComponent(order.id)}&metadata[platform]=${encodeURIComponent(platform)}&redirect_url=${encodeURIComponent(returnUrl)}`
-      : env.whop.checkoutUrl
-        ? `${env.whop.checkoutUrl}${env.whop.checkoutUrl.includes("?") ? "&" : "?"}metadata_order_id=${encodeURIComponent(order.id)}&metadata_platform=${encodeURIComponent(platform)}`
-        : "";
-
-    if (!variantId && !directCheckout) {
-      throw new HttpError(
-        400,
-        "Whop variant_id is required. Please set WHOP_VARIANT_ID (e.g. plan_xxxxxxxx) in .env.local or configure WHOP_CHECKOUT_URL."
-      );
+    // Inline one-time plan priced at the exact order total, so the Whop checkout shows the real amount.
+    const payload = {
+      mode: "payment",
+      redirect_url: returnUrl,
+      metadata: { orderId: order.id, userId: user.id, platform },
+      plan: {
+        company_id: env.whop.companyId,
+        product_id: env.whop.productId,
+        currency: "usd",
+        plan_type: "one_time",
+        initial_price: amount,
+        title: `${planName} challenge · Order ${order.id}`,
+        visibility: "hidden",
+        force_create_new_plan: true,
+      },
+    };
+    let res: Response;
+    try {
+      res = await fetch("https://api.whop.com/api/v1/checkout_configurations", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${env.whop.apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      throw new HttpError(502, err instanceof Error ? err.message : "Failed to initiate card checkout.");
     }
-
-    if (env.whop.apiKey && variantId) {
-      try {
-        const payload: Record<string, unknown> = {
-          account_id: env.whop.companyId || "biz_D8AC4pUxTJ5rvh",
-          variant_id: variantId,
-          redirect_url: returnUrl,
-          metadata: { orderId: order.id, userId: user.id, platform },
-        };
-        const res = await fetch("https://api.whop.com/api/v1/checkout_configurations", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${env.whop.apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-        const data = (await res.json().catch(() => ({}))) as {
-          id?: string;
-          purchase_url?: string;
-          checkout_url?: string;
-          error?: { message?: string };
-        };
-
-        const url = data.purchase_url || data.checkout_url;
-        if (res.ok && url) {
-          const gatewayRef = `whop:${data.id || variantId}:platform=${platform}`;
-          await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
-          return { provider: "whop", checkoutUrl: url, gatewayRef };
-        }
-
-        if (directCheckout) {
-          const gatewayRef = `whop:${variantId || "hosted"}:platform=${platform}`;
-          await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
-          return { provider: "whop", checkoutUrl: directCheckout, gatewayRef };
-        }
-
-        throw new HttpError(502, data.error?.message || "Could not start Whop checkout.");
-      } catch (err) {
-        if (err instanceof HttpError) throw err;
-        if (directCheckout) {
-          const gatewayRef = `whop:${variantId || "hosted"}:platform=${platform}`;
-          await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
-          return { provider: "whop", checkoutUrl: directCheckout, gatewayRef };
-        }
-        throw new HttpError(502, err instanceof Error ? err.message : "Failed to initiate Whop checkout");
-      }
-    }
-
-    if (directCheckout) {
-      const gatewayRef = `whop:${variantId || "hosted"}:platform=${platform}`;
-      await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
-      return { provider: "whop", checkoutUrl: directCheckout, gatewayRef };
-    }
+    const data = (await res.json().catch(() => ({}))) as { id?: string; purchase_url?: string; error?: { message?: string }; message?: string };
+    if (!res.ok || !data.purchase_url) throw new HttpError(502, data.error?.message || data.message || "Could not start the card checkout.");
+    const checkoutUrl = data.purchase_url.startsWith("http") ? data.purchase_url : `https://whop.com${data.purchase_url}`;
+    const gatewayRef = `whop:${data.id}:platform=${platform}`;
+    await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
+    return { provider: "whop", checkoutUrl, gatewayRef };
   }
 
   if (!method.includes("paddle")) throw new HttpError(503, `${order.paymentMethod} payments are not available. Please choose Card or Crypto.`);
