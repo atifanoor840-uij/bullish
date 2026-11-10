@@ -216,12 +216,7 @@ function NewChallenge() {
                         <span className="text-muted-foreground line-through">{price(p.price)}</span>
                       </p>
                     ) : (
-                      <p className="mt-0.5 text-xs text-muted-foreground">{p.model === "Flex" ? `${price(p.price)} now` : price(p.price)}</p>
-                    )}
-                    {p.model === "Flex" && (
-                      <p className="text-[10px] text-muted-foreground/70">
-                        Real: {price(p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price)}
-                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{price(p.price)}</p>
                     )}
                   </button>
                 );
