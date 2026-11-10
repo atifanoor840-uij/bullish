@@ -4,8 +4,6 @@ export const navLinks = [
   { label: "Markets", href: "/#markets" },
   { label: "Rules", href: "/rules" },
   { label: "How It Works", href: "/#how" },
-  { label: "Support", href: "/contact" },
-  { label: "Dashboard", href: "/dashboard" },
 ];
 
 export const stats = [

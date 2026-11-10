@@ -5,6 +5,7 @@ import { Eye, EyeOff, Lock, Mail, User, ArrowRight, AlertCircle } from "lucide-r
 import { Logo } from "@/components/site/primitives";
 import { propApi } from "@/lib/propApi";
 import { trackPixel } from "@/lib/metaPixel";
+import { CountrySelect } from "@/components/site/country-select";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -164,22 +165,7 @@ function SignupPage() {
             <div>
               <label className="block text-xs font-medium text-foreground/80">Country of residence</label>
               <div className="relative mt-1">
-                <select
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-[#1f1b27] py-2.5 px-3.5 text-sm text-foreground transition focus:border-primary focus:outline-none"
-                >
-                  <option value="United States">United States</option>
-                  <option value="United Kingdom">United Kingdom</option>
-                  <option value="Germany">Germany</option>
-                  <option value="Pakistan">Pakistan</option>
-                  <option value="United Arab Emirates">United Arab Emirates</option>
-                  <option value="Spain">Spain</option>
-                  <option value="Nigeria">Nigeria</option>
-                  <option value="Japan">Japan</option>
-                  <option value="Canada">Canada</option>
-                  <option value="Australia">Australia</option>
-                </select>
+                <CountrySelect value={country} onChange={setCountry} />
               </div>
             </div>
 
