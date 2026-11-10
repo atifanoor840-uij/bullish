@@ -106,6 +106,8 @@ function NewChallenge() {
   const payMethod = method;
   // Coupons never apply to the Flex initial price.
   const isFlex = plan?.model === "Flex";
+  // Active coupon for the size tiles (ignores the selected plan; Flex tiles skip it).
+  const tileCoupon = data?.coupons.find((c) => c.code === code.trim().toUpperCase() && c.status === "active" && !c.isExpired);
   const coupon = isFlex ? undefined : data?.coupons.find((c) => c.code === code.trim().toUpperCase() && c.status === "active" && !c.isExpired);
 
   const total = plan
@@ -208,7 +210,14 @@ function NewChallenge() {
                   <button key={p.id} onClick={() => setSize(p.size)} className={cx("relative rounded-xl border px-3 py-3 text-center transition", p.size === plan?.size ? "border-primary/60 bg-primary/[0.08]" : "border-white/[0.06] hover:border-white/15")}>
                     {offer && <span className="absolute -top-2 right-2 rounded-full bg-gold px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">{bogoBadge(offer)}</span>}
                     <p className="font-display font-semibold">{sizeLabel(p.size)}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{p.model === "Flex" ? `${price(p.price)} now` : price(p.price)}</p>
+                    {p.model !== "Flex" && tileCoupon ? (
+                      <p className="mt-0.5 text-xs">
+                        <span className="font-semibold text-profit">{price(Math.ceil(p.price * (1 - tileCoupon.discountPercent / 100)))}</span>{" "}
+                        <span className="text-muted-foreground line-through">{price(p.price)}</span>
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{p.model === "Flex" ? `${price(p.price)} now` : price(p.price)}</p>
+                    )}
                     {p.model === "Flex" && (
                       <p className="text-[10px] text-muted-foreground/70">
                         Real: {price(p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price)}
