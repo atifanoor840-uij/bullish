@@ -284,24 +284,11 @@ function NewChallenge() {
               </dl>
               <div className="h-px bg-white/[0.06]" />
               {activeModel === "Flex" && (
-                <div className="rounded-xl border border-primary/30 bg-primary/[0.06] p-3 text-xs">
-                  <div className="flex items-center justify-between font-semibold">
-                    <span className="text-foreground">Pay Today (Entry Fee):</span>
-                    <span className="font-bold text-primary">{price(plan?.price ?? 9)}</span>
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between text-muted-foreground">
-                    <span>Real Account Price:</span>
-                    <span>{price(plan?.realPrice ?? DEFAULT_REAL_PRICE[plan?.size ?? 100000] ?? 529)}</span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-muted-foreground">
-                    <span>Remaining On Passing:</span>
-                    <span className="font-medium text-foreground">
-                      {price(Math.max(0, (plan?.realPrice ?? DEFAULT_REAL_PRICE[plan?.size ?? 100000] ?? 529) - (plan?.price ?? 9)))}
-                    </span>
-                  </div>
-                  <p className="mt-2 border-t border-white/10 pt-1.5 text-[11px] text-muted-foreground">
-                    ✨ Pay only <strong>{price(plan?.price ?? 9)}</strong> to trade Phase 1. You only pay the remaining price after passing the evaluation to unlock funded account access.
-                  </p>
+                <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/[0.06] px-4 py-3 text-sm text-primary">
+                  <span>Activation (only if you pass)</span>
+                  <span className="font-bold">
+                    {money(Math.max(0, (plan?.realPrice ?? DEFAULT_REAL_PRICE[plan?.size ?? 100000] ?? 529) - (plan?.price ?? 9)))}
+                  </span>
                 </div>
               )}
               {planOffers.map((o) => (
