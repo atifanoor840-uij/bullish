@@ -65,7 +65,7 @@ export function Navbar() {
         <Logo />
         <nav className="hidden items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] p-1 lg:flex">
           {navLinks.map((l) => (
-            <a key={l.href} href={l.href} className="rounded-full px-4 py-1.5 text-sm text-muted-foreground transition hover:bg-white/[0.05] hover:text-foreground">{l.label}</a>
+            <a key={l.href} href={l.href} {...(l.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="rounded-full px-4 py-1.5 text-sm text-muted-foreground transition hover:bg-white/[0.05] hover:text-foreground">{l.label}</a>
           ))}
         </nav>
         <div className="hidden items-center gap-2 lg:flex">
@@ -81,7 +81,7 @@ export function Navbar() {
       {open && (
         <div className="border-t border-white/5 bg-background/95 px-5 pb-6 backdrop-blur-xl lg:hidden">
           {navLinks.map((l) => (
-            <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="block border-b border-white/5 py-3 text-muted-foreground">{l.label}</a>
+            <a key={l.href} href={l.href} {...(l.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})} onClick={() => setOpen(false)} className="block border-b border-white/5 py-3 text-muted-foreground">{l.label}</a>
           ))}
           <div className="mt-4 flex gap-2">
             <a href="/login" className="flex-1 rounded-full border border-white/10 py-2.5 text-center text-sm font-medium">Login</a>

@@ -115,7 +115,7 @@ export function Footer() {
     [
       "Support",
       [
-        { label: "Trading Rules", href: "/rules" },
+        { label: "Trading Rules", href: "https://help.bullish4ex.site/" },
         { label: "24/7 Live Support", href: "/contact" },
         { label: "Help Center & FAQ", href: "/#faq" },
         { label: "Trader Dashboard", href: "/dashboard" },
@@ -152,7 +152,7 @@ export function Footer() {
             <ul className="space-y-2.5">
               {links.map((item) => (
                 <li key={item.label}>
-                  <a href={item.href} className="text-sm text-muted-foreground transition hover:text-primary">
+                  <a href={item.href} {...(item.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="text-sm text-muted-foreground transition hover:text-primary">
                     {item.label}
                   </a>
                 </li>

@@ -2,7 +2,7 @@
 export const navLinks = [
   { label: "Pricing", href: "/#challenges" },
   { label: "Markets", href: "/#markets" },
-  { label: "Rules", href: "/rules" },
+  { label: "Rules", href: "https://help.bullish4ex.site/" },
   { label: "How It Works", href: "/#how" },
 ];
 
