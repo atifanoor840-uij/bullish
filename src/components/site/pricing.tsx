@@ -213,7 +213,8 @@ export function Pricing() {
   const live = typePlans.find((p) => p.size === activeSize);
   const plan = getPlan(activeType, activeSize);
   const rawFee = live ? live.price : plan.fee;
-  const discountPercent = appliedCoupon ? appliedCoupon.discountPercent : 0;
+  // Coupons never apply to the Flex initial price.
+  const discountPercent = appliedCoupon && MODEL_OF[activeType] !== "Flex" ? appliedCoupon.discountPercent : 0;
   const fee = discountPercent > 0 ? Math.round(rawFee * (1 - discountPercent / 100)) : rawFee;
   const checkoutHref = live
     ? `/dashboard/new-challenge?plan=${encodeURIComponent(live.id)}${appliedCoupon ? `&coupon=${encodeURIComponent(appliedCoupon.code)}` : ""}`

@@ -104,7 +104,9 @@ function NewChallenge() {
 
   const plan = sizes.find((p) => p.size === size) ?? sizes[0];
   const payMethod = method;
-  const coupon = data?.coupons.find((c) => c.code === code.trim().toUpperCase() && c.status === "active" && !c.isExpired);
+  // Coupons never apply to the Flex initial price.
+  const isFlex = plan?.model === "Flex";
+  const coupon = isFlex ? undefined : data?.coupons.find((c) => c.code === code.trim().toUpperCase() && c.status === "active" && !c.isExpired);
 
   const total = plan
     ? computeCheckoutTotal({ catalogPrice: plan.price, weekendHoldingAddon: weekend, discountPercent: coupon?.discountPercent ?? 0, isCrypto: payMethod.toLowerCase().includes("crypto"), referralBalance: data?.referralBalance ?? 0, useReferralBalance: useRef })
@@ -310,7 +312,9 @@ function NewChallenge() {
                   <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter code" className={cx(inputCls, "pl-9 uppercase")} />
                 </div>
               </Field>
-              {code && (coupon ? (
+              {isFlex ? (
+                <p className="text-xs text-muted-foreground">Coupon codes do not apply to the Flex initial price.</p>
+              ) : code && (coupon ? (
                 <div className="flex items-center gap-1.5 text-xs font-medium text-profit">
                   <Check className="h-3.5 w-3.5" />
                   <span>Promo {coupon.code} auto-applied — {coupon.discountPercent}% off</span>

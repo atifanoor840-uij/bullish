@@ -35,16 +35,25 @@ export async function createOrder(ctx: Ctx) {
 
   const weekend = !!b.weekendHoldingAddon;
   let base = Number(plan.price) * (weekend ? 1 + WEEKEND_ADDON_PERCENT / 100 : 1);
-  const code = str(b.couponUsed).toUpperCase();
+  // Flex initial price is fixed: coupon / referral-code discounts never apply to it
+  // (referral attribution is still kept so the affiliate gets credit).
+  const isFlex = plan.model === "Flex";
+  let code = str(b.couponUsed).toUpperCase();
   let discount = 0;
   let affiliate: DBAffiliate | null = null;
   if (code) {
     const coupon = await db.one<DBCoupon>("coupons", { code: eq(code) });
-    if (coupon && coupon.status === "active" && !couponExpired(coupon)) discount = Number(coupon.discountPercent);
-    else {
+    if (coupon && coupon.status === "active" && !couponExpired(coupon)) {
+      if (isFlex) code = "";
+      else discount = Number(coupon.discountPercent);
+    } else {
       affiliate = await db.one<DBAffiliate>("affiliates", { referralCode: eq(code) });
-      if (affiliate && affiliate.userId !== user.id) discount = 10;
-      else throw new HttpError(400, "This coupon code is invalid or expired.");
+      if (affiliate && affiliate.userId !== user.id) {
+        if (!isFlex) discount = 10;
+      } else if (isFlex) {
+        affiliate = null;
+        code = "";
+      } else throw new HttpError(400, "This coupon code is invalid or expired.");
     }
   }
   const isCrypto = paymentMethod.toLowerCase().includes("crypto");
