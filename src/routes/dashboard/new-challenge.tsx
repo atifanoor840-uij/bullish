@@ -38,7 +38,7 @@ const RULES: Record<PricingPlan["model"], [string, string][]> = {
   Instant: [["Profit target", "None"], ["Max daily loss", "3%"], ["Max overall loss", "6% (static)"], ["Min. trading days", "5 Winning Days"], ["Profit split", "70% up to 100%"]],
   Flex: [["Profit target", "4%"], ["Max daily loss", "4%"], ["Max overall loss", "8% trailing"], ["Min. trading days", "None (Eval) / 5 (Funded)"], ["Profit split", "85% (90% w/ add-on)"]],
 };
-const PLATFORMS = ["MT5", "MT4", "cTrader"] as const;
+const PLATFORMS = ["MT5"] as const;
 
 function NewChallenge() {
   const { data, error, loading, reload } = useApi(async () => {
@@ -59,7 +59,7 @@ function NewChallenge() {
     };
   });
 
-  const [model, setModel] = useState<PricingPlan["model"]>("Two Step");
+  const [model, setModel] = useState<PricingPlan["model"]>("Flex");
   const [size, setSize] = useState(100000);
   const [platform, setPlatform] = useState<(typeof PLATFORMS)[number]>("MT5");
   const [method, setMethod] = useState<"Card" | "Crypto">("Card");
@@ -172,7 +172,7 @@ function NewChallenge() {
 
   return (
     <>
-      <PageHeader title="New Challenge" subtitle="Choose your evaluation, account size and platform." />
+      <PageHeader title="New Challenge" subtitle="Choose your evaluation and account size." />
       {!!data.offers.length && (
         <div className="mb-5 space-y-2">
           {data.offers.map((o) => (
@@ -188,14 +188,11 @@ function NewChallenge() {
         <div className="space-y-5">
           <Card>
             <CardHeader title="1. Evaluation model" />
-            <div className={cx("grid gap-3 p-5", models.length > 3 ? "sm:grid-cols-2 2xl:grid-cols-4" : "sm:grid-cols-3")}>
+            <div className={cx("grid grid-cols-2 gap-3 p-5", models.length > 3 ? "lg:grid-cols-4" : "sm:grid-cols-3")}>
               {models.map((m) => (
-                <button key={m} onClick={() => setModel(m)} className={cx("rounded-xl border p-4 text-left transition", m === activeModel ? "border-primary/60 bg-primary/[0.08]" : "border-white/[0.06] hover:border-white/15")}>
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold">{m}</p>
-                    <span className={cx("flex h-4 w-4 items-center justify-center rounded-full border", m === activeModel ? "border-primary bg-primary" : "border-white/20")}>{m === activeModel && <Check className="h-2.5 w-2.5 text-primary-foreground" />}</span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{m === "Flex" ? "Pay $9 entry fee today. Pay remaining only when you pass." : m === "Instant" ? "Skip the evaluation, trade funded today." : m === "One Step" ? "One phase (9% target), then funded." : "Two phases (6% / 5% targets)."}</p>
+                <button key={m} onClick={() => setModel(m)} className={cx("flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-left transition", m === activeModel ? "border-primary/60 bg-primary/[0.08]" : "border-white/[0.06] hover:border-white/15")}>
+                  <p className="text-sm font-semibold">{m}</p>
+                  <span className={cx("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border", m === activeModel ? "border-primary bg-primary" : "border-white/20")}>{m === activeModel && <Check className="h-2.5 w-2.5 text-primary-foreground" />}</span>
                 </button>
               ))}
             </div>
