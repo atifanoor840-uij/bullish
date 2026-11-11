@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   LayoutGrid, PlusCircle, Receipt, Wallet, Award, Users, ShieldCheck, Bell, Settings, Loader2, MailWarning, ShieldAlert, ArrowLeft, Gift,
@@ -60,6 +60,9 @@ function DashboardLayout() {
   const [unread, setUnread] = useState(0);
   const [error, setError] = useState("");
   const [imp, setImp] = useState<Impersonation | null>(null);
+  // Admin-view / verify-email banners only on the main dashboard page.
+  const pathname = useLocation({ select: (l) => l.pathname });
+  const isHome = pathname.replace(/\/+$/, "") === "/dashboard";
 
   const refreshUser = useCallback(async () => {
     try {
@@ -123,7 +126,7 @@ function DashboardLayout() {
         unread={unread}
         topActions={<Button variant="primary" size="sm" href="/dashboard/new-challenge"><PlusCircle className="h-4 w-4" />Start Challenge</Button>}
       >
-        {imp && (
+        {isHome && imp && (
           <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
             <ShieldAlert className="h-4 w-4 shrink-0 text-primary" />
             <span className="flex-1">
@@ -133,7 +136,7 @@ function DashboardLayout() {
             <Button size="sm" variant="primary" onClick={() => void exitImpersonation()}><ArrowLeft className="h-3.5 w-3.5" />Back to CRM</Button>
           </div>
         )}
-        {user.emailVerified === false && (
+        {isHome && user.emailVerified === false && (
           <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-500">
             <MailWarning className="h-4 w-4 shrink-0" />
             <span className="flex-1">Please verify your email address to secure your account.</span>
