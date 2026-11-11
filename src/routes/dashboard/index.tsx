@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Lock, PlusCircle, RefreshCw, Wallet, TrendingUp, Layers, Banknote, AlertTriangle, Clock, Gift, ArrowRight } from "lucide-react";
 import {
   Button, Card, EmptyState, ErrorNote, Loading, Note, PageHeader, StatCard, useAction, useApi, cx,
@@ -27,7 +27,14 @@ function AccountsOverview() {
     return { accounts: accounts.accounts, orders: orders.orders, retry: retry.eligibility as Retry[], payouts: payouts.payouts, offers: offers.offers as { id: string; name: string; description?: string; summary?: string }[], tags: offers.tags as Record<string, OfferTag[]> };
   });
   const [filter, setFilter] = useState<Filter>("all");
+  const navigate = useNavigate();
   const paymentSuccess = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("payment") === "success";
+
+  // New user with no orders and no accounts yet → send them straight to buy a challenge.
+  const isNewUser = !!data && !error && !paymentSuccess && data.orders.length === 0 && data.accounts.length === 0;
+  useEffect(() => {
+    if (isNewUser) void navigate({ to: "/dashboard/new-challenge", replace: true });
+  }, [isNewUser, navigate]);
 
   const ordersById = useMemo(() => Object.fromEntries((data?.orders ?? []).map((o) => [o.id, o])), [data]);
   const accounts = useMemo(
@@ -42,6 +49,8 @@ function AccountsOverview() {
   const totalPl = accounts.filter((a) => a.status !== "Failed").reduce((s, a) => s + num(a.totalPl), 0);
   const paidOut = (data?.payouts ?? []).filter((p) => p.status === "paid").reduce((s, p) => s + num(p.profitSplitAmount), 0);
   const count = (s: Filter) => accounts.filter((a) => a.status === s).length;
+
+  if (isNewUser) return <Card><Loading label="Taking you to challenges…" /></Card>;
 
   return (
     <>
