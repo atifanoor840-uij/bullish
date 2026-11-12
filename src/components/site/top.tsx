@@ -43,7 +43,7 @@ function OfferBar() {
         )}
         {promo.off && <span className="rounded-full bg-loss px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-white">UP TO {promo.off}% OFF</span>}
         <span className="h-4 w-px bg-primary-foreground/30" />
-        <a href="/#challenges" className="inline-flex items-center gap-1 hover:underline">See plans <ArrowUpRight className="h-3.5 w-3.5" /></a>
+        <a href="/pricing" className="inline-flex items-center gap-1 hover:underline">See plans <ArrowUpRight className="h-3.5 w-3.5" /></a>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 // Placeholder content — edit freely.
 export const navLinks = [
-  { label: "Pricing", href: "/#challenges" },
+  { label: "Pricing", href: "/pricing" },
   { label: "Markets", href: "/#markets" },
   { label: "Rules", href: "https://help.bullish4ex.site/" },
   { label: "How It Works", href: "/#how" },
