@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Eye, Trash2 } from "lucide-react";
-import { Badge, Button, Card, DataTable, ErrorNote, Field, Loading, Modal, Note, PageHeader, Pager, SearchInput, Tabs, inputCls, useAction, useApi, usePaged } from "@/components/portal/ui";
+import { Badge, Button, Card, DataTable, ErrorNote, Field, Loading, Modal, Note, PageHeader, Pager, PeriodStats, RefreshButton, SearchInput, Tabs, inputCls, useAction, useApi, usePaged } from "@/components/portal/ui";
 import { usePortal } from "@/components/portal/context";
 import { propApi, type Order } from "@/lib/propApi";
 import { fmtDate, money } from "@/lib/portal";
@@ -27,8 +27,9 @@ function AdminOrders() {
 
   return (
     <>
-      <PageHeader title="Orders" subtitle="Confirm payments and drive each challenge through its stages." />
+      <PageHeader title="Orders" subtitle="Confirm payments and drive each challenge through its stages." actions={<RefreshButton onClick={() => void reload()} busy={loading} />} />
       {error && <ErrorNote message={error} onRetry={reload} />}
+      <PeriodStats items={all} getDate={(o) => o.createdAt} noun="orders" sub={(l) => `${money(l.reduce((s, o) => s + (Number(o.amountPaid) || 0), 0))} total`} />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Tabs<F> value={filter} onChange={setFilter} tabs={[
           { id: "all", label: "All", count: all.length },

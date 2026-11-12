@@ -207,6 +207,8 @@ export async function payOrder(ctx: Ctx) {
         billing_type: "one_time",
         initial_price: amount,
         currency: "usd",
+        // Tax is counted inside the price (never added on top), so the card is charged exactly the checkout total.
+        override_tax_type: "inclusive",
         visibility: "hidden",
         unlimited_stock: true,
         force_create_new_plan: true,

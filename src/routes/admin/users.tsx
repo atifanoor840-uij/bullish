@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { LogIn, Mail } from "lucide-react";
-import { Badge, Button, Card, DataTable, ErrorNote, Field, Loading, Modal, Note, PageHeader, Pager, SearchInput, Tabs, inputCls, useAction, useApi, usePaged } from "@/components/portal/ui";
+import { Badge, Button, Card, DataTable, ErrorNote, Field, Loading, Modal, Note, PageHeader, Pager, PeriodStats, RefreshButton, SearchInput, Tabs, inputCls, useAction, useApi, usePaged } from "@/components/portal/ui";
 import { usePortal } from "@/components/portal/context";
 import { propApi, type Role, type User } from "@/lib/propApi";
 import { loginAsUser } from "@/lib/impersonation";
@@ -28,8 +28,9 @@ function AdminUsers() {
 
   return (
     <>
-      <PageHeader title="Users" subtitle="Everyone with an account — traders, partners and staff." />
+      <PageHeader title="Users" subtitle="Everyone with an account — traders, partners and staff." actions={<RefreshButton onClick={() => void reload()} busy={loading} />} />
       {error && <ErrorNote message={error} onRetry={reload} />}
+      <PeriodStats items={all} getDate={(u) => u.createdAt} noun="sign-ups" sub={(l) => `${l.filter((u) => u.role === "trader").length} traders`} />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Tabs<F> value={filter} onChange={setFilter} tabs={[
           { id: "all", label: "All", count: all.length },

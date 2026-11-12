@@ -118,6 +118,49 @@ export function StatCard({ label, value, sub, icon, valueClass = "", highlight =
   );
 }
 
+/** Counts items created today / yesterday / this week (Mon–) / this month, in local time. */
+export function periodBuckets<T>(items: T[], getDate: (t: T) => string | undefined | null) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const yesterday = today - 86_400_000;
+  const week = today - ((now.getDay() + 6) % 7) * 86_400_000;
+  const month = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const b = { today: [] as T[], yesterday: [] as T[], week: [] as T[], month: [] as T[] };
+  for (const it of items) {
+    const raw = getDate(it);
+    if (!raw) continue;
+    const t = new Date(raw).getTime();
+    if (Number.isNaN(t)) continue;
+    if (t >= today) b.today.push(it);
+    else if (t >= yesterday) b.yesterday.push(it);
+    if (t >= week) b.week.push(it);
+    if (t >= month) b.month.push(it);
+  }
+  return b;
+}
+
+/** Four stat cards: Today, Yesterday, This week, This month. */
+export function PeriodStats<T>({ items, getDate, noun, sub }: { items: T[]; getDate: (t: T) => string | undefined | null; noun: string; sub?: (list: T[]) => ReactNode }) {
+  const b = periodBuckets(items, getDate);
+  const cells: [string, T[], boolean][] = [["Today", b.today, true], ["Yesterday", b.yesterday, false], ["This week", b.week, false], ["This month", b.month, false]];
+  return (
+    <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {cells.map(([label, list, hl]) => (
+        <StatCard key={label} label={`${label} · ${noun}`} value={list.length.toLocaleString()} sub={sub?.(list)} highlight={hl} />
+      ))}
+    </div>
+  );
+}
+
+/** Re-fetches page data in place (no full page reload). */
+export function RefreshButton({ onClick, busy }: { onClick: () => void; busy?: boolean }) {
+  return (
+    <Button size="sm" onClick={onClick} disabled={busy}>
+      <RefreshCw className={cx("h-3.5 w-3.5", busy && "animate-spin")} />Refresh
+    </Button>
+  );
+}
+
 /* ---------------- controls ---------------- */
 
 type BtnVariant = "primary" | "secondary" | "ghost" | "danger" | "success";
