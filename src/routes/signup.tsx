@@ -40,11 +40,18 @@ function SignupPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [refCode, setRefCode] = useState<string | undefined>();
   const [collabCode, setCollabCode] = useState<string | undefined>();
+  const [next, setNext] = useState("/dashboard");
 
   useEffect(() => {
     trackPixel("PageView");
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
+      // Only allow internal dashboard paths (e.g. the plan picked on the pricing page)
+      const n = params.get("next");
+      const safeNext = n && n.startsWith("/dashboard") ? n : "/dashboard";
+      setNext(safeNext);
+      // Already signed in? Skip signup and continue straight to the selected plan.
+      propApi.auth.me().then(() => { window.location.href = safeNext; }).catch(() => {});
       const ref = params.get("ref");
       const collab = params.get("collab");
       if (ref) setRefCode(ref);
@@ -92,9 +99,9 @@ function SignupPage() {
       // Auto login right after signup
       try {
         await propApi.auth.signin(email.trim().toLowerCase(), password);
-        window.location.href = "/dashboard";
+        window.location.href = next;
       } catch {
-        window.location.href = "/login";
+        window.location.href = `/login?next=${encodeURIComponent(next)}`;
       }
     } catch (err: any) {
       console.error("Signup failed:", err);
@@ -223,7 +230,7 @@ function SignupPage() {
           {/* Switch to login */}
           <div className="mt-6 border-t border-white/[0.06] pt-4 text-center text-xs text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="font-semibold text-primary transition hover:underline">
+            <Link to="/login" search={(next !== "/dashboard" ? { next } : {}) as never} className="font-semibold text-primary transition hover:underline">
               Sign In
             </Link>
           </div>

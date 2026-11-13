@@ -42,7 +42,8 @@ function LoginPage() {
 
     try {
       await propApi.auth.signin(email.trim().toLowerCase(), password);
-      window.location.href = "/dashboard";
+      const n = new URLSearchParams(window.location.search).get("next");
+      window.location.href = n && n.startsWith("/dashboard") ? n : "/dashboard";
     } catch (err: any) {
       console.error("Login failed:", err);
       setErrorMsg(err?.message || "Invalid email or password. Please try again.");

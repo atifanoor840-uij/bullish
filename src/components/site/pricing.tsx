@@ -335,7 +335,7 @@ export function Pricing() {
 
               <div className="mt-auto pt-5">
                 <CtaButton
-                  href={checkoutHref}
+                  href={`/signup?next=${encodeURIComponent(checkoutHref)}`}
                   onClick={() => {
                     trackPixel("InitiateCheckout", {
                       content_name: `${activeType} ${sizeLabel(activeSize)}`,
