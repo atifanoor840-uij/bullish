@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Check, Tag, ShieldCheck, Gift } from "lucide-react";
+import { Check, Tag, ShieldCheck, Gift, Clock, Flame } from "lucide-react";
 import { Button, Card, CardHeader, EmptyState, ErrorNote, Field, Loading, Note, PageHeader, cx, inputCls, useApi } from "@/components/portal/ui";
 import { PayOrder } from "@/components/portal/Checkout";
 import { CardBrands, CryptoCoins } from "@/components/portal/PaymentIcons";
@@ -39,6 +39,77 @@ const RULES: Record<PricingPlan["model"], [string, string][]> = {
   Flex: [["Profit target", "4%"], ["Max daily loss", "4%"], ["Max overall loss", "8% trailing"], ["Min. trading days", "None (Eval) / 5 (Funded)"], ["Profit split", "85% (90% w/ add-on)"]],
 };
 const PLATFORMS = ["MT5"] as const;
+
+// Live countdown to a real expiry date (coupon / offer `expiresAt`). Returns null once expired.
+function useCountdown(expiresAt?: string) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!expiresAt) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [expiresAt]);
+  if (!expiresAt) return null;
+  const ms = new Date(expiresAt).getTime() - now;
+  if (!Number.isFinite(ms) || ms <= 0) return null;
+  const s = Math.floor(ms / 1000);
+  return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60, soon: ms < 24 * 3600 * 1000 };
+}
+
+function Countdown({ expiresAt, compact }: { expiresAt?: string | undefined; compact?: boolean }) {
+  const c = useCountdown(expiresAt);
+  if (!c) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const parts: [number, string][] = [...(c.d > 0 ? [[c.d, "d"] as [number, string]] : []), [c.h, "h"], [c.m, "m"], [c.s, "s"]];
+  if (compact) {
+    return (
+      <span className={cx("inline-flex items-center gap-1 font-mono text-xs font-semibold tabular-nums", c.soon ? "text-loss" : "text-[#f5b748]")}>
+        <Clock className="h-3.5 w-3.5" />
+        {parts.map(([v, u]) => `${pad(v)}${u}`).join(" ")}
+      </span>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1.5">
+      {parts.map(([v, u]) => (
+        <div key={u} className={cx("flex min-w-[2.6rem] flex-col items-center rounded-lg border px-1.5 py-1", c.soon ? "border-loss/40 bg-loss/10" : "border-white/10 bg-black/30")}>
+          <span className="font-mono text-lg font-bold leading-none tabular-nums">{pad(v)}</span>
+          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{u === "d" ? "days" : u === "h" ? "hrs" : u === "m" ? "min" : "sec"}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function UrgencyBanner({ title, sub, expiresAt }: { title: string; sub: string; expiresAt?: string | undefined }) {
+  const live = useCountdown(expiresAt);
+  return (
+    <div className="relative mb-5 overflow-hidden rounded-2xl border border-[#f5b748]/40 bg-gradient-to-r from-[#f5b748]/[0.18] via-primary/[0.10] to-transparent p-4 sm:p-5">
+      <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-[#f5b748]/20 blur-3xl" />
+      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="relative mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f5b748]/20 text-[#f5b748]">
+            <Flame className="h-5 w-5" />
+            <span className="absolute inset-0 animate-ping rounded-full bg-[#f5b748]/20" />
+          </span>
+          <div>
+            <p className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#f5b748]">
+              <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-loss opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-loss" /></span>
+              {live ? (live.soon ? "Ending soon" : "Limited-time deal") : "Limited-time deal"}
+            </p>
+            <p className="font-display text-lg font-semibold sm:text-xl">{title}</p>
+            <p className="text-xs text-muted-foreground">{sub}</p>
+          </div>
+        </div>
+        {live && (
+          <div className="shrink-0">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Offer ends in</p>
+            <Countdown expiresAt={expiresAt} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function NewChallenge() {
   const { data, error, loading, reload } = useApi(async () => {
@@ -173,13 +244,24 @@ function NewChallenge() {
   return (
     <>
       <PageHeader title="New Challenge" subtitle="Choose your evaluation and account size." />
+      {tileCoupon ? (
+        <UrgencyBanner
+          title={`${tileCoupon.discountPercent}% OFF your challenge`}
+          sub={`Code ${tileCoupon.code} is auto-applied${isFlex ? " (not valid on the Flex $9 start — pick another model to save)" : ""}. Lock in this price before it's gone.`}
+          expiresAt={tileCoupon.expiresAt}
+        />
+      ) : data.offers[0] ? (
+        <UrgencyBanner title={data.offers[0].name} sub={`${data.offers[0].description || offerSummary(data.offers[0])}. Available for a limited time only.`} expiresAt={data.offers[0].expiresAt} />
+      ) : null}
       {!!data.offers.length && (
         <div className="mb-5 space-y-2">
           {data.offers.map((o) => (
             <div key={o.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-primary/[0.07] px-4 py-3 text-sm">
               <Gift className="h-4 w-4 shrink-0 text-primary" />
               <span className="flex-1"><span className="font-semibold">{o.name}</span> <span className="text-muted-foreground">· {o.description || offerSummary(o)}</span></span>
-              {o.expiresAt && <span className="text-xs text-muted-foreground">Ends {new Date(o.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+              {o.expiresAt && new Date(o.expiresAt).getTime() > Date.now() && (
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">Ends in <Countdown expiresAt={o.expiresAt} compact /></span>
+              )}
             </div>
           ))}
         </div>
@@ -324,8 +406,17 @@ function NewChallenge() {
                 <span className="text-sm text-muted-foreground">Total</span>
                 <span className="font-display text-3xl font-semibold">{money(total)}</span>
               </div>
+              {base - total > 0 && (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-profit/30 bg-profit/10 px-3 py-2 text-xs">
+                  <span className="font-semibold text-profit">You save {money(base - total)} today</span>
+                  {coupon?.expiresAt && <Countdown expiresAt={coupon.expiresAt} compact />}
+                </div>
+              )}
               {err && <Note tone="error">{err}</Note>}
               <Button variant="primary" className="w-full" busy={busy} onClick={() => place()}>Continue to payment</Button>
+              {(coupon || planOffers.length > 0) && (
+                <p className="text-center text-[11px] font-medium text-[#f5b748]">Discount is locked once you continue to payment</p>
+              )}
               <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5" />One-time fee · refunded with your first payout</p>
             </div>
           </Card>
