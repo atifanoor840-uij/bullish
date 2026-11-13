@@ -176,7 +176,7 @@ export function HowItWorks() {
 /* ---------------- Pricing ---------------- */
 
 export function Pricing() {
-  const [type, setType] = useState<PlanType>("2-Step");
+  const [type, setType] = useState<PlanType>("Flex");
   const [size, setSize] = useState(100000);
   const [showPct, setShowPct] = useState(true);
   // Live catalog from the CRM; the static site-data is only a fallback when the API is unreachable.
