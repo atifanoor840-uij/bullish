@@ -270,13 +270,75 @@ export async function listSubscribers(ctx: Ctx) {
 
 const PIXEL_EVENTS = ["Purchase", "InitiateCheckout", "AddToCart", "AddPaymentInfo", "CompleteRegistration", "Lead", "Subscribe", "StartTrial"];
 
+/** Meta Pixel + Conversions API credentials (hardcoded on purpose — no env setup needed). */
+const META_PIXEL_ID = "1129264893163158";
+const META_CAPI_TOKEN =
+  "EAAhBb2ZBESXEBS4ZA9D7Sheyr1BLe6xlqYW0LCy6hJjMseGDnjj08jgwAiZApdmZCRd1I1LX1ZCKqZBKQ9C0xI9ZAObLNrit1ivRMuXsZAVsi5OZBRyIetWzaCBv3b54Fkbb9gEaqLtPX5VDAts7fASdwt9vRL3bgy8zrQ4G43FIN9AFgOMz5QAtettSZBkwTwngZDZD";
+const metaPixelId = () => META_PIXEL_ID;
+
+/**
+ * Sends one event to the Meta Conversions API. The browser pixel fires the same event with the
+ * same eventId, so Meta de-duplicates the pair. Returns null on success, or the error text.
+ */
+async function sendCapi(ctx: Ctx, e: {
+  eventName: string; eventId?: string; eventSourceUrl?: string; fbp?: string; fbc?: string; customData?: Record<string, unknown>;
+}): Promise<string | null> {
+  const token = META_CAPI_TOKEN;
+  const ip = ctx.req.headers.get("cf-connecting-ip") || ctx.req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const userData: Record<string, string> = {};
+  if (ip) userData["client_ip_address"] = ip;
+  const ua = ctx.req.headers.get("user-agent");
+  if (ua) userData["client_user_agent"] = ua;
+  if (e.fbp) userData["fbp"] = e.fbp;
+  if (e.fbc) userData["fbc"] = e.fbc;
+  try {
+    const res = await fetch(`https://graph.facebook.com/v19.0/${metaPixelId()}/events?access_token=${encodeURIComponent(token)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        data: [{
+          event_name: e.eventName, event_time: Math.floor(Date.now() / 1000), action_source: "website", user_data: userData,
+          ...(e.eventId ? { event_id: e.eventId } : {}),
+          ...(e.eventSourceUrl ? { event_source_url: e.eventSourceUrl } : {}),
+          ...(e.customData ? { custom_data: e.customData } : {}),
+        }],
+      }),
+    });
+    if (res.ok) return null;
+    return `Meta ${res.status}: ${(await res.text()).slice(0, 300)}`;
+  } catch (err) {
+    return err instanceof Error ? err.message : "network error";
+  }
+}
+
 export async function trackPixel(ctx: Ctx) {
   const b = await body(ctx);
-  if (PIXEL_EVENTS.includes(str(b.eventName))) {
+  const eventName = str(b.eventName);
+  if (!PIXEL_EVENTS.includes(eventName) && eventName !== "PageView" && eventName !== "ViewContent") return {};
+  const value = b.value === undefined || b.value === null ? undefined : numv(b.value);
+  const currency = str(b.currency) || "USD";
+  const contentName = str(b.contentName) || undefined;
+  const contentIds = str(b.contentIds) || undefined;
+  const customData: Record<string, unknown> = {};
+  if (value !== undefined) { customData["value"] = value; customData["currency"] = currency; }
+  if (contentName) customData["content_name"] = contentName;
+  if (contentIds) { customData["content_ids"] = contentIds.split(","); customData["content_type"] = "product"; }
+
+  const error = await sendCapi(ctx, {
+    eventName,
+    ...(str(b.eventId) ? { eventId: str(b.eventId) } : {}),
+    ...(str(b.eventSourceUrl) ? { eventSourceUrl: str(b.eventSourceUrl) } : {}),
+    ...(str(b.fbp) ? { fbp: str(b.fbp) } : {}),
+    ...(str(b.fbc) ? { fbc: str(b.fbc) } : {}),
+    ...(Object.keys(customData).length ? { customData } : {}),
+  });
+
+  // Only conversion events are logged (PageView/ViewContent would flood the table).
+  if (PIXEL_EVENTS.includes(eventName)) {
     await db.insert("pixel_events", {
-      id: crypto.randomUUID(), eventName: str(b.eventName), eventId: str(b.eventId) || null, source: "browser", status: "sent",
-      value: b.value === undefined ? null : numv(b.value), currency: str(b.currency) || "USD", contentName: str(b.contentName) || null,
-      contentIds: str(b.contentIds) || null, eventSourceUrl: str(b.eventSourceUrl) || null, createdAt: new Date().toISOString(),
+      id: crypto.randomUUID(), eventName, eventId: str(b.eventId) || null, source: "capi", status: error ? "failed" : "sent",
+      pixelId: metaPixelId(), error, value: value ?? null, currency, contentName: contentName ?? null,
+      contentIds: contentIds ?? null, eventSourceUrl: str(b.eventSourceUrl) || null, createdAt: new Date().toISOString(),
     }).catch(() => {});
   }
   return {};
@@ -321,18 +383,12 @@ export async function news() {
 
 export async function conversions(ctx: Ctx) {
   const b = await body(ctx);
-  const pixel = process.env["NEXT_PUBLIC_META_PIXEL_ID"] || "1152513827733713", token = process.env["META_CONVERSIONS_API_ACCESS_TOKEN"];
-  if (!pixel || !token || !str(b.eventName)) return {};
-  await fetch(`https://graph.facebook.com/v19.0/${pixel}/events?access_token=${encodeURIComponent(token)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      data: [{
-        event_name: str(b.eventName), event_time: Math.floor(Date.now() / 1000), event_id: str(b.eventId) || undefined, action_source: "website",
-        event_source_url: str(b.eventSourceUrl) || undefined, custom_data: b.customData ?? undefined,
-        user_data: { client_ip_address: ctx.req.headers.get("cf-connecting-ip") || undefined, client_user_agent: ctx.req.headers.get("user-agent") || undefined },
-      }],
-    }),
-  }).catch(() => {});
+  if (!str(b.eventName)) return {};
+  await sendCapi(ctx, {
+    eventName: str(b.eventName),
+    ...(str(b.eventId) ? { eventId: str(b.eventId) } : {}),
+    ...(str(b.eventSourceUrl) ? { eventSourceUrl: str(b.eventSourceUrl) } : {}),
+    ...(b.customData && typeof b.customData === "object" ? { customData: b.customData as Record<string, unknown> } : {}),
+  });
   return {};
 }

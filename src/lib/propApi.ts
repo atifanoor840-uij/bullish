@@ -222,7 +222,7 @@ export const propApi = {
     subscribeNewsletter: (email: string, source: "footer" | "home" = "footer") => post("/api/newsletter", { email, source }),
     geo: () => get<{ success: true; country: string; isPakistan: boolean; cardPaymentAvailable: boolean }>("/api/geo"),
     news: () => get<{ success: true; news: { title: string; description: string; link: string; date: string; time: string }[] }>("/api/news"),
-    trackPixel: (b: { eventName: string; eventId?: string; value?: number; currency?: string; contentName?: string; contentIds?: string; eventSourceUrl?: string }) => post("/api/pixel-events", b),
+    trackPixel: (b: { eventName: string; eventId?: string; fbp?: string; fbc?: string; value?: number; currency?: string; contentName?: string; contentIds?: string; eventSourceUrl?: string }) => post("/api/pixel-events", b),
     conversion: (b: { eventName: string; eventId?: string; email?: string; customData?: Record<string, unknown> }) => post("/api/conversions", b),
   },
 };
