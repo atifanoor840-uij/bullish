@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge, Button, Card, CardHeader, EmptyState, ErrorNote, Field, Loading, Modal, Note, PageHeader, inputCls, useAction, useApi } from "@/components/portal/ui";
 import { propApi, type PricingPlan } from "@/lib/propApi";
 import { price, sizeLabel } from "@/lib/portal";
@@ -22,6 +22,7 @@ const DEFAULT_REAL_PRICE: Record<number, number> = {
 function AdminPricing() {
   const { data, error, loading, reload } = useApi(async () => (await propApi.catalog.pricingPlans()).plans, [], "/admin");
   const [edit, setEdit] = useState<Partial<PricingPlan> | null>(null);
+  const [del, setDel] = useState<PricingPlan | null>(null);
 
   return (
     <>
@@ -41,23 +42,33 @@ function AdminPricing() {
                 {!plans.length ? <EmptyState title="No plans" /> : (
                   <div className="divide-y divide-white/[0.05]">
                     {plans.map((p) => (
-                      <button key={p.id} onClick={() => setEdit(p)} className="flex w-full items-center justify-between px-5 py-3.5 text-left transition hover:bg-white/[0.02]">
-                        <div>
-                          <p className="font-display font-semibold">{sizeLabel(p.size)}</p>
-                          <p className="font-mono text-[11px] text-muted-foreground">{p.id}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <span className="font-semibold tabular-nums">{price(p.price)}</span>
-                            <Badge>{p.status}</Badge>
+                      <div key={p.id} className="px-5 py-3.5 transition hover:bg-white/[0.02]">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-display font-semibold">{sizeLabel(p.size)}</p>
+                            <p className="font-mono text-[11px] text-muted-foreground">{p.id}</p>
                           </div>
-                          {p.model === "Flex" && (
-                            <p className="mt-0.5 text-[11px] text-muted-foreground">
-                              Real: {price(p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price)} · Rem: {price(Math.max(0, (p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price) - p.price))}
-                            </p>
-                          )}
+                          <div className="text-right">
+                            <div className="flex items-center justify-end gap-3">
+                              <span className="font-semibold tabular-nums">{price(p.price)}</span>
+                              <Badge>{p.status}</Badge>
+                            </div>
+                            {p.model === "Flex" && (
+                              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                Real: {price(p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price)} · Rem: {price(Math.max(0, (p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price) - p.price))}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </button>
+                        <div className="mt-2.5 flex justify-end gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => setEdit(p)}>
+                            <Pencil className="h-3.5 w-3.5" />Edit
+                          </Button>
+                          <Button size="sm" variant="danger" onClick={() => setDel(p)}>
+                            <Trash2 className="h-3.5 w-3.5" />Delete
+                          </Button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -67,7 +78,42 @@ function AdminPricing() {
         </div>
       )}
       {edit && <EditPlan plan={edit} onClose={() => setEdit(null)} onChanged={reload} />}
+      {del && <DeletePlan plan={del} onClose={() => setDel(null)} onChanged={reload} />}
     </>
+  );
+}
+
+function DeletePlan({ plan, onClose, onChanged }: { plan: PricingPlan; onClose: () => void; onChanged: () => void }) {
+  const { busy, note, run } = useAction();
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Delete plan?"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="danger"
+            busy={busy === "del"}
+            onClick={async () => {
+              if (await run("del", () => propApi.catalog.deletePricingPlan(plan.id))) {
+                onChanged();
+                onClose();
+              }
+            }}
+          >
+            <Trash2 className="h-4 w-4" />Delete
+          </Button>
+        </>
+      }
+    >
+      <p className="text-sm text-muted-foreground">
+        <span className="font-semibold text-foreground">{plan.model} {sizeLabel(plan.size)}</span> ({price(plan.price)}) permanently delete ho jayega aur buy catalog se hat jayega. Existing orders par asar nahi padega.
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">Sirf temporarily chhupana hai to Edit karke status “inactive” kar dein.</p>
+      {note && <div className="mt-3"><Note tone={note.tone}>{note.text}</Note></div>}
+    </Modal>
   );
 }
 
@@ -119,7 +165,7 @@ function EditPlan({ plan, onClose, onChanged }: { plan: Partial<PricingPlan>; on
             model: form.model as PricingPlan["model"],
             size: Number(form.size),
             price: Number(form.price),
-            realPrice: isFlex ? Number(form.realPrice) || undefined : undefined,
+            ...(isFlex && Number(form.realPrice) ? { realPrice: Number(form.realPrice) } : {}),
             status: form.status,
           }),
         "Plan saved.",
