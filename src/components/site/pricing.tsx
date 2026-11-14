@@ -175,9 +175,43 @@ export function HowItWorks() {
 
 /* ---------------- Pricing ---------------- */
 
+/** URL slugs for the plan type, e.g. /pricing?type=2-step&size=100k */
+const TYPE_SLUG: Record<PlanType, string> = { "1-Step": "1-step", "2-Step": "2-step", Instant: "instant", Flex: "flex" };
+const typeFromSlug = (s: string | null) => planTypes.find((t) => TYPE_SLUG[t] === s?.toLowerCase());
+const sizeFromSlug = (s: string | null) => {
+  const m = s?.toLowerCase().match(/^(\d+)(k?)$/);
+  return m ? Number(m[1]) * (m[2] ? 1000 : 1) : undefined;
+};
+
+/** Updates query params in place (no navigation, no new history entry), keeping hash and other params. */
+function setUrlParams(params: Record<string, string>) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  window.history.replaceState(window.history.state, "", url);
+}
+
 export function Pricing() {
-  const [type, setType] = useState<PlanType>("Flex");
-  const [size, setSize] = useState(100000);
+  const [type, setTypeState] = useState<PlanType>("Flex");
+  const [size, setSizeState] = useState(100000);
+
+  // Restore the selection from the URL (?type=2-step&size=100k).
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const t = typeFromSlug(q.get("type"));
+    const s = sizeFromSlug(q.get("size"));
+    if (t) setTypeState(t);
+    if (s) setSizeState(s);
+  }, []);
+
+  const setType = (t: PlanType) => {
+    setTypeState(t);
+    setUrlParams({ type: TYPE_SLUG[t] });
+  };
+  const setSize = (s: number) => {
+    setSizeState(s);
+    setUrlParams({ size: `${s / 1000}k` });
+  };
   const [showPct, setShowPct] = useState(true);
   // Live catalog from the CRM; the static site-data is only a fallback when the API is unreachable.
   const [catalog, setCatalog] = useState<PricingPlan[] | null>(null);
