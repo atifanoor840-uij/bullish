@@ -6,6 +6,7 @@ import { PayOrder } from "@/components/portal/Checkout";
 import { CardBrands, CryptoCoins } from "@/components/portal/PaymentIcons";
 import { ApiError, computeCheckoutTotal, propApi, type Order, type PricingPlan } from "@/lib/propApi";
 import { money, num, price, sizeLabel } from "@/lib/portal";
+import { isPopularSize } from "@/lib/site-data";
 import { bogoBadge, bogoFor, isLive, isPublic, offerSummary } from "@/lib/offers";
 import { trackPixel } from "@/lib/metaPixel";
 
@@ -287,6 +288,7 @@ function NewChallenge() {
                 const offer = bogoFor(data.offers, p.model, p.size)[0];
                 return (
                   <button key={p.id} onClick={() => setSize(p.size)} className={cx("relative rounded-xl border px-3 py-3 text-center transition", p.size === plan?.size ? "border-primary/60 bg-primary/[0.08]" : "border-white/[0.06] hover:border-white/15")}>
+                    {isPopularSize(p.size) && <span className="absolute -top-2 left-2 rounded-full bg-loss px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap text-white">Most popular</span>}
                     {offer && <span className="absolute -top-2 right-2 rounded-full bg-gold px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">{bogoBadge(offer)}</span>}
                     <p className="font-display font-semibold">{sizeLabel(p.size)}</p>
                     {p.model !== "Flex" && tileCoupon ? (

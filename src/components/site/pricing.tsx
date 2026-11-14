@@ -2,7 +2,7 @@ import { motion, useMotionValueEvent, useScroll, useSpring, useTransform, type M
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lock, Sparkles, UserRound, Target, Wallet, Gift } from "lucide-react";
 import {
-  sizes, planTypes, planMeta, getPlan, popular, type Objective, type PlanType,
+  sizes, planTypes, planMeta, getPlan, isPopularSize, type Objective, type PlanType,
 } from "@/lib/site-data";
 import { CtaButton, Reveal, SectionHead, fmt } from "./primitives";
 import { propApi, type Coupon, type Offer, type PricingPlan } from "@/lib/propApi";
@@ -221,7 +221,7 @@ export function Pricing() {
     : `/dashboard/new-challenge${appliedCoupon ? `?coupon=${encodeURIComponent(appliedCoupon.code)}` : ""}`;
   const sizeOffer = (s: number) => bogoFor(offers, MODEL_OF[activeType], s)[0];
   const planOffer = sizeOffer(activeSize);
-  const isPopular = activeType === popular.type && activeSize === popular.size;
+  const isPopular = isPopularSize(activeSize);
 
   const objectiveValue = (o: Objective) =>
     o.pct === undefined ? o.text : showPct ? `${o.pct}%` : fmt(Math.round((activeSize * o.pct) / 100));
@@ -259,13 +259,16 @@ export function Pricing() {
         {/* Sizes + objectives | price card */}
         <Reveal delay={0.05} className="glass mt-4 grid gap-6 p-4 md:p-6 lg:grid-cols-[1.4fr_1fr]">
           <div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-x-2 gap-y-4 pt-2">
               {sizeList.map((s) => (
                 <button
                   key={s}
                   onClick={() => setSize(s)}
                   className={`relative rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${activeSize === s ? "border-primary bg-gold text-primary-foreground" : "border-white/[0.08] bg-white/[0.02] text-foreground/90 hover:border-white/20"}`}
                 >
+                  {isPopularSize(s) && (
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-loss px-1.5 py-px text-[8px] font-bold whitespace-nowrap text-white uppercase">Most popular</span>
+                  )}
                   {sizeLabel(s)}
                   {sizeOffer(s) && <span className={`ml-1.5 rounded-full px-1.5 text-[9px] font-bold ${activeSize === s ? "bg-background/20 text-primary-foreground" : "bg-primary/20 text-primary"}`}>{bogoBadge(sizeOffer(s)!)}</span>}
                 </button>

@@ -92,7 +92,9 @@ export function getPlan(type: PlanType, size: number) {
   const r = rules[type];
   return { objectives: r.objectives, features: r.features, fee: Math.round((baseFee[size] ?? 0) * r.mult) };
 }
-export const popular = { type: "2-Step" as PlanType, size: 100000 };
+/** Account sizes tagged "Most popular" across every plan type. */
+export const popularSizes = [3000, 50000, 100000, 200000];
+export const isPopularSize = (size: number) => popularSizes.includes(size);
 
 export const compareTypes: { label: string; values: Record<PlanType, string | boolean> }[] = [
   { label: "Evaluation phases", values: { "1-Step": "1", "2-Step": "2", "Instant": "None", Flex: "1" } },
