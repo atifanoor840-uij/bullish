@@ -218,6 +218,22 @@ function NewChallenge() {
         num_items: 1,
       });
 
+      if (!payMethod.toLowerCase().includes("crypto qr")) {
+        try {
+          const { checkoutUrl } = await propApi.orders.pay(order.id, platform);
+          trackPixel("AddPaymentInfo", {
+            content_name: `Order ${order.id}`,
+            value: order.amountPaid,
+            currency: "USD",
+            payment_method: payMethod,
+          });
+          window.location.href = checkoutUrl;
+          return;
+        } catch {
+          // Fall back to the payment step if redirecting immediately fails.
+        }
+      }
+
       setOrder(order);
     } catch (e) {
       if (e instanceof ApiError && e.data?.code === "PRICE_CHANGED") setErr(`The price was updated to ${money(e.data.amount)}. Please review and confirm again.`);

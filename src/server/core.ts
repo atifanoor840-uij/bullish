@@ -6,7 +6,7 @@ import { db, eq, inList } from "./db";
 import { env } from "./env";
 import { rand, randDigits } from "./http";
 import type {
-  DBAccount, DBAffiliate, DBCollaboratorSale, DBInventory, DBOffer, DBOrder, DBPricingPlan, DBReferral, DBUser,
+  DBAccount, DBAffiliate, DBChallengePlan, DBCollaboratorSale, DBInventory, DBOffer, DBOrder, DBPricingPlan, DBReferral, DBUser,
 } from "./types";
 
 /* ====================================================================== rulebook */
@@ -77,6 +77,27 @@ export async function getPlan(planId: string): Promise<DBPricingPlan | null> {
     return plan;
   } catch {
     return null;
+  }
+}
+
+/**
+ * orders."planId" has a legacy FK to challenge_plans(id), but the catalog lives in
+ * pricing_plans. Mirror the pricing plan into challenge_plans (only if missing, so admin
+ * edits there are never overwritten) before an order references it.
+ */
+export async function ensureLegacyPlan(plan: DBPricingPlan) {
+  if (await db.one("challenge_plans", { id: eq(plan.id) }, { select: "id" })) return;
+  const model = (plan.model in RULES ? plan.model : "Two Step") as Model;
+  const r = RULES[model];
+  try {
+    await db.insert<DBChallengePlan>("challenge_plans", {
+      id: plan.id, name: model, size: Number(plan.size), price: Number(plan.price),
+      profitTargetP1: r.targets[0] ?? 0, profitTargetP2: r.targets[1] ?? 0,
+      maxDailyLoss: r.daily, maxTotalLoss: r.overall, profitSplit: PROFIT_SPLIT_BY_WITHDRAWAL[0] ?? 70,
+    });
+  } catch (e) {
+    // A concurrent order may have inserted it first — that's fine.
+    if (!(await db.one("challenge_plans", { id: eq(plan.id) }, { select: "id" }))) throw e;
   }
 }
 

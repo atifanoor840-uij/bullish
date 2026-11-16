@@ -42,6 +42,41 @@ function SignupPage() {
   const [collabCode, setCollabCode] = useState<string | undefined>();
   const [next, setNext] = useState("/dashboard");
 
+  const redirectToCheckoutOrNext = async (targetNext: string) => {
+    const nextUrl = new URL(targetNext, window.location.origin);
+    const planId = nextUrl.searchParams.get("plan");
+    const couponCode = nextUrl.searchParams.get("coupon")?.trim().toUpperCase();
+    if (planId) {
+      try {
+        const { order } = await propApi.orders.create({
+          planId,
+          paymentMethod: "Card",
+          ...(couponCode ? { couponUsed: couponCode } : {}),
+        });
+        trackPixel("InitiateCheckout", {
+          content_name: order.planName || planId,
+          content_ids: [planId],
+          content_type: "product",
+          value: order.amountPaid,
+          currency: "USD",
+          num_items: 1,
+        });
+        const { checkoutUrl } = await propApi.orders.pay(order.id, "MT5");
+        trackPixel("AddPaymentInfo", {
+          content_name: `Order ${order.id}`,
+          value: order.amountPaid,
+          currency: "USD",
+          payment_method: "Card",
+        });
+        window.location.href = checkoutUrl;
+        return;
+      } catch {
+        // Fall back to the plan page if direct checkout cannot be initiated (e.g. card unavailable in region).
+      }
+    }
+    window.location.href = targetNext;
+  };
+
   useEffect(() => {
     trackPixel("PageView");
     if (typeof window !== "undefined") {
@@ -50,8 +85,8 @@ function SignupPage() {
       const n = params.get("next");
       const safeNext = n && n.startsWith("/dashboard") ? n : "/dashboard";
       setNext(safeNext);
-      // Already signed in? Skip signup and continue straight to the selected plan.
-      propApi.auth.me().then(() => { window.location.href = safeNext; }).catch(() => {});
+      // Already signed in? Skip signup and continue straight to checkout or the target page.
+      propApi.auth.me().then(() => redirectToCheckoutOrNext(safeNext)).catch(() => {});
       const ref = params.get("ref");
       const collab = params.get("collab");
       if (ref) setRefCode(ref);
@@ -96,10 +131,10 @@ function SignupPage() {
         currency: "USD",
       });
 
-      // Auto login right after signup
+      // Auto login right after signup and redirect directly to checkout
       try {
         await propApi.auth.signin(email.trim().toLowerCase(), password);
-        window.location.href = next;
+        await redirectToCheckoutOrNext(next);
       } catch {
         window.location.href = `/login?next=${encodeURIComponent(next)}`;
       }

@@ -1,7 +1,7 @@
 import { PROOF_BUCKET, db, eq, signedUrl, uploadObject } from "../db";
 import { env } from "../env";
 import {
-  PHASE, WEEKEND_ADDON_PERCENT, accountsOfOrder, activateOrder, audit, createNextStage, createStageAccount, newOrderId, notify,
+  PHASE, WEEKEND_ADDON_PERCENT, accountsOfOrder, activateOrder, audit, createNextStage, createStageAccount, ensureLegacyPlan, newOrderId, notify,
   orderPlan, orderStatusForPhase, releaseInventory, stagesFor, withPlanNames, withUserNames,
 } from "../core";
 import { HttpError, body, hmacHex, isAdmin, json, numv, query, requireAdmin, requireUser, safeEqual, str, type Ctx } from "../http";
@@ -65,6 +65,7 @@ export async function createOrder(ctx: Ctx) {
     throw new HttpError(409, "The price changed. Please review the new total.", { code: "PRICE_CHANGED", amount });
   }
 
+  await ensureLegacyPlan(plan);
   const now = new Date().toISOString();
   const [order] = await db.insert<DBOrder>("orders", {
     id: newOrderId(), userId: user.id, planId, couponUsed: code, amountPaid: amount, paymentMethod, status: "Pending",
@@ -197,7 +198,8 @@ export async function payOrder(ctx: Ctx) {
     const payload = {
       account_id: env.whop.companyId,
       mode: "payment",
-      redirect_url: returnUrl,
+      // Whop rejects non-HTTPS redirect URLs (e.g., http://localhost in local dev); only send it when HTTPS.
+      ...(returnUrl.startsWith("https://") ? { redirect_url: returnUrl } : {}),
       metadata: { orderId: order.id, userId: user.id, platform },
       variant: {
         product_id: env.whop.productId,
@@ -209,7 +211,7 @@ export async function payOrder(ctx: Ctx) {
         currency: "usd",
         // Tax is counted inside the price (never added on top), so the card is charged exactly the checkout total.
         override_tax_type: "inclusive",
-        visibility: "hidden",
+        visibility: "visible",
         unlimited_stock: true,
         force_create_new_plan: true,
         metadata: { orderId: order.id },
