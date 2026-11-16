@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { LogIn, Mail } from "lucide-react";
+import { LogIn, Mail, Trash2 } from "lucide-react";
 import { Badge, Button, Card, DataTable, ErrorNote, Field, Loading, Modal, Note, PageHeader, Pager, PeriodStats, RefreshButton, SearchInput, Tabs, inputCls, useAction, useApi, usePaged } from "@/components/portal/ui";
 import { usePortal } from "@/components/portal/context";
 import { propApi, type Role, type User } from "@/lib/propApi";
@@ -13,11 +13,13 @@ type F = "all" | "trader" | "staff" | "collaborator" | "blocked";
 type EmailLog = { id: string; subject: string; status: string; sentAt: string; error?: string };
 
 function AdminUsers() {
+  const { user: currentAdmin } = usePortal();
   const { data, error, loading, reload } = useApi(async () => (await propApi.admin.users()).users, [], "/admin");
   const [filter, setFilter] = useState<F>("all");
   const [q, setQ] = useState("");
   const [sel, setSel] = useState<User | null>(null);
   const [loginAs, setLoginAs] = useState<User | null>(null);
+  const [delUser, setDelUser] = useState<User | null>(null);
   const all = data ?? [];
   const rows = all.filter(
     (u) =>
@@ -67,6 +69,9 @@ function AdminUsers() {
                     <div className="flex justify-end gap-2">
                       {canLoginAs(u) && <Button size="sm" variant="ghost" onClick={() => setLoginAs(u)}><LogIn className="h-3.5 w-3.5" />Login as</Button>}
                       <Button size="sm" onClick={() => setSel(u)}>Manage</Button>
+                      {u.id !== currentAdmin.id && (
+                        <Button size="sm" variant="danger" onClick={() => setDelUser(u)} aria-label={`Delete ${u.name}`}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      )}
                     </div>
                   ),
                 },
@@ -76,8 +81,9 @@ function AdminUsers() {
           </>
         )}
       </Card>
-      {sel && <EditUser user={sel} onClose={() => setSel(null)} onChanged={reload} onLoginAs={() => { setLoginAs(sel); setSel(null); }} />}
+      {sel && <EditUser user={sel} isSelf={sel.id === currentAdmin.id} onClose={() => setSel(null)} onChanged={reload} onLoginAs={() => { setLoginAs(sel); setSel(null); }} />}
       {loginAs && <LoginAsDialog user={loginAs} onClose={() => setLoginAs(null)} />}
+      {delUser && <DeleteUserDialog user={delUser} onClose={() => setDelUser(null)} onDeleted={reload} />}
     </>
   );
 }
@@ -108,9 +114,34 @@ function LoginAsDialog({ user, onClose }: { user: User; onClose: () => void }) {
   );
 }
 
-function EditUser({ user, onClose, onChanged, onLoginAs }: { user: User; onClose: () => void; onChanged: () => void; onLoginAs: () => void }) {
+function DeleteUserDialog({ user, onClose, onDeleted }: { user: User; onClose: () => void; onDeleted: () => void }) {
+  const { busy, note, run } = useAction();
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Delete ${user.name}?`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="danger" busy={busy === "del"} onClick={async () => { if (await run("del", () => propApi.admin.deleteUser(user.id))) { onDeleted(); onClose(); } }}>
+            <Trash2 className="h-4 w-4" />Yes, delete user
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3 text-sm">
+        <p className="text-muted-foreground">This will permanently delete <strong className="text-foreground">{user.name}</strong> ({user.email}) along with their orders, trading accounts, payouts, and KYC records.</p>
+        {note && <Note tone={note.tone}>{note.text}</Note>}
+      </div>
+    </Modal>
+  );
+}
+
+function EditUser({ user, isSelf, onClose, onChanged, onLoginAs }: { user: User; isSelf?: boolean; onClose: () => void; onChanged: () => void; onLoginAs: () => void }) {
   const [form, setForm] = useState({ name: user.name, email: user.email, phone: user.phone || "", country: user.country || "", role: user.role, status: user.status, newPassword: "" });
   const [logs, setLogs] = useState<EmailLog[] | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { busy, note, run } = useAction();
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [k]: e.target.value });
 
@@ -154,6 +185,19 @@ function EditUser({ user, onClose, onChanged, onLoginAs }: { user: User; onClose
           </div>
         )}
         <p className="text-[11px] text-muted-foreground">User ID {user.id} · joined {fmtDate(user.createdAt)}</p>
+        {!isSelf && (
+          <div className="border-t border-white/[0.06] pt-4">
+            {confirmDelete ? (
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <span className="text-loss">Permanently delete this user and all their data?</span>
+                <Button size="sm" variant="danger" busy={busy === "del"} onClick={async () => { if (await run("del", () => propApi.admin.deleteUser(user.id))) { onChanged(); onClose(); } }}>Yes, delete</Button>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="danger" onClick={() => setConfirmDelete(true)}><Trash2 className="h-3.5 w-3.5" />Delete user</Button>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );

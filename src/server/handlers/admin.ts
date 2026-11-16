@@ -1,6 +1,6 @@
 import { DbError, db, eq } from "../db";
 import { env } from "../env";
-import { audit, emailHtml, notify, sendEmail, withUserNames } from "../core";
+import { audit, emailHtml, notify, releaseInventory, sendEmail, withUserNames } from "../core";
 import {
   HttpError, body, hashPassword, isAdmin, isStaff, numv, publicUser, query, requireAdmin, requireUser, str, type Ctx,
 } from "../http";
@@ -111,6 +111,42 @@ export async function updateUser(ctx: Ctx) {
   if (!user) throw new HttpError(404, "User not found.");
   await audit(admin, "user_update", userId, "user", `Updated ${Object.keys(patch).map((k) => (k === "passwordHash" ? "password" : k)).join(", ")}`);
   return { user: publicUser(user) };
+}
+
+export async function deleteUser(ctx: Ctx) {
+  const admin = await requireAdmin(ctx);
+  const id = query(ctx, "id");
+  if (!id) throw new HttpError(400, "id is required.");
+  if (id === admin.id) throw new HttpError(400, "You cannot delete your own admin account.");
+  const user = await db.one<DBUser>("users", { id: eq(id) });
+  if (!user) throw new HttpError(404, "User not found.");
+
+  const accounts = await db.select<DBAccount>("trading_accounts", { userId: eq(id) });
+  for (const a of accounts) await releaseInventory(a);
+
+  const clean = (fn: () => Promise<unknown>) => fn().catch(() => {});
+  await Promise.all([
+    clean(() => db.remove("certificates", { userId: eq(id) })),
+    clean(() => db.remove("offer_redemptions", { userId: eq(id) })),
+    clean(() => db.remove("payouts", { userId: eq(id) })),
+    clean(() => db.remove("notifications", { userId: eq(id) })),
+    clean(() => db.remove("kyc", { userId: eq(id) })),
+    clean(() => db.remove("referrals", { referredUserId: eq(id) })),
+    clean(() => db.remove("referrals", { affiliateId: eq(id) })),
+    clean(() => db.remove("collaborator_sales", { referredUserId: eq(id) })),
+    clean(() => db.remove("collaborator_sales", { collaboratorId: eq(id) })),
+    clean(() => db.remove("collaborator_attributions", { referredUserId: eq(id) })),
+    clean(() => db.remove("collaborator_attributions", { collaboratorId: eq(id) })),
+    clean(() => db.remove("email_logs", { userId: eq(id) })),
+  ]);
+  await clean(() => db.remove("trading_accounts", { userId: eq(id) }));
+  await clean(() => db.remove("orders", { userId: eq(id) }));
+  await clean(() => db.remove("affiliates", { userId: eq(id) }));
+  await clean(() => db.remove("collaborators", { userId: eq(id) }));
+  await db.remove("users", { id: eq(id) });
+
+  await audit(admin, "user_delete", id, "user", `Deleted user ${user.email} (${id}) and ${accounts.length} account(s)`);
+  return { deleted: true, removedAccounts: accounts.length };
 }
 
 /* ---------------- challenge inventory (credential pool) ---------------- */

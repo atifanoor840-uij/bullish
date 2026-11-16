@@ -17,6 +17,7 @@ function AdminOrders() {
   const [filter, setFilter] = useState<F>("all");
   const [q, setQ] = useState("");
   const [sel, setSel] = useState<Order | null>(null);
+  const [delOrder, setDelOrder] = useState<Order | null>(null);
 
   const all = [...(data ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const match = (o: Order) =>
@@ -54,7 +55,13 @@ function AdminOrders() {
                 { key: "amt", label: "Amount", render: (o) => <span className="font-semibold tabular-nums">{money(o.amountPaid)}</span> },
                 { key: "date", label: "Date", render: (o) => <span className="text-xs text-muted-foreground">{fmtDate(o.createdAt, true)}</span> },
                 { key: "status", label: "Status", render: (o) => <div className="flex flex-wrap gap-1"><Badge>{o.status}</Badge>{o.legacyRules && <Badge tone="neutral">Legacy</Badge>}</div> },
-                { key: "act", label: "", className: "text-right", render: (o) => <Button size="sm" onClick={() => setSel(o)}>Manage</Button> },
+                { key: "act", label: "", className: "text-right", render: (o) => (
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" onClick={() => setSel(o)}>Manage</Button>
+                      <Button size="sm" variant="danger" onClick={() => setDelOrder(o)} aria-label={`Delete order ${o.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  ),
+                },
               ]}
             />
             <Pager {...pager} />
@@ -62,7 +69,32 @@ function AdminOrders() {
         )}
       </Card>
       {sel && <ManageOrder order={sel} onClose={() => setSel(null)} onChanged={() => { void reload(); refreshUnread(); }} />}
+      {delOrder && <DeleteOrderDialog order={delOrder} onClose={() => setDelOrder(null)} onDeleted={() => { void reload(); refreshUnread(); }} />}
     </>
+  );
+}
+
+function DeleteOrderDialog({ order, onClose, onDeleted }: { order: Order; onClose: () => void; onDeleted: () => void }) {
+  const { busy, note, run } = useAction();
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Delete order ${order.id}?`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="danger" busy={busy === "del"} onClick={async () => { if (await run("del", () => propApi.orders.remove(order.id))) { onDeleted(); onClose(); } }}>
+            <Trash2 className="h-4 w-4" />Yes, delete order
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3 text-sm">
+        <p className="text-muted-foreground">This will permanently delete order <strong className="font-mono text-foreground">{order.id}</strong> ({order.planName || order.planId}) and all trading accounts associated with it.</p>
+        {note && <Note tone={note.tone}>{note.text}</Note>}
+      </div>
+    </Modal>
   );
 }
 

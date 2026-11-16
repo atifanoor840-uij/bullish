@@ -204,6 +204,7 @@ export const propApi = {
   admin: {
     users: () => get<{ success: true; users: User[] }>("/api/users"),
     updateUser: (b: { userId: string; name?: string; email?: string; phone?: string; country?: string; role?: Role; status?: User["status"]; referredBy?: string; newPassword?: string }) => put<{ success: true; user: User }>("/api/users", b),
+    deleteUser: (id: string) => del<{ success: true; deleted: true; removedAccounts: number }>(`/api/users${q({ id })}`),
     auditLogs: () => get("/api/audit-logs"),
     emailLogs: (userId?: string) => get(`/api/email-logs${q({ userId })}`),
     inventory: () => get<{ success: true; plans: InventoryItem[] }>("/api/challenge-inventory"),

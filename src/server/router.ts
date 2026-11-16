@@ -86,6 +86,7 @@ const routes: Record<string, Handler> = {
   "GET /audit-logs": admin.auditLogs,
   "GET /users": admin.listUsers,
   "PUT /users": admin.updateUser,
+  "DELETE /users": admin.deleteUser,
   "GET /challenge-inventory": admin.listInventory,
   "POST /challenge-inventory": admin.addInventory,
   "PUT /challenge-inventory": admin.updateInventory,
