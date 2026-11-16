@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PayoutsRouteImport } from './routes/payouts'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as RulesRouteImport } from './routes/rules'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -70,6 +71,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PayoutsRoute = PayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -239,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
+  '/payouts': typeof PayoutsRoute
   '/pricing': typeof PricingRoute
   '/rules': typeof RulesRoute
   '/signup': typeof SignupRoute
@@ -276,6 +283,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
+  '/payouts': typeof PayoutsRoute
   '/pricing': typeof PricingRoute
   '/rules': typeof RulesRoute
   '/signup': typeof SignupRoute
@@ -316,6 +324,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
+  '/payouts': typeof PayoutsRoute
   '/pricing': typeof PricingRoute
   '/rules': typeof RulesRoute
   '/signup': typeof SignupRoute
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/login'
+    | '/payouts'
     | '/pricing'
     | '/rules'
     | '/signup'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/'
     | '/contact'
     | '/login'
+    | '/payouts'
     | '/pricing'
     | '/rules'
     | '/signup'
@@ -433,6 +444,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/login'
+    | '/payouts'
     | '/pricing'
     | '/rules'
     | '/signup'
@@ -473,6 +485,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PayoutsRoute: typeof PayoutsRoute
   PricingRoute: typeof PricingRoute
   RulesRoute: typeof RulesRoute
   SignupRoute: typeof SignupRoute
@@ -515,6 +528,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payouts': {
+      id: '/payouts'
+      path: '/payouts'
+      fullPath: '/payouts'
+      preLoaderRoute: typeof PayoutsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -822,6 +842,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   DashboardRoute: DashboardRouteWithChildren,
   LoginRoute: LoginRoute,
+  PayoutsRoute: PayoutsRoute,
   PricingRoute: PricingRoute,
   RulesRoute: RulesRoute,
   SignupRoute: SignupRoute,

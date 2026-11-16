@@ -108,6 +108,7 @@ export function Footer() {
       "Company",
       [
         { label: "About Bullish 4ex", href: "/#how" },
+        { label: "Payout Certificates", href: "/payouts" },
         { label: "Trading Markets", href: "/#markets" },
         { label: "Partner Platforms", href: "/#how" },
       ],
