@@ -24,23 +24,22 @@ export const Route = createFileRoute("/payouts")({
 type Certificate = {
   name: string;
   country: string;
-  flag: string;
   amount: number;
   date: string; // ISO
   image: string;
 };
 
 const certificates: Certificate[] = [
-  { name: "Oliver Hughes", country: "United Kingdom", flag: "🇬🇧", amount: 2788, date: "2026-11-03", image: "/payouts/oliver-hughes.webp" },
-  { name: "Omar Al Falasi", country: "United Arab Emirates", flag: "🇦🇪", amount: 1628, date: "2026-11-15", image: "/payouts/omar-al-falasi.webp" },
-  { name: "Felix Wagner", country: "Germany", flag: "🇩🇪", amount: 2094, date: "2026-11-12", image: "/payouts/felix-wagner.webp" },
-  { name: "Thiago Santos", country: "Brazil", flag: "🇧🇷", amount: 716, date: "2026-11-09", image: "/payouts/thiago-santos.webp" },
-  { name: "Rohan Mehta", country: "India", flag: "🇮🇳", amount: 1356, date: "2026-11-07", image: "/payouts/rohan-mehta.webp" },
-  { name: "Ethan Walker", country: "United States", flag: "🇺🇸", amount: 537, date: "2026-11-01", image: "/payouts/ethan-walker.webp" },
-  { name: "Khalid Al Mansoori", country: "United Arab Emirates", flag: "🇦🇪", amount: 1903, date: "2026-10-28", image: "/payouts/khalid-al-mansoori.webp" },
-  { name: "Lukas Müller", country: "Germany", flag: "🇩🇪", amount: 2415, date: "2026-10-25", image: "/payouts/lukas-muller.webp" },
-  { name: "Gabriel Silva", country: "Brazil", flag: "🇧🇷", amount: 862, date: "2026-10-20", image: "/payouts/gabriel-silva.webp" },
-  { name: "Aarav Sharma", country: "India", flag: "🇮🇳", amount: 1247, date: "2026-10-18", image: "/payouts/aarav-sharma.webp" },
+  { name: "Oliver Hughes", country: "United Kingdom", amount: 2788, date: "2026-11-03", image: "/payouts/oliver-hughes.webp" },
+  { name: "Omar Al Falasi", country: "United Arab Emirates", amount: 1628, date: "2026-11-15", image: "/payouts/omar-al-falasi.webp" },
+  { name: "Felix Wagner", country: "Germany", amount: 2094, date: "2026-11-12", image: "/payouts/felix-wagner.webp" },
+  { name: "Thiago Santos", country: "Brazil", amount: 716, date: "2026-11-09", image: "/payouts/thiago-santos.webp" },
+  { name: "Rohan Mehta", country: "India", amount: 1356, date: "2026-11-07", image: "/payouts/rohan-mehta.webp" },
+  { name: "Ethan Walker", country: "United States", amount: 537, date: "2026-11-01", image: "/payouts/ethan-walker.webp" },
+  { name: "Khalid Al Mansoori", country: "United Arab Emirates", amount: 1903, date: "2026-10-28", image: "/payouts/khalid-al-mansoori.webp" },
+  { name: "Lukas Müller", country: "Germany", amount: 2415, date: "2026-10-25", image: "/payouts/lukas-muller.webp" },
+  { name: "Gabriel Silva", country: "Brazil", amount: 862, date: "2026-10-20", image: "/payouts/gabriel-silva.webp" },
+  { name: "Aarav Sharma", country: "India", amount: 1247, date: "2026-10-18", image: "/payouts/aarav-sharma.webp" },
 ];
 
 const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
@@ -55,8 +54,6 @@ function PayoutsPage() {
   const countries = useMemo(() => ["All", ...Array.from(new Set(sorted.map((c) => c.country)))], [sorted]);
   const list = country === "All" ? sorted : sorted.filter((c) => c.country === country);
 
-  const total = certificates.reduce((s, c) => s + c.amount, 0);
-  const largest = Math.max(...certificates.map((c) => c.amount));
 
   useEffect(() => {
     if (active === null) return;
@@ -94,20 +91,6 @@ function PayoutsPage() {
             </p>
           </div>
 
-          {/* Stats */}
-          <div className="mx-auto mt-12 grid max-w-3xl grid-cols-3 overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-            {[
-              { label: "Certificates", value: String(certificates.length) },
-              { label: "Total shown", value: usd(total) },
-              { label: "Largest payout", value: usd(largest) },
-            ].map((s, i) => (
-              <div key={s.label} className={`p-5 text-center sm:p-7 ${i > 0 ? "border-l border-white/[0.06]" : ""}`}>
-                <p className="text-gold font-display text-xl font-bold sm:text-3xl">{s.value}</p>
-                <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{s.label}</p>
-              </div>
-            ))}
-          </div>
-
           {/* Country filter */}
           <div className="mt-12 flex flex-wrap justify-center gap-2">
             {countries.map((c) => (
@@ -120,7 +103,7 @@ function PayoutsPage() {
                     : "border border-white/[0.08] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
                 }`}
               >
-                {c === "All" ? "All countries" : `${certificates.find((x) => x.country === c)?.flag} ${c}`}
+                {c === "All" ? "All countries" : c}
               </button>
             ))}
           </div>
@@ -147,7 +130,7 @@ function PayoutsPage() {
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{c.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {c.flag} {c.country} · {fmtDate(c.date)}
+                      {c.country} · {fmtDate(c.date)}
                     </p>
                   </div>
                   <p className="text-gold shrink-0 font-display text-lg font-bold">{usd(c.amount)}</p>
@@ -165,7 +148,7 @@ function PayoutsPage() {
       {/* Lightbox */}
       {current && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
           onClick={() => setActive(null)}
           role="dialog"
           aria-modal="true"
