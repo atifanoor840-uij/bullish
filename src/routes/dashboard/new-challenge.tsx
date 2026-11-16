@@ -33,12 +33,6 @@ const DEFAULT_REAL_PRICE: Record<number, number> = {
   100000: 529,
   200000: 999,
 };
-const RULES: Record<PricingPlan["model"], [string, string][]> = {
-  "One Step": [["Profit target", "9%"], ["Max daily loss", "4%"], ["Max overall loss", "6% (static)"], ["Min. trading days", "3 Winning Days"], ["Profit split", "70% up to 100%"]],
-  "Two Step": [["Profit target", "Phase 1: 6% / Phase 2: 5%"], ["Max daily loss", "4%"], ["Max overall loss", "6% (static)"], ["Min. trading days", "3 Winning Days / phase"], ["Profit split", "70% up to 100%"]],
-  Instant: [["Profit target", "None"], ["Max daily loss", "3%"], ["Max overall loss", "6% (static)"], ["Min. trading days", "5 Winning Days"], ["Profit split", "70% up to 100%"]],
-  Flex: [["Profit target", "4%"], ["Max daily loss", "4%"], ["Max overall loss", "8% trailing"], ["Min. trading days", "None (Eval) / 5 (Funded)"], ["Profit split", "85% (90% w/ add-on)"]],
-};
 const PLATFORMS = ["MT5"] as const;
 
 // Live countdown to a real expiry date (coupon / offer `expiresAt`). Returns null once expired.
@@ -374,11 +368,6 @@ function NewChallenge() {
                 <p className="font-display text-xl font-semibold">{activeModel} · {sizeLabel(plan?.size ?? 0)}</p>
                 <p className="text-xs text-muted-foreground">{platform} · {payMethod}</p>
               </div>
-              <dl className="space-y-2 text-sm">
-                {RULES[activeModel].map(([k, v]) => (
-                  <div key={k} className="flex justify-between"><dt className="text-muted-foreground">{k}</dt><dd className="font-medium">{v}</dd></div>
-                ))}
-              </dl>
               <div className="h-px bg-white/[0.06]" />
               {activeModel === "Flex" && (
                 <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/[0.06] px-4 py-3 text-sm text-primary">
