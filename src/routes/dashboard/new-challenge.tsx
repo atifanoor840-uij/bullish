@@ -360,7 +360,7 @@ function NewChallenge() {
     const methods = [
       { id: "Card" as const, title: "Card", sub: "Visa, Mastercard, Amex & Google Pay", icon: <CreditCard className="h-7 w-7" />, amount: cardPrice, note: data.cardOk ? "Instant card checkout" : "May not be available in your region",
         on: "border-primary/70 bg-gradient-to-b from-primary/[0.10] to-transparent shadow-[inset_0_-2px_0_0_var(--primary)]", iconCls: "border-primary/40 bg-primary/15 text-primary", priceCls: "bg-primary/15 text-primary", noteCls: "text-primary/70" },
-      { id: "Crypto" as const, title: "Crypto", sub: "Bitcoin, Ethereum, USDT, TRX & USDC", icon: <Bitcoin className="h-7 w-7" />, amount: cryptoPrice, note: cardPrice - cryptoPrice > 0.005 ? `Save ${money(cardPrice - cryptoPrice)} · 10% off` : "Extra 10% off",
+      { id: "Crypto" as const, title: "Crypto", sub: "Bitcoin, Ethereum, USDT, TRX & USDC", icon: <Bitcoin className="h-7 w-7" />, amount: cryptoPrice, note: coupon ? `${coupon.discountPercent}% + 10% extra = ${coupon.discountPercent + 10}% OFF` : "Extra 10% OFF with crypto",
         on: "border-profit/70 bg-gradient-to-b from-profit/[0.10] to-transparent shadow-[inset_0_-2px_0_0_var(--profit)]", iconCls: "border-profit/40 bg-profit/15 text-profit", priceCls: "bg-profit/15 text-profit", noteCls: "text-profit/80" },
     ];
     const summary: [string, ReactNode, string?][] = [
