@@ -86,10 +86,15 @@ export async function saveAccount(ctx: Ctx) {
     await ensureOrderActive(order, account);
     await notify(account.userId, "Account delivered", await credentialsMessage(account), "success", "email");
   } else {
+    const credsChanged = existing.platform !== platform || existing.server !== server || existing.login !== login;
     [account] = (await db.update<DBAccount>("trading_accounts", { id: eq(id) }, patch)) as [DBAccount];
     if (existing.deliveryStatus === "pending") {
       if (order) await ensureOrderActive(order, account);
       await notify(account.userId, "Account delivered", await credentialsMessage(account), "success", "email");
+    } else {
+      // Editing an already-delivered account: optionally free the old credentials and re-send the new ones.
+      if (credsChanged && b.releaseOld === true) await releaseInventory(existing);
+      if (b.notifyTrader === true) await notify(account.userId, "Account credentials updated", await credentialsMessage(account), "info", "email");
     }
   }
 

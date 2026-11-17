@@ -158,7 +158,7 @@ export const propApi = {
   accounts: {
     list: () => get<{ success: true; accounts: TradingAccount[] }>("/api/accounts"),
     requestNextStage: (accountId: string) => post<{ success: true; message: string; accountId: string }>("/api/accounts/request-next", { accountId }),
-    save: (b: { id: string; platform: string; login: string; passwordMaster: string; server: string; passwordInvestor?: string; profitTarget?: number; graphLink?: string; balance?: number; equity?: number; status?: TradingAccount["status"]; phase?: string; externalStatisticsId?: string; inventoryItemId?: string; orderId?: string; userId?: string }) =>
+    save: (b: { id: string; platform: string; login: string; passwordMaster: string; server: string; passwordInvestor?: string; profitTarget?: number; graphLink?: string; balance?: number; equity?: number; status?: TradingAccount["status"]; phase?: string; externalStatisticsId?: string; inventoryItemId?: string; orderId?: string; userId?: string; notifyTrader?: boolean; releaseOld?: boolean }) =>
       put<{ success: true; account: TradingAccount }>("/api/accounts", b),
     remove: (id: string) => del(`/api/accounts${q({ id })}`),
   },

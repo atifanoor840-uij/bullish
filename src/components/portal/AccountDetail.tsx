@@ -893,7 +893,7 @@ function PlatformTab({ account: a, onLoginInfo }: { account: TradingAccount; onL
   const steps: [string, string][] = [
     ["Download platform", `Install ${app} for your ${device} using the links on this page.`],
     ["Open & navigate", desktop ? "Launch the app and open File → Login to Trade Account." : "Open the app, go to Settings and tap New Account → Login to an existing account."],
-    ["Add your account", "Enter your Login ID and master password from Login info. Use the investor password for read-only access."],
+    ["Add your account", "Enter your Login ID and password from Login info."],
     ["Select the correct server", a.server ? `Search for and select the server “${a.server}”.` : "Select the server shown in Login info."],
     ["Verify & start trading", "Once connected your balance appears in the terminal. Trades sync to this dashboard automatically."],
   ];
@@ -1001,7 +1001,6 @@ export function CredentialRows({ account: a }: { account: TradingAccount }) {
   const rows: [string, string, boolean][] = [
     ["Login", a.login, false],
     ["Password", a.passwordMaster, true],
-    ["Investor password", a.passwordInvestor, true],
     ["Server", a.server, false],
     ["Platform", a.platform, false],
   ];

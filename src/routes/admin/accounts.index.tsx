@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
-import { Activity, BadgeCheck, Clock, SlidersHorizontal, Trash2, Trophy, X, XCircle, Zap } from "lucide-react";
+import { Activity, BadgeCheck, Clock, SlidersHorizontal, Trash2, Pencil, Trophy, X, XCircle, Zap } from "lucide-react";
 import { Badge, Button, Card, DataTable, ErrorNote, Field, Loading, Modal, Note, PageHeader, Pager, SearchInput, StatCard, Tabs, cx, inputCls, useAction, useApi, usePaged } from "@/components/portal/ui";
 import { usePortal } from "@/components/portal/context";
 import { propApi, type InventoryItem, type Order, type TradingAccount } from "@/lib/propApi";
@@ -259,7 +259,7 @@ function AdminAccounts() {
                           <Zap className="h-3.5 w-3.5" />Auto-deliver
                         </Button>
                       )}
-                      <Button size="sm" variant={a.deliveryStatus === "pending" ? "primary" : "secondary"} onClick={() => setSel(a)}>{a.deliveryStatus === "pending" ? "Deliver" : "Edit"}</Button>
+                      <Button size="sm" variant={a.deliveryStatus === "pending" ? "primary" : "secondary"} onClick={() => setSel(a)}>{a.deliveryStatus === "pending" ? "Deliver" : <><Pencil className="h-3.5 w-3.5" />Edit</>}</Button>
                     </div>
                   ),
                 },
@@ -295,7 +295,13 @@ function EditAccount({ account: a, ordersById, inventory, onClose, onChanged }: 
     inventoryItemId: "",
   });
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [notifyTrader, setNotifyTrader] = useState(false);
+  const [releaseOld, setReleaseOld] = useState(false);
   const { busy, note, run } = useAction();
+  // Delivered account: did the admin change the login credentials themselves?
+  const credsChanged = !deliver && (form.platform !== a.platform || form.server !== a.server || form.login !== a.login);
+  const pwdChanged = !deliver && (form.passwordMaster !== a.passwordMaster || form.passwordInvestor !== a.passwordInvestor);
+  const reset = () => setForm((f) => ({ ...f, platform: a.platform, login: a.login, passwordMaster: a.passwordMaster, passwordInvestor: a.passwordInvestor, server: a.server, inventoryItemId: "" }));
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [k]: e.target.value });
 
   const pickInventory = (id: string) => {
@@ -309,7 +315,8 @@ function EditAccount({ account: a, ordersById, inventory, onClose, onChanged }: 
       propApi.accounts.save({
         id: a.id, ...rest, status: rest.status as TradingAccount["status"], balance: Number(balance), equity: Number(equity),
         ...(passwordInvestor ? { passwordInvestor } : {}), ...(graphLink ? { graphLink } : {}), ...(externalStatisticsId ? { externalStatisticsId } : {}), ...(inventoryItemId ? { inventoryItemId } : {}),
-      }), deliver ? "Credentials delivered and emailed to the trader." : "Account updated.");
+        ...(!deliver && notifyTrader ? { notifyTrader: true } : {}), ...(!deliver && credsChanged && releaseOld ? { releaseOld: true } : {}),
+      }), deliver ? "Credentials delivered and emailed to the trader." : notifyTrader ? "Account updated and new credentials emailed to the trader." : "Account updated.");
     if (ok) onChanged();
   };
 
@@ -318,19 +325,23 @@ function EditAccount({ account: a, ordersById, inventory, onClose, onChanged }: 
       open
       onClose={onClose}
       wide
-      title={deliver ? `Deliver credentials · ${info.model} ${sizeLabel(info.size)}` : `Edit account #${a.login}`}
+      title={deliver ? `Deliver credentials · ${info.model} ${sizeLabel(info.size)}` : `Edit delivered account #${a.login}`}
       footer={<><Button variant="ghost" onClick={onClose}>Close</Button><Button variant="primary" busy={busy === "save"} disabled={!form.login || !form.passwordMaster || !form.server} onClick={save}>{deliver ? "Deliver" : "Save changes"}</Button></>}
     >
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">{a.userName} · {a.userEmail} · Order {a.orderId} · {info.phase}</p>
-        {deliver && (
-          <Field label="Use inventory credentials" hint={matching.length ? `${matching.length} available ${a.platform} ${sizeLabel(info.size)} accounts` : "No matching inventory — enter credentials manually."}>
-            <select value={form.inventoryItemId} onChange={(e) => pickInventory(e.target.value)} className={inputCls}>
-              <option value="">Enter manually</option>
-              {matching.map((i) => <option key={i.id} value={i.id}>#{i.login} · {i.server}</option>)}
-            </select>
-          </Field>
-        )}
+        <p className="text-sm text-muted-foreground">
+          {a.userName} · {a.userEmail} · Order {a.orderId} · {info.phase}
+          {!deliver && a.deliveredAt && <> · Delivered {fmtDate(a.deliveredAt, true)}</>}
+        </p>
+        <Field
+          label={deliver ? "Use inventory credentials" : "Replace with inventory account"}
+          hint={matching.length ? `${matching.length} available ${a.platform} ${sizeLabel(info.size)} accounts` : deliver ? "No matching inventory — enter credentials manually." : "No matching inventory — edit the credentials below."}
+        >
+          <select value={form.inventoryItemId} onChange={(e) => pickInventory(e.target.value)} className={inputCls}>
+            <option value="">{deliver ? "Enter manually" : "Keep current / edit manually"}</option>
+            {matching.map((i) => <option key={i.id} value={i.id}>#{i.login} · {i.server}</option>)}
+          </select>
+        </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Platform"><select value={form.platform} onChange={set("platform")} className={inputCls}>{["MT5", "MT4", "cTrader"].map((p) => <option key={p}>{p}</option>)}</select></Field>
           <Field label="Server"><input value={form.server} onChange={set("server")} className={inputCls} /></Field>
@@ -346,6 +357,25 @@ function EditAccount({ account: a, ordersById, inventory, onClose, onChanged }: 
             <Field label="Phase"><select value={form.phase} onChange={set("phase")} className={inputCls}>{["Phase 1 (Evaluation)", "Phase 2 (Verification)", "Funded (Live)"].map((s) => <option key={s}>{s}</option>)}</select></Field>
             <Field label="Balance"><input type="number" value={form.balance} onChange={set("balance")} className={inputCls} /></Field>
             <Field label="Equity"><input type="number" value={form.equity} onChange={set("equity")} className={inputCls} /></Field>
+          </div>
+        )}
+        {!deliver && (
+          <div className="space-y-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-semibold">Delivery options</p>
+              {(credsChanged || pwdChanged) && <Button size="sm" variant="ghost" onClick={reset}>Undo credential changes</Button>}
+            </div>
+            {(credsChanged || pwdChanged) && <p className="text-xs text-amber-500">Credentials changed — the trader will only see the new login after you save.</p>}
+            <label className="flex cursor-pointer items-center gap-3">
+              <input type="checkbox" checked={notifyTrader} onChange={(e) => setNotifyTrader(e.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
+              <span>Email the credentials to the trader again <span className="text-muted-foreground">(re-send after saving)</span></span>
+            </label>
+            {credsChanged && (
+              <label className="flex cursor-pointer items-center gap-3">
+                <input type="checkbox" checked={releaseOld} onChange={(e) => setReleaseOld(e.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
+                <span>Return old login <span className="font-mono text-xs">#{a.login}</span> to inventory as available</span>
+              </label>
+            )}
           </div>
         )}
         {note && <Note tone={note.tone}>{note.text}</Note>}
