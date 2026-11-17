@@ -34,7 +34,7 @@ export function DashboardTablet() {
       <div className="flex h-[560px] overflow-hidden rounded-[22px] bg-background text-[11px]">
         {/* Icon rail */}
         <div className="flex w-12 flex-col items-center gap-4 border-r border-white/[0.06] bg-sidebar py-4">
-          <img src="/logo-mark.png" alt="" className="h-7 w-auto" />
+          <img src="/logo-mark.png" alt="" className="logo-blue h-7 w-auto" />
           <span className="flex flex-col items-center gap-1 text-primary"><BarChart3 className="h-4 w-4" /><span className="text-[8px]">Overview</span></span>
           <span className="flex flex-col items-center gap-1 text-muted-foreground"><TrendingUp className="h-4 w-4" /><span className="text-[8px]">Stats</span></span>
         </div>

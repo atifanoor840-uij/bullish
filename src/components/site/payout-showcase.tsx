@@ -162,7 +162,7 @@ function DashboardShell() {
   return (
     <div className="pointer-events-none absolute inset-0 flex opacity-50 blur-[2px]" aria-hidden>
       <div className="hidden w-48 shrink-0 border-r border-white/[0.06] bg-sidebar p-4 sm:block">
-        <p className="flex items-center gap-2 font-display text-sm font-bold"><img src="/logo-mark.png" alt="" className="h-6 w-auto" /><span>BULLISH<span className="text-primary">4</span>EX</span></p>
+        <p className="flex items-center gap-2 font-display text-sm font-bold"><img src="/logo-mark.png" alt="" className="logo-blue h-6 w-auto" /><span>BULLISH<span className="text-primary">4</span>EX</span></p>
         <p className="text-[10px] text-muted-foreground">Welcome, trader</p>
         <div className="mt-6 space-y-1">
           {nav.map(([Icon, l]) => (

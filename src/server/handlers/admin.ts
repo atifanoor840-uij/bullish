@@ -237,7 +237,7 @@ export async function getPromotions(ctx: Ctx) {
   const presets = [{
     id: "pricing", name: "Current pricing",
     subject: coupon ? `Save ${coupon.discountPercent}% on your next challenge` : "Start your next funded challenge",
-    html: emailHtml("Get funded with Bullish 4ex", `<ul>${rows}</ul>${coupon ? `Use code <b style="color:#e5a93c">${coupon.code}</b> for ${coupon.discountPercent}% off.` : "Use code ADD-CODE at checkout."}`),
+    html: emailHtml("Get funded with Bullish 4ex", `<ul>${rows}</ul>${coupon ? `Use code <b style="color:#2563eb">${coupon.code}</b> for ${coupon.discountPercent}% off.` : "Use code ADD-CODE at checkout."}`),
   }];
   return { templates: t.templates, presets, availableAccountSizes: [...new Set(plans.map((p) => p.size))], warnings: t.warnings };
 }

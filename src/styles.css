@@ -76,9 +76,9 @@
   --card-foreground: #f4f4f5;
   --popover: #121215;
   --popover-foreground: #f4f4f5;
-  --primary: #e5a93c;
-  --primary-glow: #d99b26;
-  --primary-foreground: #09090b;
+  --primary: #2563eb;
+  --primary-glow: #1d4ed8;
+  --primary-foreground: #ffffff;
   --secondary: #18181b;
   --secondary-foreground: #f4f4f5;
   --muted: #1c1c21;
@@ -91,22 +91,22 @@
   --loss: #f43f5e;
   --border: #27272a;
   --input: #27272a;
-  --ring: #e5a93c;
-  --chart-1: #e5a93c;
+  --ring: #2563eb;
+  --chart-1: #2563eb;
   --chart-2: #10b981;
   --chart-3: #f43f5e;
-  --chart-4: #f59e0b;
+  --chart-4: #60a5fa;
   --chart-5: #a1a1aa;
   --sidebar: #0b0b0e;
   --sidebar-foreground: #f4f4f5;
-  --sidebar-primary: #e5a93c;
-  --sidebar-primary-foreground: #09090b;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #18181b;
   --sidebar-accent-foreground: #f4f4f5;
   --sidebar-border: #222226;
-  --sidebar-ring: #e5a93c;
-  --gradient-gold: linear-gradient(135deg, #f5b748, #d4931a);
-  --shadow-gold: 0 8px 30px -8px rgba(229, 169, 60, 0.25);
+  --sidebar-ring: #2563eb;
+  --gradient-gold: linear-gradient(135deg, #3b82f6, #1e40af);
+  --shadow-gold: 0 8px 30px -8px rgba(37, 99, 235, 0.25);
 }
 
 @layer base {
@@ -128,7 +128,7 @@
 
 @utility bg-gold { background-image: var(--gradient-gold); }
 @utility text-gold {
-  background-image: var(--gradient-gold);
+  background-image: linear-gradient(135deg, #93c5fd, #3b82f6);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 @utility shadow-gold { box-shadow: var(--shadow-gold); }
@@ -160,12 +160,12 @@
 
 /* ---------- Trader portal (dashboard shell + account view) ---------- */
 @utility portal-bg {
-  background: linear-gradient(154deg, #1a160d 1.19%, #0b0b0e 60.62%);
+  background: linear-gradient(154deg, #0d1426 1.19%, #0b0b0e 60.62%);
 }
 @utility card-shadow { box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.3); }
-/* Account header card: card colour fading into a warm gold tint on the left */
+/* Account header card: card colour fading into a deep blue tint on the left */
 @utility account-head {
-  background: linear-gradient(-90deg, var(--card) 25%, #2a2112 100%);
+  background: linear-gradient(-90deg, var(--card) 25%, #111c38 100%);
 }
 @keyframes drawer-in-right { from { transform: translateX(110%); } to { transform: translateX(0); } }
 @keyframes drawer-in-left { from { transform: translateX(-100%); } to { transform: translateX(0); } }
@@ -197,9 +197,9 @@
   background-image: linear-gradient(90deg, oklch(0.55 0.01 260) 0%, oklch(0.98 0 0) 30%, oklch(0.98 0 0) 70%, oklch(0.55 0.01 260) 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-/* Recolors the blue crystal candle image to the brand gold */
+/* Blue crystal candle image with brand glow */
 @utility candle-glow {
-  filter: hue-rotate(185deg) saturate(1.4) brightness(1.1)
+  filter: saturate(1.2) brightness(1.05)
     drop-shadow(0 0 30px color-mix(in oklab, var(--primary) 55%, transparent));
 }
 
@@ -215,8 +215,8 @@
   position: relative;
   border-radius: var(--radius);
   background-color: var(--card);
-  border: 1px solid rgba(229, 169, 60, 0.35);
-  box-shadow: 0 4px 24px -6px rgba(229, 169, 60, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  box-shadow: 0 4px 24px -6px rgba(37, 99, 235, 0.12);
 }
 @utility glass-hover {
   transition: transform 0.2s ease, border-color 0.2s ease;
@@ -265,4 +265,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .marquee { animation: none; }
+}
+
+/* Recolors the gold logo mark PNG to the brand blue */
+@utility logo-blue {
+  filter: hue-rotate(180deg) saturate(1.3) brightness(0.95);
 }

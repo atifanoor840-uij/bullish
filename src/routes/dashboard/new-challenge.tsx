@@ -58,7 +58,7 @@ function Countdown({ expiresAt, compact }: { expiresAt?: string | undefined; com
   const parts: [number, string][] = [...(c.d > 0 ? [[c.d, "d"] as [number, string]] : []), [c.h, "h"], [c.m, "m"], [c.s, "s"]];
   if (compact) {
     return (
-      <span className={cx("inline-flex items-center gap-1 font-mono text-xs font-semibold tabular-nums", c.soon ? "text-loss" : "text-[#f5b748]")}>
+      <span className={cx("inline-flex items-center gap-1 font-mono text-xs font-semibold tabular-nums", c.soon ? "text-loss" : "text-[#60a5fa]")}>
         <Clock className="h-3.5 w-3.5" />
         {parts.map(([v, u]) => `${pad(v)}${u}`).join(" ")}
       </span>
@@ -79,16 +79,16 @@ function Countdown({ expiresAt, compact }: { expiresAt?: string | undefined; com
 function UrgencyBanner({ title, sub, expiresAt }: { title: string; sub: string; expiresAt?: string | undefined }) {
   const live = useCountdown(expiresAt);
   return (
-    <div className="relative mb-5 overflow-hidden rounded-2xl border border-[#f5b748]/40 bg-gradient-to-r from-[#f5b748]/[0.18] via-primary/[0.10] to-transparent p-4 sm:p-5">
-      <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-[#f5b748]/20 blur-3xl" />
+    <div className="relative mb-5 overflow-hidden rounded-2xl border border-[#60a5fa]/40 bg-gradient-to-r from-[#60a5fa]/[0.18] via-primary/[0.10] to-transparent p-4 sm:p-5">
+      <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-[#60a5fa]/20 blur-3xl" />
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <span className="relative mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f5b748]/20 text-[#f5b748]">
+          <span className="relative mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#60a5fa]/20 text-[#60a5fa]">
             <Flame className="h-5 w-5" />
-            <span className="absolute inset-0 animate-ping rounded-full bg-[#f5b748]/20" />
+            <span className="absolute inset-0 animate-ping rounded-full bg-[#60a5fa]/20" />
           </span>
           <div>
-            <p className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#f5b748]">
+            <p className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#60a5fa]">
               <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-loss opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-loss" /></span>
               {live ? (live.soon ? "Ending soon" : "Limited-time deal") : "Limited-time deal"}
             </p>
@@ -435,7 +435,7 @@ function NewChallenge() {
               {err && <Note tone="error">{err}</Note>}
               <Button variant="primary" className="w-full" busy={busy} onClick={() => place()}>Continue to payment</Button>
               {(coupon || planOffers.length > 0) && (
-                <p className="text-center text-[11px] font-medium text-[#f5b748]">Discount is locked once you continue to payment</p>
+                <p className="text-center text-[11px] font-medium text-[#60a5fa]">Discount is locked once you continue to payment</p>
               )}
               <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5" />One-time fee · refunded with your first payout</p>
             </div>

@@ -156,7 +156,7 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
 export const emailHtml = (title: string, message: string) =>
   `<div style="font-family:Inter,Arial,sans-serif;background:#09090b;color:#f4f4f5;padding:32px">
     <div style="max-width:560px;margin:auto;background:#121215;border:1px solid #27272a;border-radius:12px;padding:28px">
-      <p style="font-weight:800;letter-spacing:-.02em;margin:0 0 20px">BULLISH<span style="color:#e5a93c">4</span>EX</p>
+      <p style="font-weight:800;letter-spacing:-.02em;margin:0 0 20px">BULLISH<span style="color:#2563eb">4</span>EX</p>
       <h2 style="margin:0 0 12px;font-size:20px">${title}</h2>
       <div style="color:#a1a1aa;font-size:14px;line-height:1.6;white-space:pre-line">${message}</div>
     </div></div>`;

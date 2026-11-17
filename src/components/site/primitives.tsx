@@ -87,7 +87,7 @@ export function GhostButton({ children, href = "#", className = "" }: { children
 
 /** Brand puzzle mark (transparent PNG in /public). */
 export function LogoMark({ className = "h-9 w-auto" }: { className?: string }) {
-  return <img src="/logo-mark.png" alt="" aria-hidden width={173} height={256} className={`select-none ${className}`} draggable={false} />;
+  return <img src="/logo-mark.png" alt="" aria-hidden width={173} height={256} className={`logo-blue select-none ${className}`} draggable={false} />;
 }
 
 export function Logo({ href = "/", markOnly = false }: { href?: string; markOnly?: boolean }) {

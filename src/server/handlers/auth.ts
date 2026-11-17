@@ -31,7 +31,7 @@ async function sendVerification(ctx: Ctx, user: DBUser, locale = "en") {
   return sendEmail(
     user.email,
     "Verify your Bullish 4ex email address",
-    emailHtml("Verify your email", `Hi ${user.name},\nconfirm your email address to secure your account:\n<a href="${link}" style="color:#e5a93c">${link}</a>\nThe link expires in 24 hours.`),
+    emailHtml("Verify your email", `Hi ${user.name},\nconfirm your email address to secure your account:\n<a href="${link}" style="color:#2563eb">${link}</a>\nThe link expires in 24 hours.`),
   );
 }
 

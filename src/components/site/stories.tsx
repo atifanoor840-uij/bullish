@@ -6,7 +6,7 @@ import { Pill, Reveal } from "./primitives";
 
 /** Faux trading-desk backdrop used when a story has no thumbnail image yet. */
 function DeskScene({ s, i }: { s: Story; i: number }) {
-  const hues = ["from-amber-500/25", "from-sky-500/20", "from-orange-500/25", "from-emerald-500/20", "from-violet-500/20"];
+  const hues = ["from-blue-600/25", "from-sky-500/20", "from-indigo-500/25", "from-emerald-500/20", "from-violet-500/20"];
   return (
     <div className={`absolute inset-0 bg-gradient-to-br ${hues[i % hues.length]} via-card to-background`}>
       {/* Blurred monitor with a chart, behind the trader */}

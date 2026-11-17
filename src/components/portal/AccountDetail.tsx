@@ -903,7 +903,7 @@ function PlatformTab({ account: a, onLoginInfo }: { account: TradingAccount; onL
       onClick={() => setDevice(id)}
       className={cx(
         "inline-flex items-center gap-1.5 rounded-[4px] border px-2.5 py-1.5 text-xs leading-[14px] font-medium transition [&_svg]:size-4",
-        device === id ? "border-primary/60 bg-white/[0.02] text-foreground shadow-[inset_0_0_30px_0_rgba(229,169,60,0.25)]" : "border-border bg-card text-muted-foreground hover:text-foreground",
+        device === id ? "border-primary/60 bg-white/[0.02] text-foreground shadow-[inset_0_0_30px_0_rgba(37,99,235,0.25)]" : "border-border bg-card text-muted-foreground hover:text-foreground",
       )}
     >
       <Icon />{label}

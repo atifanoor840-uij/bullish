@@ -10,7 +10,7 @@ import { cx } from "./ui";
 
 type BadgeKind = "challenge" | "phase2" | "funded";
 const BADGE: Record<BadgeKind, { box: string; text: string; foot: string; line: string }> = {
-  challenge: { box: "border-primary/60 from-[#3a2a0c] to-[#2a1f0a]", text: "text-primary", foot: "bg-[#3a2a0c]", line: "bg-primary/20" },
+  challenge: { box: "border-primary/60 from-[#0f1d40] to-[#0b1530]", text: "text-primary", foot: "bg-[#0f1d40]", line: "bg-primary/20" },
   phase2: { box: "border-sky-500/60 from-[#0c2238] to-[#0a1a2b]", text: "text-sky-400", foot: "bg-[#0c2238]", line: "bg-sky-400/20" },
   funded: { box: "border-profit/60 from-[#0a2d22] to-[#08221a]", text: "text-profit", foot: "bg-[#0a2d22]", line: "bg-profit/20" },
 };
