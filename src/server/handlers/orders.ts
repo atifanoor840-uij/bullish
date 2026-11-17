@@ -57,7 +57,7 @@ export async function createOrder(ctx: Ctx) {
     }
   }
   const isCrypto = paymentMethod.toLowerCase().includes("crypto");
-  const pct = discount + (isCrypto ? 5 : 0);
+  const pct = discount + (isCrypto ? 10 : 0);
   const final = Math.ceil(base - base * (pct / 100));
   const referral = b.useReferralBalance ? Math.min(final, await referralBalance(user.id)) : 0;
   const amount = +(final - referral).toFixed(2);

@@ -234,7 +234,7 @@ export function computeCheckoutTotal(input: {
   isCrypto?: boolean; referralBalance?: number; useReferralBalance?: boolean;
 }) {
   const base = input.catalogPrice * (input.weekendHoldingAddon ? 1.2 : 1);
-  const pct = (input.discountPercent || 0) + (input.isCrypto ? 5 : 0);
+  const pct = (input.discountPercent || 0) + (input.isCrypto ? 10 : 0);
   const final = Math.ceil(base - base * (pct / 100));
   const referral = input.useReferralBalance ? Number(Math.min(final, input.referralBalance || 0).toFixed(2)) : 0;
   return Number((final - referral).toFixed(2));

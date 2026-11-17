@@ -331,7 +331,7 @@ function NewChallenge() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {([
                   ["Card", "Card payment", "Visa, Mastercard, Amex, Google Pay", <CardBrands key="c" />, true],
-                  ["Crypto", "Crypto payment", "BTC, USDT, ETH, TRX, USDC · extra 5% off", <CryptoCoins key="b" />, false],
+                  ["Crypto", "Crypto payment", "BTC, USDT, ETH, TRX, USDC · extra 10% off", <CryptoCoins key="b" />, false],
                 ] as const).map(([id, title, sub, icons, popular]) => (
                   <button
                     key={id}
@@ -348,7 +348,7 @@ function NewChallenge() {
                         <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">Popular</span>
                       )}
                       {id === "Crypto" && (
-                        <span className="ml-auto animate-pulse rounded-md bg-profit px-2.5 py-1 text-xs font-extrabold tracking-wide text-black shadow-[0_0_14px_rgba(34,197,94,0.6)]">5% OFF</span>
+                        <span className="ml-auto animate-pulse rounded-md bg-profit px-2.5 py-1 text-xs font-extrabold tracking-wide text-black shadow-[0_0_14px_rgba(34,197,94,0.6)]">10% OFF</span>
                       )}
                     </div>
                     {icons}
@@ -419,7 +419,7 @@ function NewChallenge() {
               )}
               <dl className="space-y-1.5 text-sm">
                 <div className="flex justify-between"><dt className="text-muted-foreground">Price</dt><dd>{price(base)}</dd></div>
-                {isCrypto && <div className="flex items-center justify-between rounded-lg border border-profit/40 bg-profit/10 px-2.5 py-1.5 font-semibold text-profit"><dt>Crypto payment</dt><dd className="font-extrabold">-5% OFF</dd></div>}
+                {isCrypto && <div className="flex items-center justify-between rounded-lg border border-profit/40 bg-profit/10 px-2.5 py-1.5 font-semibold text-profit"><dt>Crypto payment</dt><dd className="font-extrabold">-10% OFF</dd></div>}
                 {base - total > 0 && <div className="flex justify-between text-profit"><dt>Discounts</dt><dd>-{money(base - total)}</dd></div>}
               </dl>
               <div className="flex items-end justify-between">
