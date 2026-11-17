@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Check, Tag, ShieldCheck, Gift, Clock, Sparkles, ShoppingBag, Rocket, ArrowRight, ArrowLeft, CreditCard, Lock } from "lucide-react";
+import { Check, Tag, ShieldCheck, Gift, Clock, Sparkles, ShoppingBag, Rocket, ArrowRight, ArrowLeft, CreditCard, Lock, Bitcoin } from "lucide-react";
 import { Button, Card, EmptyState, ErrorNote, Field, Loading, Note, PageHeader, cx, inputCls, useApi } from "@/components/portal/ui";
 import { PayOrder } from "@/components/portal/Checkout";
 import { CardBrands, CryptoCoins } from "@/components/portal/PaymentIcons";
@@ -351,89 +351,79 @@ function NewChallenge() {
   );
 
   if (step === 2) {
+    const cardPrice = plan
+      ? computeCheckoutTotal({ catalogPrice: plan.price, weekendHoldingAddon: weekend, discountPercent: coupon?.discountPercent ?? 0, isCrypto: false, referralBalance: data.referralBalance, useReferralBalance: useRef })
+      : 0;
+    const cryptoPrice = plan
+      ? computeCheckoutTotal({ catalogPrice: plan.price, weekendHoldingAddon: weekend, discountPercent: coupon?.discountPercent ?? 0, isCrypto: true, referralBalance: data.referralBalance, useReferralBalance: useRef })
+      : 0;
+    const methods = [
+      { id: "Card" as const, title: "Card", sub: "Visa, Mastercard, Amex & Google Pay", icon: <CreditCard className="h-7 w-7" />, amount: cardPrice, note: data.cardOk ? "Instant card checkout" : "May not be available in your region",
+        on: "border-primary/70 bg-gradient-to-b from-primary/[0.10] to-transparent shadow-[inset_0_-2px_0_0_var(--primary)]", iconCls: "border-primary/40 bg-primary/15 text-primary", priceCls: "bg-primary/15 text-primary", noteCls: "text-primary/70" },
+      { id: "Crypto" as const, title: "Crypto", sub: "Bitcoin, Ethereum, USDT, TRX & USDC", icon: <Bitcoin className="h-7 w-7" />, amount: cryptoPrice, note: cardPrice - cryptoPrice > 0.005 ? `Save ${money(cardPrice - cryptoPrice)} · 10% off` : "Extra 10% off",
+        on: "border-profit/70 bg-gradient-to-b from-profit/[0.10] to-transparent shadow-[inset_0_-2px_0_0_var(--profit)]", iconCls: "border-profit/40 bg-profit/15 text-profit", priceCls: "bg-profit/15 text-profit", noteCls: "text-profit/80" },
+    ];
+    const summary: [string, ReactNode, string?][] = [
+      ["Program", activeModel],
+      ["Account Size", money(plan?.size ?? 0, 0)],
+      ["Platform", platform],
+      ...(weekend ? [["Weekend Holding", "+20%"] as [string, ReactNode]] : []),
+      ...(coupon ? [[`Promo ${coupon.code}`, `-${coupon.discountPercent}%`, "text-profit"] as [string, ReactNode, string]] : []),
+      ["Base Price", money(base)],
+      ...(activeModel === "Flex" ? [["Activation (on pass)", money(activationFee), "text-amber-400"] as [string, ReactNode, string]] : []),
+    ];
+
     return (
       <>
         {header}
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]">
-          <div className="space-y-6">
-            <section>
-              <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground">PAYMENT METHOD</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {([
-                  ["Card", "Card payment", "Visa, Mastercard, Amex, Google Pay", <CardBrands key="c" />],
-                  ["Crypto", "Crypto payment", "BTC, USDT, ETH, TRX, USDC · extra 10% off", <CryptoCoins key="b" />],
-                ] as const).map(([id, title, sub, icons]) => (
-                  <button
-                    key={id}
-                    onClick={() => setMethod(id)}
-                    className={cx("flex flex-col gap-3 rounded-2xl border p-4 text-left transition", payMethod === id ? "border-primary/70 bg-primary/[0.08]" : "border-white/[0.08] bg-[#0f1424] hover:border-white/20")}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={cx("h-3.5 w-3.5 shrink-0 rounded-full border-2", payMethod === id ? "border-primary bg-primary" : "border-white/25")} />
-                      <p className="text-sm font-semibold">{title}</p>
-                      {id === "Crypto" && <span className="ml-auto rounded-md bg-profit px-2 py-0.5 text-[11px] font-extrabold text-black">10% OFF</span>}
-                    </div>
-                    {icons}
-                    <p className="text-xs text-muted-foreground">{sub}</p>
-                  </button>
-                ))}
+        <div className="mx-auto max-w-2xl space-y-6">
+          <section className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0f1424]">
+            <h2 className="border-b border-white/[0.06] px-6 py-4 font-display text-base font-bold">Choose Payment Method</h2>
+            <div className="space-y-4 p-5 sm:p-6">
+              {(promo || promoOffer) && (
+                <PromoBar discount={promo?.discountPercent} offer={promoOffer?.name} expiresAt={promoExpires} />
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {methods.map((m) => {
+                  const on = payMethod === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => setMethod(m.id)}
+                      className={cx("flex flex-col items-center rounded-2xl border px-4 py-7 text-center transition", on ? m.on : "border-white/[0.08] hover:border-white/20")}
+                    >
+                      <span className={cx("flex h-16 w-16 items-center justify-center rounded-2xl border", m.iconCls)}>{m.icon}</span>
+                      <span className="mt-4 font-display text-lg font-bold">{m.title}</span>
+                      <span className="mt-1 text-xs text-muted-foreground">{m.sub}</span>
+                      <span className={cx("mt-4 rounded-lg px-4 py-1.5 font-display text-base font-bold", m.priceCls)}>{money(m.amount)}</span>
+                      <span className={cx("mt-2 text-[11px]", m.noteCls)}>{m.note}</span>
+                    </button>
+                  );
+                })}
               </div>
-              {!data.cardOk && payMethod === "Card" && <p className="mt-2 text-xs text-amber-400">Card payments may not be available in your region — crypto is recommended.</p>}
-            </section>
+            </div>
+          </section>
 
-            <section>
-              <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground">COUPON OR REFERRAL CODE</p>
-              <div className="rounded-2xl border border-white/[0.08] bg-[#0f1424] p-4">
-                <Field label="">
-                  <div className="relative">
-                    <Tag className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter code" className={cx(inputCls, "pl-9 uppercase")} />
-                  </div>
-                </Field>
-                {isFlex ? (
-                  <p className="mt-2 text-xs text-muted-foreground">Coupon codes do not apply to the Flex initial price.</p>
-                ) : code && (coupon ? (
-                  <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-profit"><Check className="h-3.5 w-3.5" />Promo {coupon.code} applied — {coupon.discountPercent}% off</p>
-                ) : (
-                  <p className="mt-2 text-xs text-muted-foreground">Code will be checked at checkout.</p>
-                ))}
-                {data.referralBalance > 0 && (
-                  <label className="mt-3 flex items-center justify-between text-sm">
-                    <span>Use referral balance <span className="text-muted-foreground">({money(data.referralBalance)})</span></span>
-                    <input type="checkbox" checked={useRef} onChange={(e) => setUseRef(e.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
-                  </label>
-                )}
-              </div>
-            </section>
-
-            <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground">
-              <ArrowLeft className="h-4 w-4" />Back to configuration
-            </button>
-          </div>
-
-          {capitalCard(total, (
-            <>
-              {row("Challenge", activeModel)}
-              {row("Platform", "MetaTrader 5")}
-              {row("Payment", payMethod)}
-              {weekend && row("Weekend holding", "+20%")}
-              {activationRow}
-              {isCrypto && configTotal - total > 0.005 && row(<span className="text-profit">Crypto payment</span>, <span className="text-profit">-10% OFF</span>, "border-profit/30 bg-profit/[0.07]")}
-              {base - total > 0.005 && row(<span className="text-profit">You save</span>, <span className="text-profit">{money(base - total)}</span>, "border-profit/30 bg-profit/[0.07]")}
-              {planOffers.map((o) => (
-                <div key={o.id} className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs">
-                  <Gift className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                  <span><span className="font-semibold text-primary">{o.name}</span> — {offerSummary(o)}. Applied automatically after payment.</span>
+          <section className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0f1424]">
+            <h2 className="border-b border-white/[0.06] px-6 py-4 font-display text-base font-bold">Order Summary</h2>
+            <dl className="divide-y divide-white/[0.06] px-6 py-2 text-sm">
+              {summary.map(([k, v, cls]) => (
+                <div key={k} className="flex items-center justify-between py-3">
+                  <dt className="text-muted-foreground">{k}</dt>
+                  <dd className={cx("font-semibold", cls)}>{v}</dd>
                 </div>
               ))}
-              {err && <Note tone="error">{err}</Note>}
-              <Button variant="primary" className="w-full rounded-xl py-3.5 text-base" busy={busy} onClick={() => place()}>
-                <Lock className="h-4 w-4" />Pay {money(total)}<ArrowRight className="h-4 w-4" />
-              </Button>
-              {(coupon || planOffers.length > 0) && <p className="text-center text-[11px] font-medium text-[#60a5fa]">Discount is locked once you continue to payment</p>}
-              <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5" />One-time fee · refunded with your first payout</p>
-            </>
-          ))}
+            </dl>
+          </section>
+
+          {err && <Note tone="error">{err}</Note>}
+          <Button variant="primary" className="w-full rounded-xl py-3.5 text-base" busy={busy} onClick={() => place()}>
+            <Lock className="h-4 w-4" />Pay {money(total)} with {payMethod}<ArrowRight className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <button onClick={() => setStep(1)} className="flex items-center gap-1.5 transition hover:text-foreground"><ArrowLeft className="h-3.5 w-3.5" />Back</button>
+            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Secure checkout</span>
+          </div>
         </div>
       </>
     );

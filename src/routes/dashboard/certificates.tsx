@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Award, ExternalLink } from "lucide-react";
 import { Logo } from "@/components/site/primitives";
 import { Button, Card, EmptyState, ErrorNote, Loading, PageHeader, useApi } from "@/components/portal/ui";
+import { CertificateQR } from "@/components/portal/CertificateQR";
 import { propApi } from "@/lib/propApi";
 import { fmtDate, money } from "@/lib/portal";
 
@@ -28,11 +29,19 @@ function Certificates() {
                   <Logo />
                   <span className="text-[10px] font-semibold tracking-widest text-primary uppercase">{payout ? "Payout" : "Funded"}</span>
                 </div>
-                <p className="mt-8 text-xs text-muted-foreground">This certifies that</p>
-                <p className="font-display text-2xl font-semibold">{c.traderName}</p>
-                <p className="mt-3 text-sm text-muted-foreground">{payout ? "received a payout of" : "successfully passed"}</p>
-                <p className="text-gold font-display text-3xl font-bold">{money(c.accountSize, payout ? 2 : 0)}</p>
-                <p className="mt-1 text-sm">{c.planName}</p>
+                <div className="mt-8 flex items-end justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">This certifies that</p>
+                    <p className="font-display text-2xl font-semibold">{c.traderName}</p>
+                    <p className="mt-3 text-sm text-muted-foreground">{payout ? "received a payout of" : "successfully passed"}</p>
+                    <p className="text-gold font-display text-3xl font-bold">{money(c.accountSize, payout ? 2 : 0)}</p>
+                    <p className="mt-1 text-sm">{c.planName}</p>
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <CertificateQR id={c.id} size={84} />
+                    <span className="text-[9px] font-semibold tracking-wider text-muted-foreground uppercase">Scan to verify</span>
+                  </div>
+                </div>
                 <div className="mt-6 flex items-center justify-between border-t border-white/[0.06] pt-4 text-xs text-muted-foreground">
                   <span>{fmtDate(c.datePassed)} · {c.id}</span>
                   <Button size="sm" variant="ghost" href={`/certificates/${c.id}`}><ExternalLink className="h-3.5 w-3.5" />Verify</Button>
