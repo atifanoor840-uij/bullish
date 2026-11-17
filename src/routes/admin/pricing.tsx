@@ -55,7 +55,7 @@ function AdminPricing() {
                             </div>
                             {p.model === "Flex" && (
                               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                                Real: {price(p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price)} · Rem: {price(Math.max(0, (p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price) - p.price))}
+                                Real: {price(p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price)} · Rem: {price(Math.max(0, (p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price) - p.price))} · After 5% off: {price(Math.ceil(Math.max(0, (p.realPrice ?? DEFAULT_REAL_PRICE[p.size] ?? p.price) - p.price) * 0.95))}
                               </p>
                             )}
                           </div>
@@ -266,7 +266,7 @@ function EditPlan({ plan, onClose, onChanged }: { plan: Partial<PricingPlan>; on
                 • <strong>Initial payment (Today):</strong> Trader pays <span className="font-semibold text-primary">${form.price || "0"}</span> to start the evaluation challenge.
               </p>
               <p className="mt-0.5">
-                • <strong>On Phase Pass (Funded):</strong> Trader pays the remaining <span className="font-semibold text-primary">${Math.max(0, Number(form.realPrice || 0) - Number(form.price || 0))}</span> (Real ${form.realPrice || "0"} − Initial ${form.price || "0"}) to receive the funded account.
+                • <strong>On Phase Pass (Funded):</strong> Trader pays the remaining <span className="font-semibold text-primary">${Math.max(0, Number(form.realPrice || 0) - Number(form.price || 0))}</span> (Real ${form.realPrice || "0"} − Initial ${form.price || "0"}) to receive the funded account — 5% activation discount applied: <span className="font-semibold text-profit">${Math.ceil(Math.max(0, Number(form.realPrice || 0) - Number(form.price || 0)) * 0.95)}</span>.
               </p>
             </div>
           </>

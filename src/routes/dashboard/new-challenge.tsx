@@ -34,6 +34,7 @@ const DEFAULT_REAL_PRICE: Record<number, number> = {
   200000: 999,
 };
 const PLATFORMS = ["MT5"] as const;
+const FLEX_ACTIVATION_DISCOUNT = 5;
 
 // Live countdown to a real expiry date (coupon / offer `expiresAt`). Returns null once expired.
 function useCountdown(expiresAt?: string) {
@@ -180,6 +181,10 @@ function NewChallenge() {
     ? computeCheckoutTotal({ catalogPrice: plan.price, weekendHoldingAddon: weekend, discountPercent: coupon?.discountPercent ?? 0, isCrypto: payMethod.toLowerCase().includes("crypto"), referralBalance: data?.referralBalance ?? 0, useReferralBalance: useRef })
     : 0;
   const base = plan ? plan.price * (weekend ? 1.2 : 1) : 0;
+  const isCrypto = payMethod.toLowerCase().includes("crypto");
+  // Flex activation fee (paid only after passing) carries a flat 5% discount.
+  const activationFull = Math.max(0, (plan?.realPrice ?? DEFAULT_REAL_PRICE[plan?.size ?? 100000] ?? 529) - (plan?.price ?? 9));
+  const activationFee = Math.ceil(activationFull * (1 - FLEX_ACTIVATION_DISCOUNT / 100));
   const planOffers = plan ? bogoFor(data?.offers ?? [], plan.model, plan.size) : [];
 
   useEffect(() => {
@@ -342,6 +347,9 @@ function NewChallenge() {
                       {popular && (
                         <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">Popular</span>
                       )}
+                      {id === "Crypto" && (
+                        <span className="rounded bg-profit/20 px-1.5 py-0.5 text-[9px] font-bold text-profit">5% OFF</span>
+                      )}
                     </div>
                     {icons}
                     <p className="text-xs text-muted-foreground">{sub}</p>
@@ -370,10 +378,14 @@ function NewChallenge() {
               </div>
               <div className="h-px bg-white/[0.06]" />
               {activeModel === "Flex" && (
-                <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/[0.06] px-4 py-3 text-sm text-primary">
-                  <span>Activation (only if you pass)</span>
-                  <span className="font-bold">
-                    {money(Math.max(0, (plan?.realPrice ?? DEFAULT_REAL_PRICE[plan?.size ?? 100000] ?? 529) - (plan?.price ?? 9)))}
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/[0.06] px-4 py-3 text-sm text-primary">
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    Activation (only if you pass)
+                    <span className="rounded bg-profit/20 px-1.5 py-0.5 text-[9px] font-bold text-profit">5% OFF</span>
+                  </span>
+                  <span className="text-right">
+                    <span className="mr-1.5 text-xs text-muted-foreground line-through">{money(activationFull)}</span>
+                    <span className="font-bold">{money(activationFee)}</span>
                   </span>
                 </div>
               )}
@@ -407,6 +419,7 @@ function NewChallenge() {
               )}
               <dl className="space-y-1.5 text-sm">
                 <div className="flex justify-between"><dt className="text-muted-foreground">Price</dt><dd>{price(base)}</dd></div>
+                {isCrypto && <div className="flex justify-between text-xs text-profit"><dt>Crypto payment</dt><dd>extra 5% off</dd></div>}
                 {base - total > 0 && <div className="flex justify-between text-profit"><dt>Discounts</dt><dd>-{money(base - total)}</dd></div>}
               </dl>
               <div className="flex items-end justify-between">
