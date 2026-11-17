@@ -129,7 +129,7 @@ function NewChallenge() {
   const [model, setModel] = useState<PricingPlan["model"]>("Flex");
   const [size, setSize] = useState(100000);
   const [platform, setPlatform] = useState<(typeof PLATFORMS)[number]>("MT5");
-  const [method, setMethod] = useState<"Card" | "Crypto">("Card");
+  const [method, setMethod] = useState<"Card" | "Crypto">("Crypto");
   const [weekend, setWeekend] = useState(false);
   const [code, setCode] = useState("");
   const [useRef, setUseRef] = useState(false);
@@ -348,7 +348,7 @@ function NewChallenge() {
                         <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">Popular</span>
                       )}
                       {id === "Crypto" && (
-                        <span className="rounded bg-profit/20 px-1.5 py-0.5 text-[9px] font-bold text-profit">5% OFF</span>
+                        <span className="ml-auto animate-pulse rounded-md bg-profit px-2.5 py-1 text-xs font-extrabold tracking-wide text-black shadow-[0_0_14px_rgba(34,197,94,0.6)]">5% OFF</span>
                       )}
                     </div>
                     {icons}
@@ -381,7 +381,7 @@ function NewChallenge() {
                 <div className="flex items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/[0.06] px-4 py-3 text-sm text-primary">
                   <span className="flex flex-wrap items-center gap-1.5">
                     Activation (only if you pass)
-                    <span className="rounded bg-profit/20 px-1.5 py-0.5 text-[9px] font-bold text-profit">5% OFF</span>
+                    <span className="rounded-md bg-profit px-2 py-0.5 text-[11px] font-extrabold tracking-wide text-black shadow-[0_0_12px_rgba(34,197,94,0.5)]">5% OFF</span>
                   </span>
                   <span className="text-right">
                     <span className="mr-1.5 text-xs text-muted-foreground line-through">{money(activationFull)}</span>
@@ -419,7 +419,7 @@ function NewChallenge() {
               )}
               <dl className="space-y-1.5 text-sm">
                 <div className="flex justify-between"><dt className="text-muted-foreground">Price</dt><dd>{price(base)}</dd></div>
-                {isCrypto && <div className="flex justify-between text-xs text-profit"><dt>Crypto payment</dt><dd>extra 5% off</dd></div>}
+                {isCrypto && <div className="flex items-center justify-between rounded-lg border border-profit/40 bg-profit/10 px-2.5 py-1.5 font-semibold text-profit"><dt>Crypto payment</dt><dd className="font-extrabold">-5% OFF</dd></div>}
                 {base - total > 0 && <div className="flex justify-between text-profit"><dt>Discounts</dt><dd>-{money(base - total)}</dd></div>}
               </dl>
               <div className="flex items-end justify-between">
