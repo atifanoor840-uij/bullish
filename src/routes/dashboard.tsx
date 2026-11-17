@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  LayoutGrid, PlusCircle, Receipt, Wallet, Award, Users, ShieldCheck, Bell, Settings, Loader2, MailWarning, ShieldAlert, ArrowLeft, Gift,
+  LayoutGrid, PlusCircle, Receipt, Wallet, Award, Users, ShieldCheck, Bell, Settings, Loader2, ShieldAlert, ArrowLeft, Gift,
 } from "lucide-react";
 import { Shell, type NavGroup, type NavItem } from "@/components/portal/Shell";
 import { PortalCtx } from "@/components/portal/context";
@@ -134,13 +134,6 @@ function DashboardLayout() {
               <span className="text-muted-foreground">({user.email}) · opened by {imp.admin}</span>
             </span>
             <Button size="sm" variant="primary" onClick={() => void exitImpersonation()}><ArrowLeft className="h-3.5 w-3.5" />Back to CRM</Button>
-          </div>
-        )}
-        {isHome && user.emailVerified === false && (
-          <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-500">
-            <MailWarning className="h-4 w-4 shrink-0" />
-            <span className="flex-1">Please verify your email address to secure your account.</span>
-            <Button size="sm" variant="ghost" onClick={() => propApi.auth.resendVerification(user.email)}>Resend email</Button>
           </div>
         )}
         <Outlet />

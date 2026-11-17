@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { Check, Tag, ShieldCheck, Gift, Clock, Flame } from "lucide-react";
-import { Button, Card, CardHeader, EmptyState, ErrorNote, Field, Loading, Note, PageHeader, cx, inputCls, useApi } from "@/components/portal/ui";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Check, Tag, ShieldCheck, Gift, Clock, Sparkles, ShoppingBag, Rocket, ArrowRight, ArrowLeft, CreditCard, Lock } from "lucide-react";
+import { Button, Card, EmptyState, ErrorNote, Field, Loading, Note, PageHeader, cx, inputCls, useApi } from "@/components/portal/ui";
 import { PayOrder } from "@/components/portal/Checkout";
 import { CardBrands, CryptoCoins } from "@/components/portal/PaymentIcons";
 import { ApiError, computeCheckoutTotal, propApi, type Order, type PricingPlan } from "@/lib/propApi";
@@ -76,33 +76,63 @@ function Countdown({ expiresAt, compact }: { expiresAt?: string | undefined; com
   );
 }
 
-function UrgencyBanner({ title, sub, expiresAt }: { title: string; sub: string; expiresAt?: string | undefined }) {
-  const live = useCountdown(expiresAt);
+const MODEL_META: Record<PricingPlan["model"], { sub: string; badge?: string }> = {
+  "One Step": { sub: "Single-phase evaluation" },
+  "Two Step": { sub: "Two-phase evaluation" },
+  Instant: { sub: "Funded from day one" },
+  Flex: { sub: "Start small", badge: "NEW" },
+};
+
+// Purple promo strip with a live hh:mm:ss countdown (matches the offer bar on the landing page).
+function PromoBar({ discount, offer, expiresAt }: { discount?: number | undefined; offer?: string | undefined; expiresAt?: string | undefined }) {
+  const c = useCountdown(expiresAt);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const boxes = c ? [...(c.d > 0 ? [c.d] : []), c.h, c.m, c.s] : [];
   return (
-    <div className="relative mb-5 overflow-hidden rounded-2xl border border-[#60a5fa]/40 bg-gradient-to-r from-[#60a5fa]/[0.18] via-primary/[0.10] to-transparent p-4 sm:p-5">
-      <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-[#60a5fa]/20 blur-3xl" />
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="relative mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#60a5fa]/20 text-[#60a5fa]">
-            <Flame className="h-5 w-5" />
-            <span className="absolute inset-0 animate-ping rounded-full bg-[#60a5fa]/20" />
-          </span>
-          <div>
-            <p className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#60a5fa]">
-              <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-loss opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-loss" /></span>
-              {live ? (live.soon ? "Ending soon" : "Limited-time deal") : "Limited-time deal"}
-            </p>
-            <p className="font-display text-lg font-semibold sm:text-xl">{title}</p>
-            <p className="text-xs text-muted-foreground">{sub}</p>
+    <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-2xl border border-indigo-400/30 bg-gradient-to-r from-indigo-700/70 via-indigo-600/60 to-violet-600/60 px-5 py-4 shadow-[0_10px_40px_-15px_rgba(99,102,241,0.6)]">
+      {!!discount && (
+        <span className="flex items-center gap-2 font-display text-base font-bold">
+          <Rocket className="h-4 w-4 text-pink-300" />Up to {discount}% OFF
+        </span>
+      )}
+      {offer && (
+        <span className="flex items-center gap-2 font-display text-base font-bold">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-indigo-600"><Gift className="h-3 w-3" /></span>
+          {offer}
+        </span>
+      )}
+      {boxes.length > 0 && (
+        <span className="flex items-center gap-1">
+          {boxes.map((v, i) => (
+            <span key={i} className="flex items-center gap-1">
+              {i > 0 && <span className="text-xs text-white/60">:</span>}
+              <span className="flex h-10 min-w-[2.4rem] items-center justify-center rounded-lg border border-white/25 bg-white/10 font-display text-lg font-bold italic tabular-nums">{pad(v)}</span>
+            </span>
+          ))}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Stepper({ step }: { step: 1 | 2 }) {
+  const items = ["Configure", "Payment"];
+  return (
+    <div className="flex items-center gap-2 text-xs font-semibold">
+      {items.map((label, i) => {
+        const n = (i + 1) as 1 | 2;
+        const done = step > n;
+        const active = step === n;
+        return (
+          <div key={label} className="flex items-center gap-2">
+            {i > 0 && <span className={cx("h-px w-8", step >= n ? "bg-primary" : "bg-white/15")} />}
+            <span className={cx("flex h-6 w-6 items-center justify-center rounded-full border", active || done ? "border-primary bg-primary text-primary-foreground" : "border-white/20 text-muted-foreground")}>
+              {done ? <Check className="h-3.5 w-3.5" /> : n}
+            </span>
+            <span className={active ? "text-foreground" : "text-muted-foreground"}>{label}</span>
           </div>
-        </div>
-        {live && (
-          <div className="shrink-0">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Offer ends in</p>
-            <Countdown expiresAt={expiresAt} />
-          </div>
-        )}
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -136,6 +166,8 @@ function NewChallenge() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [order, setOrder] = useState<Order | null>(null);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [agree, setAgree] = useState(false);
 
   // Only models and sizes that exist (and are active) in the CRM catalog.
   const models = MODELS.filter((m) => data?.plans.some((p) => p.model === m));
@@ -246,6 +278,14 @@ function NewChallenge() {
   if (error) return <ErrorNote message={error} onRetry={reload} />;
   if (!data?.plans.length) return <Card><EmptyState title="No challenges available right now" body="Please check back soon." /></Card>;
 
+  // Step 1 shows the price before the payment-method discount (crypto -10% is applied in step 2).
+  const configTotal = plan
+    ? computeCheckoutTotal({ catalogPrice: plan.price, weekendHoldingAddon: weekend, discountPercent: coupon?.discountPercent ?? 0, isCrypto: false, referralBalance: data?.referralBalance ?? 0, useReferralBalance: useRef })
+    : 0;
+  const promo = tileCoupon ?? undefined;
+  const promoOffer = data?.offers[0];
+  const promoExpires = promo?.expiresAt ?? promoOffer?.expiresAt;
+
   if (order) {
     return (
       <>
@@ -257,190 +297,274 @@ function NewChallenge() {
     );
   }
 
-  return (
-    <>
-      <PageHeader title="New Challenge" subtitle="Choose your evaluation and account size." />
-      {tileCoupon ? (
-        <UrgencyBanner
-          title={`${tileCoupon.discountPercent}% OFF your challenge`}
-          sub={`Code ${tileCoupon.code} is auto-applied${isFlex ? " (not valid on the Flex $9 start — pick another model to save)" : ""}. Lock in this price before it's gone.`}
-          expiresAt={tileCoupon.expiresAt}
-        />
-      ) : data.offers[0] ? (
-        <UrgencyBanner title={data.offers[0].name} sub={`${data.offers[0].description || offerSummary(data.offers[0])}. Available for a limited time only.`} expiresAt={data.offers[0].expiresAt} />
-      ) : null}
-      {!!data.offers.length && (
-        <div className="mb-5 space-y-2">
-          {data.offers.map((o) => (
-            <div key={o.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-primary/[0.07] px-4 py-3 text-sm">
-              <Gift className="h-4 w-4 shrink-0 text-primary" />
-              <span className="flex-1"><span className="font-semibold">{o.name}</span> <span className="text-muted-foreground">· {o.description || offerSummary(o)}</span></span>
-              {o.expiresAt && new Date(o.expiresAt).getTime() > Date.now() && (
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">Ends in <Countdown expiresAt={o.expiresAt} compact /></span>
-              )}
-            </div>
-          ))}
+  const header = (
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.06] pb-5">
+      <div className="flex items-center gap-3">
+        <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.08] bg-primary/10 text-primary"><Sparkles className="h-5 w-5" /></span>
+        <div>
+          <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl">{step === 1 ? "Buy Your Challenge" : "Payment"}</h1>
+          <p className="text-sm text-muted-foreground">{step === 1 ? "Configure your account and complete purchase" : "Choose how you want to pay"}</p>
         </div>
-      )}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <div className="space-y-5">
-          <Card>
-            <CardHeader title="1. Evaluation model" />
-            <div className={cx("grid grid-cols-2 gap-3 p-5", models.length > 3 ? "lg:grid-cols-4" : "sm:grid-cols-3")}>
-              {models.map((m) => (
-                <button key={m} onClick={() => setModel(m)} className={cx("flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-left transition", m === activeModel ? "border-primary/60 bg-primary/[0.08]" : "border-white/[0.06] hover:border-white/15")}>
-                  <p className="text-sm font-semibold">{m}</p>
-                  <span className={cx("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border", m === activeModel ? "border-primary bg-primary" : "border-white/20")}>{m === activeModel && <Check className="h-2.5 w-2.5 text-primary-foreground" />}</span>
-                </button>
-              ))}
-            </div>
-          </Card>
+      </div>
+      <div className="flex items-center gap-4">
+        <Stepper step={step} />
+        {step === 1 && (
+          <button
+            onClick={() => document.getElementById("challenge-summary")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="hidden items-center gap-2 rounded-lg border border-white/10 px-3.5 py-2 text-xs font-semibold transition hover:border-primary/50 sm:flex"
+          >
+            <ShoppingBag className="h-3.5 w-3.5 text-primary" />Checkout
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
-          <Card>
-            <CardHeader title="2. Account size" />
-            <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 lg:grid-cols-6">
-              {sizes.map((p) => {
-                const offer = bogoFor(data.offers, p.model, p.size)[0];
-                return (
-                  <button key={p.id} onClick={() => setSize(p.size)} className={cx("relative rounded-xl border px-3 py-3 text-center transition", p.size === plan?.size ? "border-primary/60 bg-primary/[0.08]" : "border-white/[0.06] hover:border-white/15")}>
-                    {isPopularSize(p.size) && <span className="absolute -top-2 left-2 rounded-full bg-loss px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap text-white">Most popular</span>}
-                    {offer && <span className="absolute -top-2 right-2 rounded-full bg-gold px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">{bogoBadge(offer)}</span>}
-                    <p className="font-display font-semibold">{sizeLabel(p.size)}</p>
-                    {p.model !== "Flex" && tileCoupon ? (
-                      <p className="mt-0.5 text-xs">
-                        <span className="font-semibold text-profit">{price(Math.ceil(p.price * (1 - tileCoupon.discountPercent / 100)))}</span>{" "}
-                        <span className="text-muted-foreground line-through">{price(p.price)}</span>
-                      </p>
-                    ) : (
-                      <p className="mt-0.5 text-xs text-muted-foreground">{price(p.price)}</p>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
+  // Blue "virtual capital" card shared by both steps.
+  const capitalCard = (amount: number, children: ReactNode) => (
+    <div id="challenge-summary" className="overflow-hidden rounded-3xl border border-white/[0.06] bg-[#0f1424] scroll-mt-24">
+      <div className="bg-gradient-to-br from-[#1d5fff] to-[#3b8bff] px-6 pt-7 pb-16 sm:px-8">
+        <p className="text-[11px] font-bold tracking-[0.18em] text-white/80">VIRTUAL CAPITAL</p>
+        <p className="font-display text-5xl font-extrabold tracking-tight text-white sm:text-6xl">{money(plan?.size ?? 0, 0)}</p>
+      </div>
+      <div className="-mt-10 space-y-3 px-4 pb-6 sm:px-6">
+        <div className="rounded-2xl border border-white/[0.08] bg-[#131a2c] py-6 text-center">
+          {base - amount > 0.005 && <p className="text-sm text-muted-foreground line-through">{money(base)}</p>}
+          <p className="font-display text-4xl font-extrabold">{money(amount)}</p>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
 
-          <Card>
-            <CardHeader title="3. Platform & payment" />
-            <div className="space-y-5 p-5">
-              <div className="flex flex-wrap gap-2">
-                {PLATFORMS.map((p) => (
-                  <button key={p} onClick={() => setPlatform(p)} className={cx("rounded-lg border px-4 py-2 text-sm font-medium transition", p === platform ? "border-primary/60 bg-primary/[0.08] text-primary" : "border-white/[0.08] text-muted-foreground hover:text-foreground")}>{p}</button>
-                ))}
-              </div>
+  const row = (label: ReactNode, value: ReactNode, cls = "") => (
+    <div className={cx("flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-[#171e31] px-4 py-3 text-sm", cls)}>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold">{value}</span>
+    </div>
+  );
+
+  const activationRow = activeModel === "Flex" && row(
+    <span className="text-amber-400">Activation (only if you pass)</span>,
+    <span className="text-amber-400"><span className="mr-1.5 text-xs font-normal text-muted-foreground line-through">{money(activationFull)}</span>{money(activationFee)}</span>,
+    "border-amber-500/25 bg-amber-500/[0.06]",
+  );
+
+  if (step === 2) {
+    return (
+      <>
+        {header}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]">
+          <div className="space-y-6">
+            <section>
+              <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground">PAYMENT METHOD</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {([
-                  ["Card", "Card payment", "Visa, Mastercard, Amex, Google Pay", <CardBrands key="c" />, true],
-                  ["Crypto", "Crypto payment", "BTC, USDT, ETH, TRX, USDC · extra 10% off", <CryptoCoins key="b" />, false],
-                ] as const).map(([id, title, sub, icons, popular]) => (
+                  ["Card", "Card payment", "Visa, Mastercard, Amex, Google Pay", <CardBrands key="c" />],
+                  ["Crypto", "Crypto payment", "BTC, USDT, ETH, TRX, USDC · extra 10% off", <CryptoCoins key="b" />],
+                ] as const).map(([id, title, sub, icons]) => (
                   <button
                     key={id}
                     onClick={() => setMethod(id)}
-                    className={cx(
-                      "flex flex-col gap-3 rounded-xl border p-4 text-left transition",
-                      payMethod === id ? "border-primary/60 bg-primary/[0.08]" : "border-white/[0.06] hover:border-white/15"
-                    )}
+                    className={cx("flex flex-col gap-3 rounded-2xl border p-4 text-left transition", payMethod === id ? "border-primary/70 bg-primary/[0.08]" : "border-white/[0.08] bg-[#0f1424] hover:border-white/20")}
                   >
                     <div className="flex items-center gap-2">
                       <span className={cx("h-3.5 w-3.5 shrink-0 rounded-full border-2", payMethod === id ? "border-primary bg-primary" : "border-white/25")} />
                       <p className="text-sm font-semibold">{title}</p>
-                      {popular && (
-                        <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">Popular</span>
-                      )}
-                      {id === "Crypto" && (
-                        <span className="ml-auto animate-pulse rounded-md bg-profit px-2.5 py-1 text-xs font-extrabold tracking-wide text-black shadow-[0_0_14px_rgba(34,197,94,0.6)]">10% OFF</span>
-                      )}
+                      {id === "Crypto" && <span className="ml-auto rounded-md bg-profit px-2 py-0.5 text-[11px] font-extrabold text-black">10% OFF</span>}
                     </div>
                     {icons}
                     <p className="text-xs text-muted-foreground">{sub}</p>
                   </button>
                 ))}
               </div>
-              <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-white/[0.06] p-4">
-                <div>
-                  <p className="text-sm font-semibold">Weekend holding add-on</p>
-                  <p className="text-xs text-muted-foreground">Hold positions over the weekend · +20%</p>
-                </div>
-                <input type="checkbox" checked={weekend} onChange={(e) => setWeekend(e.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
-              </label>
-            </div>
-          </Card>
-        </div>
+              {!data.cardOk && payMethod === "Card" && <p className="mt-2 text-xs text-amber-400">Card payments may not be available in your region — crypto is recommended.</p>}
+            </section>
 
-        {/* Summary */}
-        <div className="xl:sticky xl:top-24 xl:self-start">
-          <Card highlight>
-            <CardHeader title="Order summary" />
-            <div className="space-y-4 p-5">
-              <div>
-                <p className="font-display text-xl font-semibold">{activeModel} · {sizeLabel(plan?.size ?? 0)}</p>
-                <p className="text-xs text-muted-foreground">{platform} · {payMethod}</p>
+            <section>
+              <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground">COUPON OR REFERRAL CODE</p>
+              <div className="rounded-2xl border border-white/[0.08] bg-[#0f1424] p-4">
+                <Field label="">
+                  <div className="relative">
+                    <Tag className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter code" className={cx(inputCls, "pl-9 uppercase")} />
+                  </div>
+                </Field>
+                {isFlex ? (
+                  <p className="mt-2 text-xs text-muted-foreground">Coupon codes do not apply to the Flex initial price.</p>
+                ) : code && (coupon ? (
+                  <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-profit"><Check className="h-3.5 w-3.5" />Promo {coupon.code} applied — {coupon.discountPercent}% off</p>
+                ) : (
+                  <p className="mt-2 text-xs text-muted-foreground">Code will be checked at checkout.</p>
+                ))}
+                {data.referralBalance > 0 && (
+                  <label className="mt-3 flex items-center justify-between text-sm">
+                    <span>Use referral balance <span className="text-muted-foreground">({money(data.referralBalance)})</span></span>
+                    <input type="checkbox" checked={useRef} onChange={(e) => setUseRef(e.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
+                  </label>
+                )}
               </div>
-              <div className="h-px bg-white/[0.06]" />
-              {activeModel === "Flex" && (
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/[0.06] px-4 py-3 text-sm text-primary">
-                  <span className="flex flex-wrap items-center gap-1.5">
-                    Activation (only if you pass)
-                    <span className="rounded-md bg-profit px-2 py-0.5 text-[11px] font-extrabold tracking-wide text-black shadow-[0_0_12px_rgba(34,197,94,0.5)]">5% OFF</span>
-                  </span>
-                  <span className="text-right">
-                    <span className="mr-1.5 text-xs text-muted-foreground line-through">{money(activationFull)}</span>
-                    <span className="font-bold">{money(activationFee)}</span>
-                  </span>
-                </div>
-              )}
+            </section>
+
+            <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" />Back to configuration
+            </button>
+          </div>
+
+          {capitalCard(total, (
+            <>
+              {row("Challenge", activeModel)}
+              {row("Platform", "MetaTrader 5")}
+              {row("Payment", payMethod)}
+              {weekend && row("Weekend holding", "+20%")}
+              {activationRow}
+              {isCrypto && configTotal - total > 0.005 && row(<span className="text-profit">Crypto payment</span>, <span className="text-profit">-10% OFF</span>, "border-profit/30 bg-profit/[0.07]")}
+              {base - total > 0.005 && row(<span className="text-profit">You save</span>, <span className="text-profit">{money(base - total)}</span>, "border-profit/30 bg-profit/[0.07]")}
               {planOffers.map((o) => (
                 <div key={o.id} className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs">
                   <Gift className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                   <span><span className="font-semibold text-primary">{o.name}</span> — {offerSummary(o)}. Applied automatically after payment.</span>
                 </div>
               ))}
-              <Field label="Coupon or referral code">
-                <div className="relative">
-                  <Tag className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter code" className={cx(inputCls, "pl-9 uppercase")} />
-                </div>
-              </Field>
-              {isFlex ? (
-                <p className="text-xs text-muted-foreground">Coupon codes do not apply to the Flex initial price.</p>
-              ) : code && (coupon ? (
-                <div className="flex items-center gap-1.5 text-xs font-medium text-profit">
-                  <Check className="h-3.5 w-3.5" />
-                  <span>Promo {coupon.code} auto-applied — {coupon.discountPercent}% off</span>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Code will be checked at checkout.</p>
-              ))}
-              {data.referralBalance > 0 && (
-                <label className="flex items-center justify-between text-sm">
-                  <span>Use referral balance <span className="text-muted-foreground">({money(data.referralBalance)})</span></span>
-                  <input type="checkbox" checked={useRef} onChange={(e) => setUseRef(e.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
-                </label>
-              )}
-              <dl className="space-y-1.5 text-sm">
-                <div className="flex justify-between"><dt className="text-muted-foreground">Price</dt><dd>{price(base)}</dd></div>
-                {isCrypto && <div className="flex items-center justify-between rounded-lg border border-profit/40 bg-profit/10 px-2.5 py-1.5 font-semibold text-profit"><dt>Crypto payment</dt><dd className="font-extrabold">-10% OFF</dd></div>}
-                {base - total > 0 && <div className="flex justify-between text-profit"><dt>Discounts</dt><dd>-{money(base - total)}</dd></div>}
-              </dl>
-              <div className="flex items-end justify-between">
-                <span className="text-sm text-muted-foreground">Total</span>
-                <span className="font-display text-3xl font-semibold">{money(total)}</span>
-              </div>
-              {base - total > 0 && (
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-profit/30 bg-profit/10 px-3 py-2 text-xs">
-                  <span className="font-semibold text-profit">You save {money(base - total)} today</span>
-                  {coupon?.expiresAt && <Countdown expiresAt={coupon.expiresAt} compact />}
-                </div>
-              )}
               {err && <Note tone="error">{err}</Note>}
-              <Button variant="primary" className="w-full" busy={busy} onClick={() => place()}>Continue to payment</Button>
-              {(coupon || planOffers.length > 0) && (
-                <p className="text-center text-[11px] font-medium text-[#60a5fa]">Discount is locked once you continue to payment</p>
-              )}
+              <Button variant="primary" className="w-full rounded-xl py-3.5 text-base" busy={busy} onClick={() => place()}>
+                <Lock className="h-4 w-4" />Pay {money(total)}<ArrowRight className="h-4 w-4" />
+              </Button>
+              {(coupon || planOffers.length > 0) && <p className="text-center text-[11px] font-medium text-[#60a5fa]">Discount is locked once you continue to payment</p>}
               <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5" />One-time fee · refunded with your first payout</p>
-            </div>
-          </Card>
+            </>
+          ))}
         </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {header}
+
+      {/* Evaluation model tabs */}
+      <div className="mb-6 flex justify-center">
+        <div className="no-scrollbar flex max-w-full gap-1 overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#121726] p-1.5">
+          {models.map((m) => {
+            const meta = MODEL_META[m];
+            const on = m === activeModel;
+            const flexFrom = m === "Flex" ? data.plans.filter((p) => p.model === "Flex").sort((a, b) => a.price - b.price)[0]?.price : undefined;
+            return (
+              <button
+                key={m}
+                onClick={() => setModel(m)}
+                className={cx("shrink-0 rounded-xl px-5 py-2.5 text-center transition sm:px-8", on ? "bg-white text-[#1d5fff] shadow-lg" : "text-foreground/80 hover:bg-white/[0.04]")}
+              >
+                <span className="flex items-center justify-center gap-1.5 font-display text-[15px] font-bold">
+                  {m}
+                  {meta.badge && <span className="rounded bg-amber-400 px-1 py-px text-[8px] font-extrabold text-black">{meta.badge}</span>}
+                </span>
+                <span className={cx("block text-xs", on ? "text-[#1d5fff]/80" : "text-muted-foreground")}>
+                  {flexFrom !== undefined ? `Start for ${price(flexFrom)}` : meta.sub}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Account sizes */}
+      <div className="mb-6 flex flex-wrap justify-center gap-3">
+        {sizes.map((p) => {
+          const on = p.size === plan?.size;
+          const offer = bogoFor(data.offers, p.model, p.size)[0];
+          return (
+            <button
+              key={p.id}
+              onClick={() => setSize(p.size)}
+              className={cx("relative min-w-[7.5rem] rounded-2xl border px-6 py-4 font-display text-lg font-bold transition", on ? "border-white bg-white text-[#1d5fff] shadow-lg" : "border-white/10 bg-[#121726] hover:border-white/25")}
+            >
+              {isPopularSize(p.size) && <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-loss px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap text-white">Most popular</span>}
+              {offer && <span className="absolute -top-2 right-2 rounded-full bg-gold px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">{bogoBadge(offer)}</span>}
+              {money(p.size, 0)}
+            </button>
+          );
+        })}
+      </div>
+
+      {(promo || promoOffer) && (
+        <div className="mb-8">
+          <PromoBar discount={promo?.discountPercent} offer={promoOffer?.name} expiresAt={promoExpires} />
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]">
+        <div className="space-y-6">
+          <section>
+            <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground">PLATFORM</p>
+            <div className="space-y-2">
+              {PLATFORMS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPlatform(p)}
+                  className={cx("flex w-full items-center gap-3 rounded-2xl border px-4 py-4 text-left transition", p === platform ? "border-white/15 bg-[#121726]" : "border-white/[0.06] bg-[#0f1424] hover:border-white/15")}
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-sky-500 text-[11px] font-extrabold text-white">5</span>
+                  <span className="font-semibold">MetaTrader 5</span>
+                  {p === platform && <Check className="ml-auto h-4 w-4 text-primary" />}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground">OPTIONAL ADDONS</p>
+            <label className="flex cursor-pointer items-center gap-4 rounded-2xl border border-white/[0.06] bg-[#121726] px-4 py-4">
+              <input type="checkbox" checked={weekend} onChange={(e) => setWeekend(e.target.checked)} className="h-5 w-5 shrink-0 accent-[var(--primary)]" />
+              <span className="flex-1 text-sm">
+                <span className="font-semibold">Weekend Holding</span>{" "}
+                <span className="text-muted-foreground">Hold positions over the weekend</span>
+              </span>
+              <span className="text-sm font-semibold text-muted-foreground">+20%</span>
+            </label>
+          </section>
+
+          {!!data.offers.length && (
+            <section className="space-y-2">
+              {data.offers.map((o) => (
+                <div key={o.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/30 bg-primary/[0.07] px-4 py-3 text-sm">
+                  <Gift className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="flex-1"><span className="font-semibold">{o.name}</span> <span className="text-muted-foreground">· {o.description || offerSummary(o)}</span></span>
+                  {o.expiresAt && new Date(o.expiresAt).getTime() > Date.now() && (
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">Ends in <Countdown expiresAt={o.expiresAt} compact /></span>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
+        </div>
+
+        {capitalCard(configTotal, (
+          <>
+            {row("Challenge", activeModel)}
+            {row("Platform", "MetaTrader 5")}
+            {weekend && row("Weekend holding", "+20%")}
+            {activationRow}
+            {coupon && row(<span className="text-profit">Promo {coupon.code}</span>, <span className="text-profit">-{coupon.discountPercent}%</span>, "border-profit/30 bg-profit/[0.07]")}
+            <label className="flex cursor-pointer items-center gap-3 px-1 pt-1 text-xs text-muted-foreground">
+              <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="h-5 w-5 shrink-0 accent-[var(--primary)]" />
+              <span>
+                I agree to the <a href="/rules" target="_blank" rel="noreferrer" className="text-primary hover:underline">Terms and Conditions</a> &{" "}
+                <a href="/rules" target="_blank" rel="noreferrer" className="text-primary hover:underline">Refund Policy</a> <span className="text-loss">*</span>
+              </span>
+            </label>
+            <Button
+              variant="primary"
+              className="w-full rounded-xl py-3.5 text-base"
+              disabled={!agree || !plan}
+              onClick={() => { setErr(""); setStep(2); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            >
+              Place Challenge — {money(configTotal)}<ArrowRight className="h-4 w-4" />
+            </Button>
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground"><CreditCard className="h-3.5 w-3.5" />Secure checkout · Card & crypto options on next step</p>
+          </>
+        ))}
       </div>
     </>
   );
