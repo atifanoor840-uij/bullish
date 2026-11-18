@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createFileRoute, useRouter, useRouterState } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef as useReactRef, useState, type ReactNode } from "react";
 import { Check, Tag, ShieldCheck, Gift, Clock, Sparkles, ShoppingBag, Rocket, ArrowRight, ArrowLeft, CreditCard, Lock, Bitcoin } from "lucide-react";
 import { Button, Card, EmptyState, ErrorNote, Field, Loading, Note, PageHeader, cx, inputCls, useApi } from "@/components/portal/ui";
 import { PayOrder } from "@/components/portal/Checkout";
@@ -115,7 +115,7 @@ function PromoBar({ discount, offer, expiresAt }: { discount?: number | undefine
   );
 }
 
-function Stepper({ step }: { step: 1 | 2 }) {
+function Stepper({ step, onBack }: { step: 1 | 2; onBack?: (() => void) | undefined }) {
   const items = ["Configure", "Payment"];
   return (
     <div className="flex items-center gap-2 text-xs font-semibold">
@@ -126,10 +126,12 @@ function Stepper({ step }: { step: 1 | 2 }) {
         return (
           <div key={label} className="flex items-center gap-2">
             {i > 0 && <span className={cx("h-px w-8", step >= n ? "bg-primary" : "bg-white/15")} />}
+            <button type="button" disabled={!(done && onBack)} onClick={onBack} className={cx("flex items-center gap-2", done && onBack && "cursor-pointer hover:opacity-80")}>
             <span className={cx("flex h-6 w-6 items-center justify-center rounded-full border", active || done ? "border-primary bg-primary text-primary-foreground" : "border-white/20 text-muted-foreground")}>
               {done ? <Check className="h-3.5 w-3.5" /> : n}
             </span>
             <span className={active ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+            </button>
           </div>
         );
       })}
@@ -166,7 +168,32 @@ function NewChallenge() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [order, setOrder] = useState<Order | null>(null);
-  const [step, setStep] = useState<1 | 2>(1);
+  // The payment step is a real history entry (?step=payment) so the browser back button returns to step 1.
+  const router = useRouter();
+  const searchStr = useRouterState({ select: (s) => s.location.searchStr });
+  const pushedPayment = useReactRef(false);
+  const step: 1 | 2 = new URLSearchParams(searchStr).get("step") === "payment" && pushedPayment.current ? 2 : 1;
+  const withStep = (on: boolean) => {
+    const params = new URLSearchParams(window.location.search);
+    if (on) params.set("step", "payment"); else params.delete("step");
+    const qs = params.toString();
+    return `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+  };
+  const goToPayment = () => {
+    pushedPayment.current = true;
+    router.history.push(withStep(true));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const backToConfigure = () => {
+    if (pushedPayment.current && new URLSearchParams(window.location.search).get("step") === "payment") router.history.back();
+    else router.history.replace(withStep(false));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  // Opening ?step=payment directly (refresh / shared link) has no configuration yet — start at step 1.
+  useEffect(() => {
+    if (!pushedPayment.current && new URLSearchParams(window.location.search).get("step") === "payment") router.history.replace(withStep(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [agree, setAgree] = useState(false);
 
   // Only models and sizes that exist (and are active) in the CRM catalog.
@@ -307,7 +334,12 @@ function NewChallenge() {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <Stepper step={step} />
+        {step === 2 && (
+          <button onClick={backToConfigure} className="flex items-center gap-2 rounded-lg border border-white/10 px-3.5 py-2 text-xs font-semibold transition hover:border-primary/50">
+            <ArrowLeft className="h-3.5 w-3.5 text-primary" />Change plan
+          </button>
+        )}
+        <Stepper step={step} onBack={step === 2 ? backToConfigure : undefined} />
         {step === 1 && (
           <button
             onClick={() => document.getElementById("challenge-summary")?.scrollIntoView({ behavior: "smooth", block: "start" })}
@@ -421,7 +453,7 @@ function NewChallenge() {
             <Lock className="h-4 w-4" />Pay {money(total)} with {payMethod}<ArrowRight className="h-4 w-4" />
           </Button>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <button onClick={() => setStep(1)} className="flex items-center gap-1.5 transition hover:text-foreground"><ArrowLeft className="h-3.5 w-3.5" />Back</button>
+            <button onClick={backToConfigure} className="flex items-center gap-1.5 transition hover:text-foreground"><ArrowLeft className="h-3.5 w-3.5" />Back</button>
             <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Secure checkout</span>
           </div>
         </div>
@@ -548,7 +580,7 @@ function NewChallenge() {
               variant="primary"
               className="w-full rounded-xl py-3.5 text-base"
               disabled={!agree || !plan}
-              onClick={() => { setErr(""); setStep(2); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onClick={() => { setErr(""); goToPayment(); }}
             >
               Place Challenge — {money(configTotal)}<ArrowRight className="h-4 w-4" />
             </Button>

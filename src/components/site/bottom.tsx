@@ -176,7 +176,7 @@ export function Footer() {
           <div className="space-y-2">
             <h4 className="font-display text-xs font-semibold uppercase tracking-wider text-foreground/90">No investment services</h4>
             <p>
-              The simulated trading services are provided by Bullish4ex, operated by LOGIC GRATE SERVICES LTD. All content published and distributed by Bullish4ex and its related entities (collectively, the "Company") is for general informational purposes only.
+              The simulated trading services are provided by Bullish4ex, operated by FOR2FEET LIMITED. All content published and distributed by Bullish4ex and its related entities (collectively, the "Company") is for general informational purposes only.
             </p>
             <ul className="list-disc space-y-1 pl-4">
               <li>The Company does not provide investment advice.</li>
@@ -205,9 +205,9 @@ export function Footer() {
 
           <div className="space-y-2">
             <h4 className="font-display text-xs font-semibold uppercase tracking-wider text-foreground/90">Corporate & brand information</h4>
-            <p>Bullish4ex © 2026 is a brand name of LOGIC GRATE SERVICES LTD.</p>
+            <p>Bullish4ex © 2026 is a brand name of FOR2FEET LIMITED.</p>
             <p>
-              The website https://bullish4ex.com is owned and operated by LOGIC GRATE SERVICES LTD, registered in United Kingdom (Company No. 16914973), with registered office at 5 Brayford Square, London, England E1 0S.
+              The website https://www.bullish4ex.site is owned and operated by FOR2FEET LIMITED, registered in England and Wales (Company No. 08382766), with its registered office at Christopher Corner, Oakridge Lynch, Stroud, England, GL6 7NZ.
             </p>
           </div>
         </div>
@@ -215,7 +215,7 @@ export function Footer() {
 
       <div className="border-t border-white/[0.04] bg-black/40">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 text-xs text-muted-foreground md:flex-row">
-          <p>Bullish4ex is a brand name of LOGIC GRATE SERVICES LTD.</p>
+          <p>Bullish4ex is a brand name of FOR2FEET LIMITED.</p>
           <p>© 2026 Bullish4ex. All rights reserved.</p>
         </div>
       </div>
