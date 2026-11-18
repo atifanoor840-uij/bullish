@@ -165,13 +165,59 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   }
 }
 
-export const emailHtml = (title: string, message: string) =>
-  `<div style="font-family:Inter,Arial,sans-serif;background:#09090b;color:#f4f4f5;padding:32px">
-    <div style="max-width:560px;margin:auto;background:#121215;border:1px solid #27272a;border-radius:12px;padding:28px">
-      <p style="font-weight:800;letter-spacing:-.02em;margin:0 0 20px">BULLISH<span style="color:#2563eb">4</span>EX</p>
-      <h2 style="margin:0 0 12px;font-size:20px">${title}</h2>
-      <div style="color:#a1a1aa;font-size:14px;line-height:1.6;white-space:pre-line">${message}</div>
-    </div></div>`;
+export type EmailOptions = {
+  /** Primary button under the message. */
+  cta?: { label: string; url: string };
+  /** Label/value rows shown in a summary box (e.g. order details). */
+  details?: [string, string][];
+};
+
+/** Branded HTML email in the site's dark theme (table layout for broad email-client support). */
+export function emailHtml(title: string, message: string, opts: EmailOptions = {}) {
+  const site = (env.appUrl || "https://www.bullish4ex.site").replace(/\/$/, "");
+  const siteLabel = site.replace(/^https?:\/\/(www\.)?/, "");
+  const font = "Inter,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const details = opts.details?.length
+    ? `<tr><td style="padding:0 32px 8px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#09090b;border:1px solid #27272a;border-radius:10px">
+          ${opts.details
+            .map(([k, v], i) => `<tr><td style="padding:12px 16px;${i ? "border-top:1px solid #27272a;" : ""}color:#a1a1aa;font:13px ${font}">${k}</td>
+              <td align="right" style="padding:12px 16px;${i ? "border-top:1px solid #27272a;" : ""}color:#f4f4f5;font:600 13px ${font}">${v}</td></tr>`)
+            .join("")}
+        </table></td></tr>`
+    : "";
+  const cta = opts.cta
+    ? `<tr><td style="padding:16px 32px 8px">
+        <a href="${opts.cta.url}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font:600 14px ${font};padding:13px 26px;border-radius:8px">${opts.cta.label}</a>
+      </td></tr>
+      <tr><td style="padding:8px 32px 0;color:#71717a;font:12px/1.6 ${font}">If the button doesn't work, open this link:<br><a href="${opts.cta.url}" style="color:#2563eb;word-break:break-all">${opts.cta.url}</a></td></tr>`
+    : "";
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${title}</title></head>
+<body style="margin:0;padding:0;background:#09090b">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#09090b">
+  <tr><td align="center" style="padding:32px 16px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
+      <tr><td style="padding:0 4px 20px">
+        <a href="${site}" style="text-decoration:none;color:#f4f4f5;font:800 18px ${font};letter-spacing:-.02em">
+          <img src="${site}/email-logo.png" width="17" height="25" alt="" style="vertical-align:middle;border:0;margin-right:8px">BULLISH<span style="color:#2563eb">4</span>EX
+        </a>
+      </td></tr>
+      <tr><td style="background:#121215;border:1px solid #27272a;border-radius:14px;overflow:hidden">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr><td style="height:4px;background:#2563eb;line-height:4px;font-size:0">&nbsp;</td></tr>
+          <tr><td style="padding:28px 32px 8px;color:#f4f4f5;font:700 22px/1.3 ${font};letter-spacing:-.01em">${title}</td></tr>
+          <tr><td style="padding:4px 32px 16px;color:#a1a1aa;font:14px/1.7 ${font};white-space:pre-line">${message}</td></tr>
+          ${details}
+          ${cta}
+          <tr><td style="padding:28px 32px 0"><div style="border-top:1px solid #27272a"></div></td></tr>
+          <tr><td style="padding:16px 32px 28px;color:#71717a;font:12px/1.6 ${font}">Need help? Just reply to this email or contact <a href="mailto:support@bullish4ex.site" style="color:#2563eb;text-decoration:none">support@bullish4ex.site</a>.</td></tr>
+        </table>
+      </td></tr>
+      <tr><td align="center" style="padding:20px 8px 0;color:#52525b;font:11px/1.6 ${font}">© ${new Date().getFullYear()} Bullish 4ex · <a href="${site}" style="color:#52525b">${siteLabel}</a></td></tr>
+    </table>
+  </td></tr>
+</table></body></html>`;
+}
 
 export async function notify(
   userId: string,
@@ -180,11 +226,12 @@ export async function notify(
   type: "info" | "success" | "warning" | "error" = "info",
   channel: "in_app" | "email" = "in_app",
   email?: string,
+  emailOptions?: EmailOptions,
 ) {
   let status: "sent" | "failed" = "sent";
   if (channel === "email") {
     const to = email ?? (await db.one<DBUser>("users", { id: eq(userId) }, { select: "email" }))?.email ?? "";
-    status = (await sendEmail(to, title, emailHtml(title, message))) ? "sent" : "failed";
+    status = (await sendEmail(to, title, emailHtml(title, message, emailOptions))) ? "sent" : "failed";
   }
   await db
     .insert("notifications", { id: `notif-${rand(9)}`, userId, title, message, type, channel, status, read: false, sentAt: new Date().toISOString() })

@@ -4,7 +4,7 @@ import {
   PHASE, WEEKEND_ADDON_PERCENT, accountsOfOrder, activateOrder, audit, createNextStage, createStageAccount, ensureLegacyPlan, newOrderId, notify,
   orderPlan, orderStatusForPhase, releaseInventory, stagesFor, withPlanNames, withUserNames,
 } from "../core";
-import { HttpError, body, hmacHex, isAdmin, json, numv, query, requireAdmin, requireUser, safeEqual, str, type Ctx } from "../http";
+import { HttpError, body, hmacHex, isAdmin, json, numv, origin, query, requireAdmin, requireUser, safeEqual, str, type Ctx } from "../http";
 import { couponExpired } from "./catalog";
 import type { DBAccount, DBAffiliate, DBCoupon, DBOrder, DBPricingPlan, DBReferral } from "../types";
 
@@ -80,7 +80,16 @@ export async function createOrder(ctx: Ctx) {
     }).catch(() => {});
   }
   const { planName } = await orderPlan(order);
-  await notify(user.id, "Order created", `Order ${order.id} for ${planName} ($${amount}) is awaiting payment.`, "info");
+  await notify(user.id, "Order created", `Order ${order.id} for ${planName} ($${amount}) is awaiting payment.`, "info", "email", user.email, {
+    details: [
+      ["Order ID", order.id],
+      ["Plan", planName],
+      ["Payment method", paymentMethod],
+      ["Amount", `$${amount.toFixed(2)}`],
+      ["Status", "Awaiting payment"],
+    ],
+    cta: { label: "View order", url: `${origin(ctx)}/dashboard` },
+  });
   return { order: { ...order, planName } };
 }
 
