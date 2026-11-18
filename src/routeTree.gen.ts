@@ -22,6 +22,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminAffiliatesRouteImport } from './routes/admin/affiliates'
 import { Route as AdminCollaboratorsRouteImport } from './routes/admin/collaborators'
 import { Route as AdminCouponsRouteImport } from './routes/admin/coupons'
+import { Route as AdminFollowUpsRouteImport } from './routes/admin/follow-ups'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminKycRouteImport } from './routes/admin/kyc'
 import { Route as AdminLogsRouteImport } from './routes/admin/logs'
@@ -111,6 +112,11 @@ const AdminCollaboratorsRoute = AdminCollaboratorsRouteImport.update({
 const AdminCouponsRoute = AdminCouponsRouteImport.update({
   id: '/coupons',
   path: '/coupons',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFollowUpsRoute = AdminFollowUpsRouteImport.update({
+  id: '/follow-ups',
+  path: '/follow-ups',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminInventoryRoute = AdminInventoryRouteImport.update({
@@ -252,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/admin/affiliates': typeof AdminAffiliatesRoute
   '/admin/collaborators': typeof AdminCollaboratorsRoute
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/follow-ups': typeof AdminFollowUpsRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/kyc': typeof AdminKycRoute
   '/admin/logs': typeof AdminLogsRoute
@@ -290,6 +297,7 @@ export interface FileRoutesByTo {
   '/admin/affiliates': typeof AdminAffiliatesRoute
   '/admin/collaborators': typeof AdminCollaboratorsRoute
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/follow-ups': typeof AdminFollowUpsRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/kyc': typeof AdminKycRoute
   '/admin/logs': typeof AdminLogsRoute
@@ -331,6 +339,7 @@ export interface FileRoutesById {
   '/admin/affiliates': typeof AdminAffiliatesRoute
   '/admin/collaborators': typeof AdminCollaboratorsRoute
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/follow-ups': typeof AdminFollowUpsRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/kyc': typeof AdminKycRoute
   '/admin/logs': typeof AdminLogsRoute
@@ -373,6 +382,7 @@ export interface FileRouteTypes {
     | '/admin/affiliates'
     | '/admin/collaborators'
     | '/admin/coupons'
+    | '/admin/follow-ups'
     | '/admin/inventory'
     | '/admin/kyc'
     | '/admin/logs'
@@ -411,6 +421,7 @@ export interface FileRouteTypes {
     | '/admin/affiliates'
     | '/admin/collaborators'
     | '/admin/coupons'
+    | '/admin/follow-ups'
     | '/admin/inventory'
     | '/admin/kyc'
     | '/admin/logs'
@@ -451,6 +462,7 @@ export interface FileRouteTypes {
     | '/admin/affiliates'
     | '/admin/collaborators'
     | '/admin/coupons'
+    | '/admin/follow-ups'
     | '/admin/inventory'
     | '/admin/kyc'
     | '/admin/logs'
@@ -584,6 +596,13 @@ declare module '@tanstack/react-router' {
       path: '/coupons'
       fullPath: '/admin/coupons'
       preLoaderRoute: typeof AdminCouponsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/follow-ups': {
+      id: '/admin/follow-ups'
+      path: '/follow-ups'
+      fullPath: '/admin/follow-ups'
+      preLoaderRoute: typeof AdminFollowUpsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/inventory': {
@@ -768,6 +787,7 @@ interface AdminRouteChildren {
   AdminAffiliatesRoute: typeof AdminAffiliatesRoute
   AdminCollaboratorsRoute: typeof AdminCollaboratorsRoute
   AdminCouponsRoute: typeof AdminCouponsRoute
+  AdminFollowUpsRoute: typeof AdminFollowUpsRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminKycRoute: typeof AdminKycRoute
   AdminLogsRoute: typeof AdminLogsRoute
@@ -787,6 +807,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAffiliatesRoute: AdminAffiliatesRoute,
   AdminCollaboratorsRoute: AdminCollaboratorsRoute,
   AdminCouponsRoute: AdminCouponsRoute,
+  AdminFollowUpsRoute: AdminFollowUpsRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminKycRoute: AdminKycRoute,
   AdminLogsRoute: AdminLogsRoute,

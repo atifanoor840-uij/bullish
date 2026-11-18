@@ -59,6 +59,20 @@ export type InventoryItem = {
   externalStatisticsId?: string; graphLink?: string; status: "available" | "delivered"; orderId?: string; createdAt?: string;
 };
 
+export type FollowUpSegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders";
+export type FollowUpRecipient = {
+  userId: string; name: string; email: string; createdAt: string;
+  orderId?: string; plan?: string; amount?: number; orderDate?: string; lastFollowUpAt?: string | null;
+};
+export type FollowUpDraft = { subject: string; title: string; message: string; ctaLabel: string; ctaUrl: string; coupon: string };
+export type FollowUpData = {
+  segments: { id: FollowUpSegmentId; label: string; description: string; recipients: FollowUpRecipient[] }[];
+  presets: Record<FollowUpSegmentId, { subject: string; title: string; message: string; ctaLabel: string; ctaPath: string }>;
+  coupons: { code: string; discountPercent: number }[];
+  siteUrl: string;
+  emailConfigured: boolean;
+};
+
 export class ApiError extends Error {
   constructor(message: string, public status: number, public data: any) { super(message); }
 }
@@ -216,6 +230,10 @@ export const propApi = {
     deletePromotionTemplate: (id: string) => del(`/api/promotions${q({ id })}`),
     sendPromotion: (b: { subject: string; html: string; recipients: string[] }) => post("/api/promotions/send", b),
     newsletterSubscribers: () => get("/api/newsletter"),
+    followUps: () => get<FollowUpData>("/api/follow-ups"),
+    previewFollowUp: (b: FollowUpDraft & { withOrder?: boolean; couponPercent?: number }) => post<{ subject: string; html: string }>("/api/follow-ups/preview", b),
+    sendFollowUps: (b: FollowUpDraft & { segment: FollowUpSegmentId; userIds: string[] }) =>
+      post<{ sentCount: number; failedCount: number; failed: string[] }>("/api/follow-ups/send", b),
     pixelEvents: () => get("/api/pixel-events"),
   },
 

@@ -12,6 +12,7 @@ import * as payouts from "./handlers/payouts";
 import * as kyc from "./handlers/kyc";
 import * as partners from "./handlers/partners";
 import * as admin from "./handlers/admin";
+import * as followups from "./handlers/followups";
 
 type Handler = (ctx: Ctx) => Promise<Response | Record<string, unknown>>;
 
@@ -96,6 +97,9 @@ const routes: Record<string, Handler> = {
   "PUT /promotions": admin.savePromotion,
   "DELETE /promotions": admin.deletePromotion,
   "POST /promotions/send": admin.sendPromotion,
+  "GET /follow-ups": followups.listFollowUps,
+  "POST /follow-ups/send": followups.sendFollowUps,
+  "POST /follow-ups/preview": followups.previewFollowUp,
   "GET /newsletter": admin.listSubscribers,
   "POST /newsletter": admin.subscribeNewsletter,
   "GET /pixel-events": admin.listPixelEvents,

@@ -2,7 +2,7 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard, ShoppingBag, Layers, Wallet, ShieldCheck, Users, Share2, Handshake, Tags, TicketPercent, Gift, Boxes,
-  Megaphone, Mail, ScrollText, Loader2, Lock,
+  Megaphone, Mail, MailCheck, ScrollText, Loader2, Lock,
 } from "lucide-react";
 import { Logo } from "@/components/site/primitives";
 import { Shell, type NavGroup } from "@/components/portal/Shell";
@@ -56,6 +56,7 @@ function buildNav(c: Counts): NavGroup[] {
       title: "Marketing",
       items: [
         { label: "Notifications", to: "/admin/notifications", icon: Megaphone },
+        { label: "Follow-ups", to: "/admin/follow-ups", icon: MailCheck },
         { label: "Promotions", to: "/admin/promotions", icon: Mail },
       ],
     },

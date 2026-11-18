@@ -161,6 +161,31 @@ const db: any = {
   ],
 };
 
+function demoFollowUps() {
+  const traders = db.users.filter((u: any) => u.role === "trader");
+  const r = (u: any, i: number, extra: any = {}) => ({ userId: u.id, name: u.name, email: u.email, createdAt: u.createdAt ?? daysAgo(20 + i), lastFollowUpAt: i === 1 ? daysAgo(1) : null, ...extra });
+  const order = (i: number) => ({ orderId: `o-${5100 + i}`, plan: ["Two Step $10K", "One Step $25K", "Instant $5K"][i % 3], amount: [89, 199, 59][i % 3], orderDate: daysAgo(i + 1) });
+  return {
+    segments: [
+      { id: "unpaid_orders", label: "Unpaid orders", description: "Created an order but never paid (older than 1 hour, no paid order since).", recipients: traders.slice(0, 3).map((u: any, i: number) => r(u, i, order(i))) },
+      { id: "unverified", label: "Unverified sign-ups", description: "Signed up but haven't confirmed their email address.", recipients: traders.slice(1, 2).map((u: any, i: number) => r(u, i)) },
+      { id: "no_orders", label: "No purchase yet", description: "Active traders who never created an order.", recipients: traders.slice(0, 2).map((u: any, i: number) => r(u, i)) },
+      { id: "failed_challenge", label: "Failed challenge", description: "Latest challenge failed and no new paid order since — offer a retry.", recipients: traders.slice(2, 3).map((u: any, i: number) => r(u, i, order(i))) },
+      { id: "all_traders", label: "All active traders", description: "Promotions and announcements for every active trader.", recipients: traders.map((u: any, i: number) => r(u, i)) },
+    ],
+    presets: {
+      unpaid_orders: { subject: "Your {{plan}} challenge is waiting for you", title: "Complete your order", message: "Hi {{name}},\nyou started an order for the {{plan}} challenge ({{amount}}) but the payment wasn't completed.\nYour spot is still reserved — finish checkout and start trading today.", ctaLabel: "Complete payment", ctaPath: "/dashboard/orders" },
+      unverified: { subject: "Confirm your Bullish 4ex email", title: "One step left", message: "Hi {{name}},\nyou're almost there! Confirm your email address to unlock your dashboard and start your first funded challenge.", ctaLabel: "Sign in & verify", ctaPath: "/login" },
+      no_orders: { subject: "Ready to get funded, {{name}}?", title: "Start your funded journey", message: "Hi {{name}},\nthanks for joining Bullish 4ex. Pick a challenge, prove your strategy and trade our capital with up to 90% profit split.", ctaLabel: "Choose a challenge", ctaPath: "/dashboard/new-challenge" },
+      failed_challenge: { subject: "Every great trader has a comeback", title: "Ready for another shot?", message: "Hi {{name}},\nyour last challenge didn't go to plan — that's part of trading. Take what you learned and start a new challenge today.", ctaLabel: "Start a new challenge", ctaPath: "/dashboard/new-challenge" },
+      all_traders: { subject: "A special offer for Bullish 4ex traders", title: "Limited-time offer", message: "Hi {{name}},\nfor a limited time get a discount on any challenge. Don't miss it!", ctaLabel: "Claim offer", ctaPath: "/pricing" },
+    },
+    coupons: db.coupons.filter((c: any) => c.status === "active").map((c: any) => ({ code: c.code, discountPercent: c.discountPercent })),
+    siteUrl: window.location.origin,
+    emailConfigured: true,
+  };
+}
+
 /* ---------------- router ---------------- */
 
 const me = () => {
@@ -296,6 +321,15 @@ export async function demoRequest(path: string, init: RequestInit & { json?: unk
   }
   if (p === "/api/promotions/send") return ok({ sentCount: body.recipients?.length ?? 0, failedCount: 0, failed: [] });
   if (p === "/api/newsletter") return ok({ subscribers: db.newsletter });
+  if (p === "/api/follow-ups") return ok(demoFollowUps());
+  if (p === "/api/follow-ups/send") return ok({ sentCount: body.userIds?.length ?? 0, failedCount: 0, failed: [] });
+  if (p === "/api/follow-ups/preview") {
+    const fill = (s: string) => String(s || "").replaceAll("{{name}}", "Ali").replaceAll("{{plan}}", "Two Step $10K").replaceAll("{{amount}}", "$89.00").replaceAll("{{orderId}}", "ORD-10234").replaceAll("{{coupon}}", body.coupon || "");
+    return ok({
+      subject: fill(body.subject),
+      html: `<body style="margin:0;background:#09090b;font-family:Inter,Arial,sans-serif;padding:32px 16px"><div style="max-width:560px;margin:auto"><p style="color:#f4f4f5;font-weight:800">BULLISH<span style="color:#2563eb">4</span>EX <span style="color:#71717a;font-weight:400;font-size:11px">(demo preview)</span></p><div style="background:#121215;border:1px solid #27272a;border-radius:14px;border-top:4px solid #2563eb;padding:28px 32px"><h2 style="color:#f4f4f5;margin:0 0 12px">${fill(body.title)}</h2><div style="color:#a1a1aa;font-size:14px;line-height:1.7;white-space:pre-line">${fill(body.message)}${body.coupon ? `\n\nUse code <b style="color:#2563eb">${body.coupon}</b> at checkout.` : ""}</div>${body.ctaLabel ? `<a style="display:inline-block;margin-top:20px;background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">${body.ctaLabel}</a>` : ""}</div></div></body>`,
+    });
+  }
   if (p === "/api/audit-logs") return ok({ logs: db.audit });
   if (p === "/api/email-logs") return ok({ emailLogs: db.emails.filter((e: any) => !url.searchParams.get("userId") || e.userId === url.searchParams.get("userId")) });
   if (p === "/api/pixel-events") return ok({ events: db.pixel, summary: { total: 3, sent: 2, failed: 1, purchases: 2, purchaseValue: 702 } });
