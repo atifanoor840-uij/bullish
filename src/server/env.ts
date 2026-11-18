@@ -64,4 +64,18 @@ export const env = {
   get resend() {
     return { apiKey: read("RESEND_API_KEY"), from: read("EMAIL_FROM") || "Bullish 4ex <no-reply@bullish4ex.com>" };
   },
+  /** SMTP (Brevo by default). Used instead of Resend when SMTP_USER and SMTP_PASS are set. */
+  get smtp() {
+    return {
+      host: read("SMTP_HOST") || read("HOSTINGER_SMTP_HOST") || "smtp-relay.brevo.com",
+      port: Number(read("SMTP_PORT") || read("HOSTINGER_SMTP_PORT") || 587),
+      user: read("SMTP_USER") || read("HOSTINGER_SMTP_USER"),
+      pass: read("SMTP_PASS") || read("HOSTINGER_SMTP_PASS"),
+      from: read("SMTP_FROM") || read("HOSTINGER_EMAIL_FROM") || "Bullish 4ex <support@bullish4ex.site>",
+    };
+  },
+  get emailConfigured() {
+    const s = this.smtp;
+    return !!(s.user && s.pass) || !!read("RESEND_API_KEY");
+  },
 };

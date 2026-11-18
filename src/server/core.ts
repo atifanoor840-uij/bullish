@@ -5,6 +5,7 @@
 import { db, eq, inList } from "./db";
 import { env } from "./env";
 import { rand, randDigits } from "./http";
+import { smtpSend } from "./smtp";
 import type {
   DBAccount, DBAffiliate, DBChallengePlan, DBCollaboratorSale, DBInventory, DBOffer, DBOrder, DBPricingPlan, DBReferral, DBUser,
 } from "./types";
@@ -139,8 +140,19 @@ export async function withUserNames<T extends { userId: string }>(rows: T[]) {
 /* ====================================================================== notifications & audit */
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+  if (!to) return false;
+  const smtp = env.smtp;
+  if (smtp.user && smtp.pass) {
+    try {
+      await smtpSend(smtp, { from: smtp.from, to, subject, html });
+      return true;
+    } catch (e) {
+      console.error("[email] SMTP send failed:", e instanceof Error ? e.message : e);
+      return false;
+    }
+  }
   const { apiKey, from } = env.resend;
-  if (!apiKey || !to) return false;
+  if (!apiKey) return false;
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

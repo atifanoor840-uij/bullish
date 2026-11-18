@@ -273,7 +273,7 @@ export async function sendPromotion(ctx: Ctx) {
   const recipients = ((Array.isArray(b.recipients) ? b.recipients : []) as unknown[]).map((r) => str(r).toLowerCase()).filter((r) => /^[^\s@]+@[^\s@]+$/.test(r));
   if (!subject || !html || !recipients.length || recipients.length > 100) throw new HttpError(400, "subject, html and 1–100 recipients are required.");
   if (html.includes("ADD-CODE")) throw new HttpError(400, "Replace the ADD-CODE placeholder with a real coupon code first.");
-  if (!env.resend.apiKey) throw new HttpError(503, "Email delivery is not configured (RESEND_API_KEY).");
+  if (!env.emailConfigured) throw new HttpError(503, "Email delivery is not configured (SMTP_USER / SMTP_PASS).");
   const failed: string[] = [];
   for (let i = 0; i < recipients.length; i += 5) {
     const batch = recipients.slice(i, i + 5);
