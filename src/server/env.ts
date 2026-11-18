@@ -6,6 +6,12 @@
 const NOWPAYMENTS_API_KEY = "KVGA4YP-Q4VMENB-K3GQW46-6GG3XWG";
 const NOWPAYMENTS_IPN_SECRET = "IpxonvBa429Dke0jeAurSyGznWeqccgd";
 
+/* ---- Brevo SMTP defaults (SMTP_* env vars override). The SMTP key itself must be set as the SMTP_PASS secret. ---- */
+const SMTP_HOST = "smtp-relay.brevo.com";
+const SMTP_PORT = 587;
+const SMTP_USER = "c3f79e001@smtp-brevo.com";
+const SMTP_FROM = "Bullish 4ex <support@bullish4ex.site>";
+
 const read = (key: string) => (typeof process !== "undefined" ? process.env[key] : undefined)?.trim() || "";
 
 export const env = {
@@ -67,11 +73,11 @@ export const env = {
   /** SMTP (Brevo by default). Used instead of Resend when SMTP_USER and SMTP_PASS are set. */
   get smtp() {
     return {
-      host: read("SMTP_HOST") || read("HOSTINGER_SMTP_HOST") || "smtp-relay.brevo.com",
-      port: Number(read("SMTP_PORT") || read("HOSTINGER_SMTP_PORT") || 587),
-      user: read("SMTP_USER") || read("HOSTINGER_SMTP_USER"),
+      host: read("SMTP_HOST") || read("HOSTINGER_SMTP_HOST") || SMTP_HOST,
+      port: Number(read("SMTP_PORT") || read("HOSTINGER_SMTP_PORT") || SMTP_PORT),
+      user: read("SMTP_USER") || read("HOSTINGER_SMTP_USER") || SMTP_USER,
       pass: read("SMTP_PASS") || read("HOSTINGER_SMTP_PASS"),
-      from: read("SMTP_FROM") || read("HOSTINGER_EMAIL_FROM") || "Bullish 4ex <support@bullish4ex.site>",
+      from: read("SMTP_FROM") || read("HOSTINGER_EMAIL_FROM") || SMTP_FROM,
     };
   },
   get emailConfigured() {
