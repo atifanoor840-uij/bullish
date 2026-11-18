@@ -68,9 +68,9 @@ export const env = {
     };
   },
   get resend() {
-    return { apiKey: read("RESEND_API_KEY"), from: read("EMAIL_FROM") || "Bullish 4ex <no-reply@bullish4ex.com>" };
+    return { apiKey: read("RESEND_API_KEY"), from: read("EMAIL_FROM") || "Bullish 4ex <support@bullish4ex.site>" };
   },
-  /** SMTP (Brevo by default). Used instead of Resend when SMTP_USER and SMTP_PASS are set. */
+  /** SMTP (Brevo by default). Fallback when Resend is not configured or fails. */
   get smtp() {
     return {
       host: read("SMTP_HOST") || read("HOSTINGER_SMTP_HOST") || SMTP_HOST,

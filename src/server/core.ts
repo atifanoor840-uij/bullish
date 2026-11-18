@@ -139,8 +139,23 @@ export async function withUserNames<T extends { userId: string }>(rows: T[]) {
 
 /* ====================================================================== notifications & audit */
 
+/** Sends via Resend when RESEND_API_KEY is set, otherwise (or if Resend fails) via SMTP. */
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   if (!to) return false;
+  const { apiKey, from } = env.resend;
+  if (apiKey) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from, to, subject, html }),
+      });
+      if (res.ok) return true;
+      console.error("[email] Resend send failed:", res.status, await res.text().catch(() => ""));
+    } catch (e) {
+      console.error("[email] Resend send failed:", e instanceof Error ? e.message : e);
+    }
+  }
   const smtp = env.smtp;
   if (smtp.user && smtp.pass) {
     try {
@@ -148,21 +163,9 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
       return true;
     } catch (e) {
       console.error("[email] SMTP send failed:", e instanceof Error ? e.message : e);
-      return false;
     }
   }
-  const { apiKey, from } = env.resend;
-  if (!apiKey) return false;
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to, subject, html }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 export type EmailOptions = {
