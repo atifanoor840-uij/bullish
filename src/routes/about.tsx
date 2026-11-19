@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Building2, CalendarDays, FileSignature, MapPin, ShieldCheck, Globe } from "lucide-react";
+import { Building2, CalendarDays, FileSignature, MapPin, ShieldCheck, Globe, Download } from "lucide-react";
 import { Navbar } from "@/components/site/top";
 import { Footer } from "@/components/site/bottom";
 
@@ -25,7 +25,7 @@ const COMPANY = [
   { icon: Building2, label: "Legal entity", value: "FOR2FEET LIMITED" },
   { icon: ShieldCheck, label: "Registration", value: "England and Wales · Company No. 08382766" },
   { icon: CalendarDays, label: "Operating since", value: "12 September 2024" },
-  { icon: Globe, label: "Website", value: "flex4ex.com" },
+  { icon: Globe, label: "Website", value: "bullish4ex.site" },
   { icon: MapPin, label: "Registered office", value: "Christopher Corner, Oakridge Lynch, Stroud, England, GL6 7NZ" },
 ];
 
@@ -91,6 +91,19 @@ function AboutPage() {
                 </div>
               ))}
             </dl>
+            <div className="mt-6 flex flex-col items-start gap-3 rounded-xl border border-primary/20 bg-primary/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold">Brand Operating Agreement</p>
+                <p className="text-xs text-muted-foreground">Full agreement between Bullish4ex and FOR2FEET LIMITED · PDF</p>
+              </div>
+              <a
+                href="/bullish4ex-brand-operating-agreement.pdf"
+                download
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+              >
+                <Download className="h-4 w-4" /> Download agreement
+              </a>
+            </div>
           </section>
         </div>
       </main>
