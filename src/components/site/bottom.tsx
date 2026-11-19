@@ -207,7 +207,7 @@ export function Footer() {
             <h4 className="font-display text-xs font-semibold uppercase tracking-wider text-foreground/90">Corporate & brand information</h4>
             <p>Bullish4ex © 2026 is a brand name of FOR2FEET LIMITED.</p>
             <p>
-              The website flex4ex.com is owned and operated by FOR2FEET LIMITED, registered in England and Wales (Company No. 08382766), with its registered office at Christopher Corner, Oakridge Lynch, Stroud, England, GL6 7NZ.
+              The website bullish4ex.site is owned and operated by FOR2FEET LIMITED, registered in England and Wales (Company No. 08382766), with its registered office at Christopher Corner, Oakridge Lynch, Stroud, England, GL6 7NZ.
             </p>
           </div>
         </div>
