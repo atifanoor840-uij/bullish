@@ -15,7 +15,7 @@ const ICONS: Record<FollowUpSegmentId, typeof Send> = {
   no_orders: UserPlus,
   failed_challenge: RotateCcw,
   all_traders: Megaphone,
-  crypto_extra_10: Percent,
+  crypto_extra_5: Percent,
 };
 const RECENT_MS = 3 * 864e5;
 const PLACEHOLDERS = ["{{name}}", "{{plan}}", "{{amount}}", "{{orderId}}", "{{coupon}}", "{{account}}"];
@@ -23,7 +23,7 @@ const ACCOUNT_SIZES = ["$5K", "$10K", "$25K", "$50K", "$100K", "$200K"];
 
 const draftFor = (data: FollowUpData, id: FollowUpSegmentId): FollowUpDraft => {
   const p = data.presets[id];
-  return { subject: p.subject, title: p.title, message: p.message, ctaLabel: p.ctaLabel, ctaUrl: p.ctaPath, coupon: "", account: id === "crypto_extra_10" ? "$100K" : "" };
+  return { subject: p.subject, title: p.title, message: p.message, ctaLabel: p.ctaLabel, ctaUrl: p.ctaPath, coupon: "", account: id === "crypto_extra_5" ? "$100K" : "" };
 };
 
 function AdminFollowUps() {
@@ -174,7 +174,7 @@ function AdminFollowUps() {
             <Card className="min-w-0">
               <CardHeader title="Email" actions={<Button size="sm" variant="ghost" onClick={() => setDraft(draftFor(data, segment))}><RotateCcw className="h-3.5 w-3.5" />Reset</Button>} />
               <div className="space-y-4 p-5">
-                {(segment === "crypto_extra_10" || `${draft.subject}${draft.title}${draft.message}`.includes("{{account}}")) && (
+                {(segment === "crypto_extra_5" || `${draft.subject}${draft.title}${draft.message}`.includes("{{account}}")) && (
                   <Field label="Account size" hint="Fills {{account}} in the subject, heading and message">
                     <input list="followup-account-sizes" value={draft.account ?? ""} onChange={set("account")} className={inputCls} placeholder="e.g. $100K" />
                     <datalist id="followup-account-sizes">{ACCOUNT_SIZES.map((s) => <option key={s} value={s} />)}</datalist>

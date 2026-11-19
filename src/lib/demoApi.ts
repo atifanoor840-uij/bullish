@@ -172,7 +172,7 @@ function demoFollowUps() {
       { id: "no_orders", label: "No purchase yet", description: "Active traders who never created an order.", recipients: traders.slice(0, 2).map((u: any, i: number) => r(u, i)) },
       { id: "failed_challenge", label: "Failed challenge", description: "Latest challenge failed and no new paid order since — offer a retry.", recipients: traders.slice(2, 3).map((u: any, i: number) => r(u, i, order(i))) },
       { id: "all_traders", label: "All active traders", description: "Promotions and announcements for every active trader.", recipients: traders.map((u: any, i: number) => r(u, i)) },
-      { id: "crypto_extra_10", label: "10% extra off (crypto)", description: "Promote the extra 10% OFF on crypto payments for an account size you choose — every active trader.", recipients: traders.map((u: any, i: number) => r(u, i)) },
+      { id: "crypto_extra_5", label: "5% extra off (crypto)", description: "Promote the extra 5% OFF on crypto payments for an account size you choose — every active trader.", recipients: traders.map((u: any, i: number) => r(u, i)) },
     ],
     presets: {
       unpaid_orders: { subject: "Your {{plan}} challenge is waiting for you", title: "Complete your order", message: "Hi {{name}},\nyou started an order for the {{plan}} challenge ({{amount}}) but the payment wasn't completed.\nYour spot is still reserved — finish checkout and start trading today.", ctaLabel: "Complete payment", ctaPath: "/dashboard/orders" },
@@ -180,7 +180,7 @@ function demoFollowUps() {
       no_orders: { subject: "Ready to get funded, {{name}}?", title: "Start your funded journey", message: "Hi {{name}},\nthanks for joining Bullish 4ex. Pick a challenge, prove your strategy and trade our capital with up to 90% profit split.", ctaLabel: "Choose a challenge", ctaPath: "/dashboard/new-challenge" },
       failed_challenge: { subject: "Every great trader has a comeback", title: "Ready for another shot?", message: "Hi {{name}},\nyour last challenge didn't go to plan — that's part of trading. Take what you learned and start a new challenge today.", ctaLabel: "Start a new challenge", ctaPath: "/dashboard/new-challenge" },
       all_traders: { subject: "A special offer for Bullish 4ex traders", title: "Limited-time offer", message: "Hi {{name}},\nfor a limited time get a discount on any challenge. Don't miss it!", ctaLabel: "Claim offer", ctaPath: "/pricing" },
-      crypto_extra_10: { subject: "Extra 10% OFF on your {{account}} challenge", title: "Extra 10% OFF with crypto", message: "Hi {{name}},\nget an extra 10% OFF on the {{account}} account when you pay with crypto at checkout.\nThe extra discount stacks with your promo code — pick your {{account}} challenge and start trading today.", ctaLabel: "Claim 10% OFF", ctaPath: "/dashboard/new-challenge" },
+      crypto_extra_5: { subject: "Extra 5% OFF on your {{account}} challenge", title: "Extra 5% OFF with crypto", message: "Hi {{name}},\nget an extra 5% OFF on the {{account}} account when you pay with crypto at checkout.\nThe extra discount stacks with your promo code — pick your {{account}} challenge and start trading today.", ctaLabel: "Claim 5% OFF", ctaPath: "/dashboard/new-challenge" },
     },
     coupons: db.coupons.filter((c: any) => c.status === "active").map((c: any) => ({ code: c.code, discountPercent: c.discountPercent })),
     siteUrl: window.location.origin,

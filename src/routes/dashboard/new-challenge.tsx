@@ -303,7 +303,7 @@ function NewChallenge() {
   if (error) return <ErrorNote message={error} onRetry={reload} />;
   if (!data?.plans.length) return <Card><EmptyState title="No challenges available right now" body="Please check back soon." /></Card>;
 
-  // Step 1 shows the price before the payment-method discount (crypto -10% is applied in step 2).
+  // Step 1 shows the price before the payment-method discount (crypto -5% is applied in step 2).
   const configTotal = plan
     ? computeCheckoutTotal({ catalogPrice: plan.price, weekendHoldingAddon: weekend, discountPercent: coupon?.discountPercent ?? 0, isCrypto: false, referralBalance: data?.referralBalance ?? 0, useReferralBalance: useRef })
     : 0;
@@ -385,7 +385,7 @@ function NewChallenge() {
       ? computeCheckoutTotal({ catalogPrice: plan.price, weekendHoldingAddon: weekend, discountPercent: coupon?.discountPercent ?? 0, isCrypto: true, referralBalance: data.referralBalance, useReferralBalance: useRef })
       : 0;
     const methods = [
-      { id: "Crypto" as const, title: "Crypto", sub: "Bitcoin, Ethereum, USDT, TRX & USDC", icon: <Bitcoin className="h-7 w-7" />, amount: cryptoPrice, note: coupon ? `${coupon.discountPercent}% + 10% extra = ${coupon.discountPercent + 10}% OFF` : "Extra 10% OFF with crypto",
+      { id: "Crypto" as const, title: "Crypto", sub: "Bitcoin, Ethereum, USDT, TRX & USDC", icon: <Bitcoin className="h-7 w-7" />, amount: cryptoPrice, note: coupon ? `${coupon.discountPercent}% + 5% extra = ${coupon.discountPercent + 5}% OFF` : "Extra 5% OFF with crypto",
         on: "border-profit/70 bg-gradient-to-b from-profit/[0.10] to-transparent shadow-[inset_0_-2px_0_0_var(--profit)]", iconCls: "border-profit/40 bg-profit/15 text-profit", priceCls: "bg-profit/15 text-profit", noteCls: "text-profit/80" },
     ];
     const summary: [string, ReactNode, string?][] = [

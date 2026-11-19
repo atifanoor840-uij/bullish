@@ -10,7 +10,7 @@ import { audit, emailHtml, orderPlan, sendEmail } from "../core";
 import { HttpError, body, origin, requireAdmin, str, type Ctx } from "../http";
 import type { DBCoupon, DBOrder, DBUser } from "../types";
 
-export type SegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders" | "crypto_extra_10";
+export type SegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders" | "crypto_extra_5";
 
 type Recipient = {
   userId: string; name: string; email: string; createdAt: string;
@@ -28,7 +28,7 @@ export const SEGMENTS: Record<SegmentId, { label: string; description: string }>
   no_orders: { label: "No purchase yet", description: "Active traders who never created an order." },
   failed_challenge: { label: "Failed challenge", description: "Latest challenge failed and no new paid order since — offer a retry." },
   all_traders: { label: "All active traders", description: "Promotions and announcements for every active trader." },
-  crypto_extra_10: { label: "10% extra off (crypto)", description: "Promote the extra 10% OFF on crypto payments for an account size you choose — every active trader." },
+  crypto_extra_5: { label: "5% extra off (crypto)", description: "Promote the extra 5% OFF on crypto payments for an account size you choose — every active trader." },
 };
 
 /** Default copy per segment. Placeholders: {{name}} {{plan}} {{amount}} {{orderId}} {{coupon}}. */
@@ -68,11 +68,11 @@ export const PRESETS: Record<SegmentId, { subject: string; title: string; messag
     ctaLabel: "Claim offer",
     ctaPath: "/pricing",
   },
-  crypto_extra_10: {
-    subject: "Extra 10% OFF on your {{account}} challenge",
-    title: "Extra 10% OFF with crypto",
-    message: "Hi {{name}},\nget an extra 10% OFF on the {{account}} account when you pay with crypto at checkout.\nThe extra discount stacks with your promo code — pick your {{account}} challenge and start trading today.",
-    ctaLabel: "Claim 10% OFF",
+  crypto_extra_5: {
+    subject: "Extra 5% OFF on your {{account}} challenge",
+    title: "Extra 5% OFF with crypto",
+    message: "Hi {{name}},\nget an extra 5% OFF on the {{account}} account when you pay with crypto at checkout.\nThe extra discount stacks with your promo code — pick your {{account}} challenge and start trading today.",
+    ctaLabel: "Claim 5% OFF",
     ctaPath: "/dashboard/new-challenge",
   },
 };
@@ -106,12 +106,12 @@ async function computeSegments(): Promise<Record<SegmentId, Recipient[]>> {
     ...r, orderId: o.id, plan: (await orderPlan(o)).planName, amount: Number(o.amountPaid), orderDate: o.createdAt,
   });
 
-  const out: Record<SegmentId, Recipient[]> = { unpaid_orders: [], unverified: [], no_orders: [], failed_challenge: [], all_traders: [], crypto_extra_10: [] };
+  const out: Record<SegmentId, Recipient[]> = { unpaid_orders: [], unverified: [], no_orders: [], failed_challenge: [], all_traders: [], crypto_extra_5: [] };
   for (const u of users) {
     const list = byUser.get(u.id) ?? [];
     const r = base(u);
     out.all_traders.push(r);
-    out.crypto_extra_10.push(r);
+    out.crypto_extra_5.push(r);
     if (u.emailVerified === false) out.unverified.push(r);
     if (!list.length) out.no_orders.push(r);
 

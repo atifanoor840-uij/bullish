@@ -59,7 +59,7 @@ export type InventoryItem = {
   externalStatisticsId?: string; graphLink?: string; status: "available" | "delivered"; orderId?: string; createdAt?: string;
 };
 
-export type FollowUpSegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders" | "crypto_extra_10";
+export type FollowUpSegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders" | "crypto_extra_5";
 export type FollowUpRecipient = {
   userId: string; name: string; email: string; createdAt: string;
   orderId?: string; plan?: string; amount?: number; orderDate?: string; lastFollowUpAt?: string | null;
@@ -252,7 +252,7 @@ export function computeCheckoutTotal(input: {
   isCrypto?: boolean; referralBalance?: number; useReferralBalance?: boolean;
 }) {
   const base = input.catalogPrice * (input.weekendHoldingAddon ? 1.2 : 1);
-  const pct = (input.discountPercent || 0) + (input.isCrypto ? 10 : 0);
+  const pct = (input.discountPercent || 0) + (input.isCrypto ? 5 : 0);
   const final = Math.ceil(base - base * (pct / 100));
   const referral = input.useReferralBalance ? Number(Math.min(final, input.referralBalance || 0).toFixed(2)) : 0;
   return Number((final - referral).toFixed(2));
