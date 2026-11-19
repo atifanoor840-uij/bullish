@@ -10,7 +10,7 @@ import { audit, emailHtml, orderPlan, sendEmail } from "../core";
 import { HttpError, body, origin, requireAdmin, str, type Ctx } from "../http";
 import type { DBCoupon, DBOrder, DBUser } from "../types";
 
-export type SegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders";
+export type SegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders" | "crypto_extra_10";
 
 type Recipient = {
   userId: string; name: string; email: string; createdAt: string;
@@ -28,6 +28,7 @@ export const SEGMENTS: Record<SegmentId, { label: string; description: string }>
   no_orders: { label: "No purchase yet", description: "Active traders who never created an order." },
   failed_challenge: { label: "Failed challenge", description: "Latest challenge failed and no new paid order since — offer a retry." },
   all_traders: { label: "All active traders", description: "Promotions and announcements for every active trader." },
+  crypto_extra_10: { label: "10% extra off (crypto)", description: "Promote the extra 10% OFF on crypto payments for an account size you choose — every active trader." },
 };
 
 /** Default copy per segment. Placeholders: {{name}} {{plan}} {{amount}} {{orderId}} {{coupon}}. */
@@ -67,6 +68,13 @@ export const PRESETS: Record<SegmentId, { subject: string; title: string; messag
     ctaLabel: "Claim offer",
     ctaPath: "/pricing",
   },
+  crypto_extra_10: {
+    subject: "Extra 10% OFF on your {{account}} challenge",
+    title: "Extra 10% OFF with crypto",
+    message: "Hi {{name}},\nget an extra 10% OFF on the {{account}} account when you pay with crypto at checkout.\nThe extra discount stacks with your promo code — pick your {{account}} challenge and start trading today.",
+    ctaLabel: "Claim 10% OFF",
+    ctaPath: "/dashboard/new-challenge",
+  },
 };
 
 const isSegment = (s: string): s is SegmentId => s in SEGMENTS;
@@ -98,11 +106,12 @@ async function computeSegments(): Promise<Record<SegmentId, Recipient[]>> {
     ...r, orderId: o.id, plan: (await orderPlan(o)).planName, amount: Number(o.amountPaid), orderDate: o.createdAt,
   });
 
-  const out: Record<SegmentId, Recipient[]> = { unpaid_orders: [], unverified: [], no_orders: [], failed_challenge: [], all_traders: [] };
+  const out: Record<SegmentId, Recipient[]> = { unpaid_orders: [], unverified: [], no_orders: [], failed_challenge: [], all_traders: [], crypto_extra_10: [] };
   for (const u of users) {
     const list = byUser.get(u.id) ?? [];
     const r = base(u);
     out.all_traders.push(r);
+    out.crypto_extra_10.push(r);
     if (u.emailVerified === false) out.unverified.push(r);
     if (!list.length) out.no_orders.push(r);
 
@@ -132,9 +141,10 @@ export async function listFollowUps(ctx: Ctx) {
   };
 }
 
-function fill(text: string, r: Recipient, coupon: string, html: boolean) {
+function fill(text: string, r: Recipient, coupon: string, html: boolean, account = "") {
   const v = (s: string) => (html ? esc(s) : s);
   return text
+    .replaceAll("{{account}}", v(account || "challenge"))
     .replaceAll("{{name}}", v(r.name.split(" ")[0] || r.name || "there"))
     .replaceAll("{{plan}}", v(r.plan ?? "challenge"))
     .replaceAll("{{amount}}", r.amount !== undefined ? `$${r.amount.toFixed(2)}` : "")
@@ -143,11 +153,12 @@ function fill(text: string, r: Recipient, coupon: string, html: boolean) {
 }
 
 /** Renders the email for one recipient (also used by the admin preview). */
-export function renderFollowUp(r: Recipient, input: { title: string; message: string; ctaLabel: string; ctaUrl: string; coupon: string; couponPercent?: number | undefined }) {
+export function renderFollowUp(r: Recipient, input: { title: string; message: string; ctaLabel: string; ctaUrl: string; coupon: string; couponPercent?: number | undefined; account?: string }) {
   const couponLine = input.coupon
     ? `\n\nUse code <b style="color:#2563eb;letter-spacing:.04em">${esc(input.coupon)}</b>${input.couponPercent ? ` for ${input.couponPercent}% off` : ""} at checkout.`
     : "";
-  return emailHtml(fill(input.title, r, input.coupon, true), fill(input.message, r, input.coupon, true) + couponLine, {
+  const account = input.account ?? "";
+  return emailHtml(fill(input.title, r, input.coupon, true, account), fill(input.message, r, input.coupon, true, account) + couponLine, {
     ...(r.orderId ? { details: [["Order ID", esc(r.orderId)], ["Plan", esc(r.plan ?? "")], ["Amount", `$${(r.amount ?? 0).toFixed(2)}`]] as [string, string][] } : {}),
     ...(input.ctaLabel && input.ctaUrl ? { cta: { label: esc(input.ctaLabel), url: input.ctaUrl } } : {}),
   });
@@ -165,7 +176,7 @@ export async function sendFollowUps(ctx: Ctx) {
   const segment = str(b.segment);
   if (!isSegment(segment)) throw new HttpError(400, "Unknown audience segment.");
   const subject = str(b.subject), title = str(b.title), message = str(b.message);
-  const ctaLabel = str(b.ctaLabel), coupon = str(b.coupon).toUpperCase();
+  const ctaLabel = str(b.ctaLabel), coupon = str(b.coupon).toUpperCase(), account = str(b.account);
   let ctaUrl = str(b.ctaUrl);
   if (!subject || !title || !message) throw new HttpError(400, "Subject, heading and message are required.");
   if (ctaUrl && !/^https?:\/\//.test(ctaUrl)) ctaUrl = `${origin(ctx)}${ctaUrl.startsWith("/") ? "" : "/"}${ctaUrl}`;
@@ -186,8 +197,8 @@ export async function sendFollowUps(ctx: Ctx) {
   const failed: string[] = [];
   for (let i = 0; i < recipients.length; i += 5) {
     await Promise.all(recipients.slice(i, i + 5).map(async (r) => {
-      const html = renderFollowUp(r, { title, message, ctaLabel, ctaUrl, coupon, couponPercent });
-      const subj = fill(subject, r, coupon, false);
+      const html = renderFollowUp(r, { title, message, ctaLabel, ctaUrl, coupon, couponPercent, account });
+      const subj = fill(subject, r, coupon, false, account);
       const ok = await sendEmail(r.email, subj, html);
       if (!ok) failed.push(r.email);
       await logEmail(r, subj, html, ok);
@@ -208,9 +219,9 @@ export async function previewFollowUp(ctx: Ctx) {
   let ctaUrl = str(b.ctaUrl);
   if (ctaUrl && !/^https?:\/\//.test(ctaUrl)) ctaUrl = `${origin(ctx)}${ctaUrl.startsWith("/") ? "" : "/"}${ctaUrl}`;
   return {
-    subject: fill(str(b.subject), sample, str(b.coupon).toUpperCase(), false),
+    subject: fill(str(b.subject), sample, str(b.coupon).toUpperCase(), false, str(b.account)),
     html: renderFollowUp(sample, {
-      title: str(b.title), message: str(b.message), ctaLabel: str(b.ctaLabel), ctaUrl,
+      title: str(b.title), message: str(b.message), ctaLabel: str(b.ctaLabel), ctaUrl, account: str(b.account),
       coupon: str(b.coupon).toUpperCase(), couponPercent: Number(b.couponPercent) || undefined,
     }),
   };

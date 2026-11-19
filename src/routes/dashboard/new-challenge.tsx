@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef as useReactRef, useState, type ReactNode } f
 import { Check, Tag, ShieldCheck, Gift, Clock, Sparkles, ShoppingBag, Rocket, ArrowRight, ArrowLeft, Lock, Bitcoin } from "lucide-react";
 import { Button, Card, EmptyState, ErrorNote, Field, Loading, Note, PageHeader, cx, inputCls, useApi } from "@/components/portal/ui";
 import { PayOrder } from "@/components/portal/Checkout";
-import { CardBrands, CryptoCoins } from "@/components/portal/PaymentIcons";
 import { ApiError, computeCheckoutTotal, propApi, type Order, type PricingPlan } from "@/lib/propApi";
 import { money, num, price, sizeLabel } from "@/lib/portal";
 import { isPopularSize } from "@/lib/site-data";
@@ -141,10 +140,9 @@ function Stepper({ step, onBack }: { step: 1 | 2; onBack?: (() => void) | undefi
 
 function NewChallenge() {
   const { data, error, loading, reload } = useApi(async () => {
-    const [plans, coupons, geo, aff, offers] = await Promise.all([
+    const [plans, coupons, aff, offers] = await Promise.all([
       propApi.catalog.pricingPlans(),
       propApi.catalog.coupons().catch(() => ({ coupons: [] })),
-      propApi.public.geo().catch(() => ({ cardPaymentAvailable: true })),
       propApi.affiliate.get().catch(() => null),
       propApi.catalog.offers().catch(() => ({ offers: [] })),
     ]);
@@ -153,7 +151,6 @@ function NewChallenge() {
       plans: plans.plans.filter((p) => p.status === "active"),
       coupons: coupons.coupons,
       offers: offers.offers.filter((o) => isLive(o) && isPublic(o)),
-      cardOk: geo.cardPaymentAvailable !== false,
       referralBalance: referrals.filter((r) => r.status === "approved").reduce((s, r) => s + num(r.commissionAmount), 0),
     };
   });

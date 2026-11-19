@@ -15,7 +15,7 @@ export const WALLETS = [
   { id: "SOL", label: "Solana", address: import.meta.env["VITE_WALLET_SOL"] as string | undefined },
 ];
 
-/** Payment step for an existing order: redirect to the card gateway, or upload a crypto transfer proof. */
+/** Payment step for an existing order: redirect to the crypto gateway, or upload a crypto transfer proof. */
 export function PayOrder({ orderId, amount, paymentMethod, platform = "MT5", onDone }: { orderId: string; amount: number; paymentMethod: string; platform?: "MT5" | "MT4" | "cTrader"; onDone?: () => void }) {
   const manual = paymentMethod.toLowerCase().includes("crypto qr");
   const [wallet, setWallet] = useState(WALLETS[0]!.id);
@@ -27,7 +27,7 @@ export function PayOrder({ orderId, amount, paymentMethod, platform = "MT5", onD
   if (!manual) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">You will be redirected to our secure {paymentMethod.toLowerCase().includes("crypto") ? "crypto" : "card"} payment page to pay <strong className="text-foreground">{money(amount)}</strong>.</p>
+        <p className="text-sm text-muted-foreground">You will be redirected to our secure crypto payment page to pay <strong className="text-foreground">{money(amount)}</strong>.</p>
         <Button
           variant="primary"
           busy={busy === "pay"}

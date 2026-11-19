@@ -14,7 +14,7 @@ export const stats = [
   { label: "Countries served", value: 140, suffix: "+", decimals: 0 },
 ];
 
-export const partners = ["MetaTrader 5", "cTrader", "Match-Trader", "TradingView", "Visa", "Mastercard", "USDT · TRC20", "Rise", "Skrill", "Apple Pay"];
+export const partners = ["MetaTrader 5", "cTrader", "Match-Trader", "TradingView", "Bitcoin", "Ethereum", "USDT · TRC20", "USDC", "Rise", "Skrill"];
 
 export const sizes = [3000, 5000, 10000, 25000, 50000, 100000, 200000];
 export type PlanType = "1-Step" | "2-Step" | "Instant" | "Flex";
@@ -157,7 +157,7 @@ export const faqs = [
   ["What are minimum winning days?", "A winning day is a day that closes at least 0.5% in profit. 1-Step and each stage of 2-Step need 3 winning days. Flex has no minimum during the evaluation. At the performance stage, you need 5 winning days before requesting a reward."],
   ["How often are rewards processed?", "Rewards follow a bi-weekly cycle. Your first request opens 14 days after you receive your performance account, and each request can be up to 6% of the account balance."],
   ["What account sizes can I buy?", "Accounts are available from $3,000 up to $200,000. The exact sizes for each program are shown in the pricing section above."],
-  ["What payment options are available?", "You can pay by card, cryptocurrency or bank transfer. See checkout for the current methods."],
+  ["What payment options are available?", "We accept cryptocurrency only — Bitcoin, Ethereum, USDT, TRX and USDC. Paying with crypto also gives you an extra 10% OFF."],
   ["What are BOGO and weekend holding?", "BOGO (buy one, get one) gives you an extra account on the listed promotion. Weekend holding is an optional add-on (+20%) that lets you keep positions open over the weekend when you select it at checkout."],
   ["Where can I read the full rules and policies?", "Read the full rules on our Rules page. The risk disclosure and legal policies are linked in the footer. For account-specific help, contact support from your dashboard."],
 ];

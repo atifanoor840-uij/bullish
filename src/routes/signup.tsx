@@ -50,7 +50,7 @@ function SignupPage() {
       try {
         const { order } = await propApi.orders.create({
           planId,
-          paymentMethod: "Card",
+          paymentMethod: "Crypto",
           ...(couponCode ? { couponUsed: couponCode } : {}),
         });
         trackPixel("InitiateCheckout", {
@@ -66,12 +66,12 @@ function SignupPage() {
           content_name: `Order ${order.id}`,
           value: order.amountPaid,
           currency: "USD",
-          payment_method: "Card",
+          payment_method: "Crypto",
         });
         window.location.href = checkoutUrl;
         return;
       } catch {
-        // Fall back to the plan page if direct checkout cannot be initiated (e.g. card unavailable in region).
+        // Fall back to the plan page if direct checkout cannot be initiated (e.g. crypto gateway unavailable).
       }
     }
     window.location.href = targetNext;

@@ -8,7 +8,7 @@ const features = [
   { icon: Clock, t: "No Time Limits", d: "Take as long as you need to complete your evaluation." },
   { icon: ListChecks, t: "Clear Trading Rules", d: "Simple targets and drawdown limits, tracked live on your dashboard." },
   { icon: MonitorSmartphone, t: "Simulated Environment", d: "Practice on demo accounts only. No live market execution." },
-  { icon: ShieldCheck, t: "Secure Platform", d: "Secure checkout with card, crypto and bank transfer." },
+  { icon: ShieldCheck, t: "Secure Platform", d: "Secure crypto checkout with BTC, ETH, USDT and more." },
 ];
 
 /** "Why Bullish4ex" — numbered feature list (auto-advancing) with a visual for the active item. */

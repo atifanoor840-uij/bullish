@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, CreditCard, Megaphone, RotateCcw, Send, ShoppingCart, UserPlus } from "lucide-react";
+import { BadgeCheck, CreditCard, Megaphone, Percent, RotateCcw, Send, ShoppingCart, UserPlus } from "lucide-react";
 import {
   Badge, Button, Card, CardHeader, EmptyState, ErrorNote, Field, Loading, Modal, Note, PageHeader, SearchInput, cx, inputCls, useAction, useApi,
 } from "@/components/portal/ui";
@@ -15,13 +15,15 @@ const ICONS: Record<FollowUpSegmentId, typeof Send> = {
   no_orders: UserPlus,
   failed_challenge: RotateCcw,
   all_traders: Megaphone,
+  crypto_extra_10: Percent,
 };
 const RECENT_MS = 3 * 864e5;
-const PLACEHOLDERS = ["{{name}}", "{{plan}}", "{{amount}}", "{{orderId}}", "{{coupon}}"];
+const PLACEHOLDERS = ["{{name}}", "{{plan}}", "{{amount}}", "{{orderId}}", "{{coupon}}", "{{account}}"];
+const ACCOUNT_SIZES = ["$5K", "$10K", "$25K", "$50K", "$100K", "$200K"];
 
 const draftFor = (data: FollowUpData, id: FollowUpSegmentId): FollowUpDraft => {
   const p = data.presets[id];
-  return { subject: p.subject, title: p.title, message: p.message, ctaLabel: p.ctaLabel, ctaUrl: p.ctaPath, coupon: "" };
+  return { subject: p.subject, title: p.title, message: p.message, ctaLabel: p.ctaLabel, ctaUrl: p.ctaPath, coupon: "", account: id === "crypto_extra_10" ? "$100K" : "" };
 };
 
 function AdminFollowUps() {
@@ -103,7 +105,7 @@ function AdminFollowUps() {
 
       {loading && !data ? <Card><Loading /></Card> : data && draft && seg ? (
         <>
-          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
             {data.segments.map((s) => {
               const Icon = ICONS[s.id];
               const active = s.id === segment;
@@ -172,6 +174,12 @@ function AdminFollowUps() {
             <Card className="min-w-0">
               <CardHeader title="Email" actions={<Button size="sm" variant="ghost" onClick={() => setDraft(draftFor(data, segment))}><RotateCcw className="h-3.5 w-3.5" />Reset</Button>} />
               <div className="space-y-4 p-5">
+                {(segment === "crypto_extra_10" || `${draft.subject}${draft.title}${draft.message}`.includes("{{account}}")) && (
+                  <Field label="Account size" hint="Fills {{account}} in the subject, heading and message">
+                    <input list="followup-account-sizes" value={draft.account ?? ""} onChange={set("account")} className={inputCls} placeholder="e.g. $100K" />
+                    <datalist id="followup-account-sizes">{ACCOUNT_SIZES.map((s) => <option key={s} value={s} />)}</datalist>
+                  </Field>
+                )}
                 <Field label="Subject"><input value={draft.subject} onChange={set("subject")} className={inputCls} /></Field>
                 <Field label="Heading"><input value={draft.title} onChange={set("title")} className={inputCls} /></Field>
                 <Field label="Message"><textarea rows={5} value={draft.message} onChange={set("message")} className={inputCls} /></Field>

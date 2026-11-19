@@ -79,11 +79,11 @@ const offers = [
 ];
 
 const orders = [
-  { id: "o-4821", userId: "u-trader01", planId: "pp-two-step-100k", planName: "Two Step $100K", couponUsed: "WELCOME10", amountPaid: 477, paymentMethod: "Paddle", status: "Live Active", gatewayRef: "paddle:txn_1", createdAt: daysAgo(45), updatedAt: daysAgo(10) },
+  { id: "o-4821", userId: "u-trader01", planId: "pp-two-step-100k", planName: "Two Step $100K", couponUsed: "WELCOME10", amountPaid: 477, paymentMethod: "Crypto", status: "Live Active", gatewayRef: "paddle:txn_1", createdAt: daysAgo(45), updatedAt: daysAgo(10) },
   { id: "o-5530", userId: "u-trader01", planId: "pp-one-step-50k", planName: "One Step $50K", couponUsed: "", amountPaid: 329, paymentMethod: "Crypto QR", status: "Active", gatewayRef: "manual:USDT_TRC20:abc:proof", createdAt: daysAgo(14), updatedAt: daysAgo(13) },
-  { id: "o-6102", userId: "u-trader01", planId: "pp-two-step-25k", planName: "Two Step $25K", couponUsed: "", amountPaid: 179, paymentMethod: "Paddle", status: "Failed", gatewayRef: "paddle:txn_2", createdAt: daysAgo(30), updatedAt: daysAgo(6) },
+  { id: "o-6102", userId: "u-trader01", planId: "pp-two-step-25k", planName: "Two Step $25K", couponUsed: "", amountPaid: 179, paymentMethod: "Crypto", status: "Failed", gatewayRef: "paddle:txn_2", createdAt: daysAgo(30), updatedAt: daysAgo(6) },
   { id: "o-7015", userId: "u-trader01", planId: "pp-instant-10k", planName: "Instant $10K", couponUsed: "", amountPaid: 231, paymentMethod: "Crypto QR", status: "Pending", gatewayRef: "gway_1", createdAt: daysAgo(1), updatedAt: daysAgo(1) },
-  { id: "o-7120", userId: "u-trader02", planId: "pp-two-step-50k", planName: "Two Step $50K", couponUsed: "BULL25", amountPaid: 225, paymentMethod: "Paddle", status: "Paid", gatewayRef: "paddle:txn_3", createdAt: daysAgo(0, 4), updatedAt: daysAgo(0, 4) },
+  { id: "o-7120", userId: "u-trader02", planId: "pp-two-step-50k", planName: "Two Step $50K", couponUsed: "BULL25", amountPaid: 225, paymentMethod: "Crypto", status: "Paid", gatewayRef: "paddle:txn_3", createdAt: daysAgo(0, 4), updatedAt: daysAgo(0, 4) },
   { id: "o-7133", userId: "u-trader04", planId: "pp-one-step-10k", planName: "One Step $10K", couponUsed: "", amountPaid: 98, paymentMethod: "Crypto QR", status: "Pending", gatewayRef: "manual:USDT_BEP20:0xabc:proof", createdAt: daysAgo(0, 2), updatedAt: daysAgo(0, 2) },
 ];
 
@@ -172,6 +172,7 @@ function demoFollowUps() {
       { id: "no_orders", label: "No purchase yet", description: "Active traders who never created an order.", recipients: traders.slice(0, 2).map((u: any, i: number) => r(u, i)) },
       { id: "failed_challenge", label: "Failed challenge", description: "Latest challenge failed and no new paid order since — offer a retry.", recipients: traders.slice(2, 3).map((u: any, i: number) => r(u, i, order(i))) },
       { id: "all_traders", label: "All active traders", description: "Promotions and announcements for every active trader.", recipients: traders.map((u: any, i: number) => r(u, i)) },
+      { id: "crypto_extra_10", label: "10% extra off (crypto)", description: "Promote the extra 10% OFF on crypto payments for an account size you choose — every active trader.", recipients: traders.map((u: any, i: number) => r(u, i)) },
     ],
     presets: {
       unpaid_orders: { subject: "Your {{plan}} challenge is waiting for you", title: "Complete your order", message: "Hi {{name}},\nyou started an order for the {{plan}} challenge ({{amount}}) but the payment wasn't completed.\nYour spot is still reserved — finish checkout and start trading today.", ctaLabel: "Complete payment", ctaPath: "/dashboard/orders" },
@@ -179,6 +180,7 @@ function demoFollowUps() {
       no_orders: { subject: "Ready to get funded, {{name}}?", title: "Start your funded journey", message: "Hi {{name}},\nthanks for joining Bullish 4ex. Pick a challenge, prove your strategy and trade our capital with up to 90% profit split.", ctaLabel: "Choose a challenge", ctaPath: "/dashboard/new-challenge" },
       failed_challenge: { subject: "Every great trader has a comeback", title: "Ready for another shot?", message: "Hi {{name}},\nyour last challenge didn't go to plan — that's part of trading. Take what you learned and start a new challenge today.", ctaLabel: "Start a new challenge", ctaPath: "/dashboard/new-challenge" },
       all_traders: { subject: "A special offer for Bullish 4ex traders", title: "Limited-time offer", message: "Hi {{name}},\nfor a limited time get a discount on any challenge. Don't miss it!", ctaLabel: "Claim offer", ctaPath: "/pricing" },
+      crypto_extra_10: { subject: "Extra 10% OFF on your {{account}} challenge", title: "Extra 10% OFF with crypto", message: "Hi {{name}},\nget an extra 10% OFF on the {{account}} account when you pay with crypto at checkout.\nThe extra discount stacks with your promo code — pick your {{account}} challenge and start trading today.", ctaLabel: "Claim 10% OFF", ctaPath: "/dashboard/new-challenge" },
     },
     coupons: db.coupons.filter((c: any) => c.status === "active").map((c: any) => ({ code: c.code, discountPercent: c.discountPercent })),
     siteUrl: window.location.origin,
@@ -324,7 +326,7 @@ export async function demoRequest(path: string, init: RequestInit & { json?: unk
   if (p === "/api/follow-ups") return ok(demoFollowUps());
   if (p === "/api/follow-ups/send") return ok({ sentCount: body.userIds?.length ?? 0, failedCount: 0, failed: [] });
   if (p === "/api/follow-ups/preview") {
-    const fill = (s: string) => String(s || "").replaceAll("{{name}}", "Ali").replaceAll("{{plan}}", "Two Step $10K").replaceAll("{{amount}}", "$89.00").replaceAll("{{orderId}}", "ORD-10234").replaceAll("{{coupon}}", body.coupon || "");
+    const fill = (s: string) => String(s || "").replaceAll("{{name}}", "Ali").replaceAll("{{plan}}", "Two Step $10K").replaceAll("{{amount}}", "$89.00").replaceAll("{{orderId}}", "ORD-10234").replaceAll("{{coupon}}", body.coupon || "").replaceAll("{{account}}", body.account || "challenge");
     return ok({
       subject: fill(body.subject),
       html: `<body style="margin:0;background:#09090b;font-family:Inter,Arial,sans-serif;padding:32px 16px"><div style="max-width:560px;margin:auto"><p style="color:#f4f4f5;font-weight:800">BULLISH<span style="color:#2563eb">4</span>EX <span style="color:#71717a;font-weight:400;font-size:11px">(demo preview)</span></p><div style="background:#121215;border:1px solid #27272a;border-radius:14px;border-top:4px solid #2563eb;padding:28px 32px"><h2 style="color:#f4f4f5;margin:0 0 12px">${fill(body.title)}</h2><div style="color:#a1a1aa;font-size:14px;line-height:1.7;white-space:pre-line">${fill(body.message)}${body.coupon ? `\n\nUse code <b style="color:#2563eb">${body.coupon}</b> at checkout.` : ""}</div>${body.ctaLabel ? `<a style="display:inline-block;margin-top:20px;background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">${body.ctaLabel}</a>` : ""}</div></div></body>`,

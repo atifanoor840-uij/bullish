@@ -25,13 +25,12 @@ export async function referralBalance(userId: string) {
 export async function createOrder(ctx: Ctx) {
   const user = await requireUser(ctx);
   const b = await body(ctx);
-  const planId = str(b.planId), paymentMethod = str(b.paymentMethod) || "Paddle";
+  // Only crypto payments are accepted (card payments were removed).
+  const planId = str(b.planId), paymentMethod = str(b.paymentMethod) || "Crypto";
+  if (!paymentMethod.toLowerCase().includes("crypto")) throw new HttpError(400, "Card payments are not available. Please pay with crypto.");
   const plan = await db.one<DBPricingPlan>("pricing_plans", { id: eq(planId) });
   if (!plan) throw new HttpError(404, "Plan not found.");
   if (plan.status !== "active") throw new HttpError(400, "This plan is not available in the pricing catalog.");
-  if (paymentMethod.toLowerCase().includes("paddle") && (ctx.req.headers.get("cf-ipcountry") || "").toUpperCase() === "PK") {
-    throw new HttpError(403, "Card payments are not available in your country. Please pay with crypto.");
-  }
 
   const weekend = !!b.weekendHoldingAddon;
   let base = Number(plan.price) * (weekend ? 1 + WEEKEND_ADDON_PERCENT / 100 : 1);
@@ -162,8 +161,6 @@ export async function deleteOrder(ctx: Ctx) {
 
 /* ---------------- payments ---------------- */
 
-const paddleBase = () => (env.paddle.sandbox ? "https://sandbox-api.paddle.com" : "https://api.paddle.com");
-
 export async function payOrder(ctx: Ctx) {
   const user = await requireUser(ctx);
   const b = await body(ctx);
@@ -196,79 +193,7 @@ export async function payOrder(ctx: Ctx) {
     await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
     return { provider: "nowpayments", checkoutUrl: data.invoice_url, gatewayRef };
   }
-  if (method.includes("whop") || method.includes("card")) {
-    if (!env.whop.apiKey) throw new HttpError(503, "Card payments are not configured yet (WHOP_API_KEY).");
-    const { planName } = await orderPlan(order);
-    const returnUrl = `${env.appUrl || new URL(ctx.req.url).origin}/dashboard/orders`;
-    const amount = Number(order.amountPaid.toFixed(2));
-    if (!(amount > 0)) throw new HttpError(400, "This order has no amount to pay.");
-
-    // Inline one-time variant priced at the exact order total, so the Whop checkout shows the real amount.
-    const payload = {
-      account_id: env.whop.companyId,
-      mode: "payment",
-      // Whop rejects non-HTTPS redirect URLs (e.g., http://localhost in local dev); only send it when HTTPS.
-      ...(returnUrl.startsWith("https://") ? { redirect_url: returnUrl } : {}),
-      metadata: { orderId: order.id, userId: user.id, platform },
-      variant: {
-        product_id: env.whop.productId,
-        account_id: env.whop.companyId,
-        title: `${planName} challenge`,
-        description: `Order ${order.id} · ${platform}`,
-        billing_type: "one_time",
-        initial_price: amount,
-        currency: "usd",
-        // Tax is counted inside the price (never added on top), so the card is charged exactly the checkout total.
-        override_tax_type: "inclusive",
-        visibility: "visible",
-        unlimited_stock: true,
-        force_create_new_plan: true,
-        metadata: { orderId: order.id },
-      },
-    };
-    let res: Response;
-    try {
-      res = await fetch("https://api.whop.com/api/v1/checkout_configurations", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${env.whop.apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    } catch (err) {
-      throw new HttpError(502, err instanceof Error ? err.message : "Failed to initiate card checkout.");
-    }
-    const data = (await res.json().catch(() => ({}))) as { id?: string; purchase_url?: string; error?: { message?: string }; message?: string };
-    if (!res.ok || !data.purchase_url) throw new HttpError(502, data.error?.message || data.message || "Could not start the card checkout.");
-    const checkoutUrl = data.purchase_url.startsWith("http") ? data.purchase_url : `https://whop.com${data.purchase_url}`;
-    const gatewayRef = `whop:${data.id}:platform=${platform}`;
-    await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
-    return { provider: "whop", checkoutUrl, gatewayRef };
-  }
-
-  if (!method.includes("paddle")) throw new HttpError(503, `${order.paymentMethod} payments are not available. Please choose Card or Crypto.`);
-  if (!env.paddle.apiKey) throw new HttpError(503, "Card payments are not configured yet (PADDLE_API_KEY).");
-
-  const { planName } = await orderPlan(order);
-  const res = await fetch(`${paddleBase()}/transactions`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${env.paddle.apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      items: [{
-        quantity: 1,
-        price: {
-          description: `${planName} challenge`, name: planName,
-          unit_price: { amount: String(Math.round(order.amountPaid * 100)), currency_code: "USD" },
-          product: { name: `Bullish 4ex ${planName}`, tax_category: "standard" },
-        },
-      }],
-      custom_data: { orderId: order.id, userId: user.id, platform },
-    }),
-  });
-  const data = (await res.json().catch(() => ({}))) as { data?: { id: string; checkout?: { url?: string } }; error?: { detail?: string } };
-  const url = data.data?.checkout?.url;
-  if (!res.ok || !data.data || !url) throw new HttpError(502, data.error?.detail || "Could not start the card checkout. Make sure a default payment link is set in Paddle.");
-  const gatewayRef = `paddle:${data.data.id}:platform=${platform}`;
-  await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
-  return { provider: "paddle", checkoutUrl: url, gatewayRef };
+  throw new HttpError(400, "Card payments are not available. Please pay with crypto.");
 }
 
 export async function paddleWebhook(ctx: Ctx) {
