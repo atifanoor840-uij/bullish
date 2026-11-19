@@ -39,7 +39,7 @@ function Overview() {
 
   const tasks = [
     { label: "Manual payments to confirm", count: data.orders.filter((o) => o.status === "Pending" && o.gatewayRef?.startsWith("manual:")).length, to: "/admin/orders" },
-    { label: "Accounts awaiting credentials", count: data.accounts.filter((a) => a.deliveryStatus === "pending").length, to: "/admin/accounts" },
+    { label: "Accounts awaiting credentials", count: data.accounts.filter((a) => a.deliveryStatus === "pending").length, to: "/admin/orders" },
     { label: "Payouts to review", count: data.payouts.filter((p) => p.status === "pending").length, to: "/admin/payouts" },
     { label: "KYC to review", count: data.kyc.filter((k) => k.status === "pending" || k.status === "needs_review").length, to: "/admin/kyc" },
   ];

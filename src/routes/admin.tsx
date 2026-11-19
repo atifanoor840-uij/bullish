@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  LayoutDashboard, ShoppingBag, Layers, Wallet, ShieldCheck, Users, Share2, Handshake, Tags, TicketPercent, Gift, Boxes,
+  LayoutDashboard, ShoppingBag, Wallet, ShieldCheck, Users, Share2, Handshake, Tags, TicketPercent, Gift, Boxes,
   Megaphone, Mail, MailCheck, ScrollText, Loader2, Lock,
 } from "lucide-react";
 import { Logo } from "@/components/site/primitives";
@@ -29,8 +29,7 @@ function buildNav(c: Counts): NavGroup[] {
     {
       title: "Operations",
       items: [
-        { label: "Orders", to: "/admin/orders", icon: ShoppingBag, badge: c.orders },
-        { label: "Accounts", to: "/admin/accounts", icon: Layers, badge: c.deliveries },
+        { label: "Orders & Accounts", to: "/admin/orders", icon: ShoppingBag, badge: c.orders + c.deliveries },
         { label: "Payouts", to: "/admin/payouts", icon: Wallet, badge: c.payouts },
         { label: "KYC", to: "/admin/kyc", icon: ShieldCheck, badge: c.kyc },
       ],

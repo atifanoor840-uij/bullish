@@ -5,5 +5,5 @@ export const Route = createFileRoute("/admin/accounts/$id")({ component: AdminAc
 
 function AdminAccountPage() {
   const { id } = Route.useParams();
-  return <AccountDetail accountId={id} admin backHref="/admin/accounts" />;
+  return <AccountDetail accountId={id} admin backHref="/admin/orders" />;
 }
