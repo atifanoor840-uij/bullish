@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Activity, BadgeCheck, BarChart3, Clock, CreditCard, ExternalLink, Eye, Pencil, SlidersHorizontal, Trash2, Trophy, X, XCircle, Zap } from "lucide-react";
-import { Badge, Button, Card, DataTable, EmptyState, ErrorNote, Field, Loading, Modal, Note, PageHeader, Pager, RefreshButton, SearchInput, StatCard, Tabs, cx, inputCls, useAction, useApi, usePaged } from "@/components/portal/ui";
+import { useEffect, useMemo, useState } from "react";
+import { BarChart3, ExternalLink, Eye, Pencil, SlidersHorizontal, Trash2, X, Zap } from "lucide-react";
+import { Badge, Button, Card, DataTable, EmptyState, ErrorNote, Field, Loading, Modal, Note, PageHeader, Pager, PeriodStats, RefreshButton, SearchInput, Tabs, cx, inputCls, useAction, useApi, usePaged } from "@/components/portal/ui";
 import { usePortal } from "@/components/portal/context";
 import { AccountDetail } from "@/components/portal/AccountDetail";
 import { EditAccount } from "@/components/portal/admin/EditAccount";
@@ -138,12 +138,6 @@ function AdminOrders() {
     }
   }
 
-  const stat = (f: F, label: string, icon: ReactNode, sub: string, valueClass = "") => (
-    <button onClick={() => setFilter(f)} className={cx("rounded-2xl text-left transition", filter === f ? "ring-2 ring-primary/60" : "hover:opacity-90")}>
-      <StatCard label={label} value={cnt(f)} icon={icon} sub={sub} valueClass={valueClass} highlight={filter === f} />
-    </button>
-  );
-
   return (
     <>
       <PageHeader
@@ -153,14 +147,12 @@ function AdminOrders() {
       />
       {error && <ErrorNote message={error} onRetry={reload} />}
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-6">
-        {stat("payment", "Awaiting payment", <CreditCard className="h-4 w-4" />, "Orders not yet paid", "text-amber-500")}
-        {stat("deliver", "To deliver", <Clock className="h-4 w-4" />, "Waiting for credentials", "text-amber-500")}
-        {stat("live", "Active accounts", <Activity className="h-4 w-4" />, "Evaluation + funded", "text-profit")}
-        {stat("Funded", "Funded", <BadgeCheck className="h-4 w-4" />, "Live funded accounts")}
-        {stat("Passed", "Passed", <Trophy className="h-4 w-4" />, "Moved to next stage")}
-        {stat("Failed", "Failed", <XCircle className="h-4 w-4" />, "Breached accounts", "text-loss")}
-      </div>
+      <PeriodStats
+        items={data?.orders ?? []}
+        getDate={(o) => o.createdAt}
+        noun="orders"
+        sub={(l) => `${money(l.filter((o) => !/pending|fail/i.test(o.status)).reduce((s, o) => s + (Number(o.amountPaid) || 0), 0))} paid`}
+      />
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <Tabs<F> value={filter} onChange={setFilter} tabs={[
