@@ -6,11 +6,11 @@
  */
 import { db, eq } from "../db";
 import { env } from "../env";
-import { audit, emailHtml, orderPlan, sendEmail } from "../core";
+import { audit, emailHtml, orderPlan, sendEmail, sizeLabel } from "../core";
 import { HttpError, body, origin, requireAdmin, str, type Ctx } from "../http";
-import type { DBCoupon, DBOrder, DBUser } from "../types";
+import type { DBCoupon, DBOrder, DBPricingPlan, DBUser } from "../types";
 
-export type SegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders" | "crypto_extra_5";
+export type SegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders" | "crypto_extra_5" | "pricing";
 
 type Recipient = {
   userId: string; name: string; email: string; createdAt: string;
@@ -29,6 +29,7 @@ export const SEGMENTS: Record<SegmentId, { label: string; description: string }>
   failed_challenge: { label: "Failed challenge", description: "Latest challenge failed and no new paid order since — offer a retry." },
   all_traders: { label: "All active traders", description: "Promotions and announcements for every active trader." },
   crypto_extra_5: { label: "5% extra off (crypto)", description: "Promote the extra 5% OFF on crypto payments for an account size you choose — every active trader." },
+  pricing: { label: "Pricing", description: "Send the live price list for the accounts you pick — choose exactly which traders get it." },
 };
 
 /** Default copy per segment. Placeholders: {{name}} {{plan}} {{amount}} {{orderId}} {{coupon}}. */
@@ -75,7 +76,45 @@ export const PRESETS: Record<SegmentId, { subject: string; title: string; messag
     ctaLabel: "Claim 5% OFF",
     ctaPath: "/dashboard/new-challenge",
   },
+  pricing: {
+    subject: "Bullish 4ex challenge pricing for you, {{name}}",
+    title: "Our challenge pricing",
+    message: "Hi {{name}},\nhere are the current prices for the accounts we picked for you. Choose your size, pass the challenge and trade our capital with up to 90% profit split.",
+    ctaLabel: "Get funded now",
+    ctaPath: "/dashboard/new-challenge",
+  },
 };
+
+type PriceRow = Pick<DBPricingPlan, "id" | "model" | "size" | "price" | "realPrice">;
+const MODEL_ORDER = ["One Step", "Two Step", "Instant", "Flex"];
+const money = (n: number) => `$${(Math.round(n * 100) / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+
+async function activePlans(): Promise<PriceRow[]> {
+  const rows = await db.select<DBPricingPlan>("pricing_plans", { status: eq("active") }, { order: "size.asc" }).catch(() => [] as DBPricingPlan[]);
+  return rows
+    .map((p) => ({ id: p.id, model: p.model, size: Number(p.size), price: Number(p.price), ...(p.realPrice ? { realPrice: Number(p.realPrice) } : {}) }))
+    .sort((a, b) => MODEL_ORDER.indexOf(a.model) - MODEL_ORDER.indexOf(b.model) || a.size - b.size);
+}
+
+/** Picks the requested active plans (kept in catalog order). */
+async function pickPlans(raw: unknown): Promise<PriceRow[]> {
+  const ids = new Set((Array.isArray(raw) ? raw : []).map((x) => str(x)).filter(Boolean));
+  if (!ids.size) return [];
+  if (ids.size > 30) throw new HttpError(400, "Pick at most 30 accounts for the price list.");
+  return (await activePlans()).filter((p) => ids.has(p.id));
+}
+
+/** Price-list rows: with a coupon show the discounted price, otherwise strike the "real" price when it's higher. */
+function priceRows(plans: PriceRow[], couponPercent?: number): [string, string][] {
+  return plans.map((p) => {
+    const now = couponPercent ? p.price * (1 - couponPercent / 100) : p.price;
+    const was = couponPercent ? p.price : p.realPrice && p.realPrice > p.price ? p.realPrice : 0;
+    return [
+      `${esc(p.model)} ${sizeLabel(p.size)}`,
+      `${was ? `<s style="color:#71717a;font-weight:400">${money(was)}</s>&nbsp; ` : ""}<span style="color:#2563eb">${money(now)}</span>`,
+    ];
+  });
+}
 
 const isSegment = (s: string): s is SegmentId => s in SEGMENTS;
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -106,12 +145,13 @@ async function computeSegments(): Promise<Record<SegmentId, Recipient[]>> {
     ...r, orderId: o.id, plan: (await orderPlan(o)).planName, amount: Number(o.amountPaid), orderDate: o.createdAt,
   });
 
-  const out: Record<SegmentId, Recipient[]> = { unpaid_orders: [], unverified: [], no_orders: [], failed_challenge: [], all_traders: [], crypto_extra_5: [] };
+  const out: Record<SegmentId, Recipient[]> = { unpaid_orders: [], unverified: [], no_orders: [], failed_challenge: [], all_traders: [], crypto_extra_5: [], pricing: [] };
   for (const u of users) {
     const list = byUser.get(u.id) ?? [];
     const r = base(u);
     out.all_traders.push(r);
     out.crypto_extra_5.push(r);
+    out.pricing.push(r);
     if (u.emailVerified === false) out.unverified.push(r);
     if (!list.length) out.no_orders.push(r);
 
@@ -128,14 +168,16 @@ async function computeSegments(): Promise<Record<SegmentId, Recipient[]>> {
 
 export async function listFollowUps(ctx: Ctx) {
   await requireAdmin(ctx);
-  const [segments, coupons] = await Promise.all([
+  const [segments, coupons, plans] = await Promise.all([
     computeSegments(),
     db.select<DBCoupon>("coupons", { status: eq("active") }).catch(() => [] as DBCoupon[]),
+    activePlans(),
   ]);
   return {
     segments: (Object.keys(SEGMENTS) as SegmentId[]).map((id) => ({ id, ...SEGMENTS[id], recipients: segments[id] })),
     presets: PRESETS,
     coupons: coupons.filter((c) => !c.expiresAt || time(c.expiresAt) > Date.now()).map((c) => ({ code: c.code, discountPercent: Number(c.discountPercent) })),
+    plans,
     siteUrl: origin(ctx),
     emailConfigured: env.emailConfigured,
   };
@@ -153,13 +195,17 @@ function fill(text: string, r: Recipient, coupon: string, html: boolean, account
 }
 
 /** Renders the email for one recipient (also used by the admin preview). */
-export function renderFollowUp(r: Recipient, input: { title: string; message: string; ctaLabel: string; ctaUrl: string; coupon: string; couponPercent?: number | undefined; account?: string }) {
+export function renderFollowUp(r: Recipient, input: { title: string; message: string; ctaLabel: string; ctaUrl: string; coupon: string; couponPercent?: number | undefined; account?: string; plans?: PriceRow[] }) {
   const couponLine = input.coupon
     ? `\n\nUse code <b style="color:#2563eb;letter-spacing:.04em">${esc(input.coupon)}</b>${input.couponPercent ? ` for ${input.couponPercent}% off` : ""} at checkout.`
     : "";
   const account = input.account ?? "";
+  const details: [string, string][] = [
+    ...(r.orderId ? ([["Order ID", esc(r.orderId)], ["Plan", esc(r.plan ?? "")], ["Amount", `$${(r.amount ?? 0).toFixed(2)}`]] as [string, string][]) : []),
+    ...(input.plans?.length ? priceRows(input.plans, input.couponPercent) : []),
+  ];
   return emailHtml(fill(input.title, r, input.coupon, true, account), fill(input.message, r, input.coupon, true, account) + couponLine, {
-    ...(r.orderId ? { details: [["Order ID", esc(r.orderId)], ["Plan", esc(r.plan ?? "")], ["Amount", `$${(r.amount ?? 0).toFixed(2)}`]] as [string, string][] } : {}),
+    ...(details.length ? { details } : {}),
     ...(input.ctaLabel && input.ctaUrl ? { cta: { label: esc(input.ctaLabel), url: input.ctaUrl } } : {}),
   });
 }
@@ -189,6 +235,9 @@ export async function sendFollowUps(ctx: Ctx) {
     couponPercent = Number(c.discountPercent);
   }
 
+  const plans = await pickPlans(b.planIds);
+  if (segment === "pricing" && !plans.length) throw new HttpError(400, "Pick at least one account for the price list.");
+
   const ids = new Set((Array.isArray(b.userIds) ? (b.userIds as unknown[]) : []).map((x) => str(x)));
   const recipients = (await computeSegments())[segment].filter((r) => ids.has(r.userId));
   if (!recipients.length) throw new HttpError(400, "Select at least one recipient from this audience.");
@@ -197,7 +246,7 @@ export async function sendFollowUps(ctx: Ctx) {
   const failed: string[] = [];
   for (let i = 0; i < recipients.length; i += 5) {
     await Promise.all(recipients.slice(i, i + 5).map(async (r) => {
-      const html = renderFollowUp(r, { title, message, ctaLabel, ctaUrl, coupon, couponPercent, account });
+      const html = renderFollowUp(r, { title, message, ctaLabel, ctaUrl, coupon, couponPercent, account, plans });
       const subj = fill(subject, r, coupon, false, account);
       const ok = await sendEmail(r.email, subj, html);
       if (!ok) failed.push(r.email);
@@ -223,6 +272,7 @@ export async function previewFollowUp(ctx: Ctx) {
     html: renderFollowUp(sample, {
       title: str(b.title), message: str(b.message), ctaLabel: str(b.ctaLabel), ctaUrl, account: str(b.account),
       coupon: str(b.coupon).toUpperCase(), couponPercent: Number(b.couponPercent) || undefined,
+      plans: await pickPlans(b.planIds),
     }),
   };
 }

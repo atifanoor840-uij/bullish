@@ -173,6 +173,7 @@ function demoFollowUps() {
       { id: "failed_challenge", label: "Failed challenge", description: "Latest challenge failed and no new paid order since — offer a retry.", recipients: traders.slice(2, 3).map((u: any, i: number) => r(u, i, order(i))) },
       { id: "all_traders", label: "All active traders", description: "Promotions and announcements for every active trader.", recipients: traders.map((u: any, i: number) => r(u, i)) },
       { id: "crypto_extra_5", label: "5% extra off (crypto)", description: "Promote the extra 5% OFF on crypto payments for an account size you choose — every active trader.", recipients: traders.map((u: any, i: number) => r(u, i)) },
+      { id: "pricing", label: "Pricing", description: "Send the live price list for the accounts you pick — choose exactly which traders get it.", recipients: traders.map((u: any, i: number) => r(u, i)) },
     ],
     presets: {
       unpaid_orders: { subject: "Your {{plan}} challenge is waiting for you", title: "Complete your order", message: "Hi {{name}},\nyou started an order for the {{plan}} challenge ({{amount}}) but the payment wasn't completed.\nYour spot is still reserved — finish checkout and start trading today.", ctaLabel: "Complete payment", ctaPath: "/dashboard/orders" },
@@ -181,7 +182,9 @@ function demoFollowUps() {
       failed_challenge: { subject: "Every great trader has a comeback", title: "Ready for another shot?", message: "Hi {{name}},\nyour last challenge didn't go to plan — that's part of trading. Take what you learned and start a new challenge today.", ctaLabel: "Start a new challenge", ctaPath: "/dashboard/new-challenge" },
       all_traders: { subject: "A special offer for Bullish 4ex traders", title: "Limited-time offer", message: "Hi {{name}},\nfor a limited time get a discount on any challenge. Don't miss it!", ctaLabel: "Claim offer", ctaPath: "/pricing" },
       crypto_extra_5: { subject: "Extra 5% OFF on your {{account}} challenge", title: "Extra 5% OFF with crypto", message: "Hi {{name}},\nget an extra 5% OFF on the {{account}} account when you pay with crypto at checkout.\nThe extra discount stacks with your promo code — pick your {{account}} challenge and start trading today.", ctaLabel: "Claim 5% OFF", ctaPath: "/dashboard/new-challenge" },
+      pricing: { subject: "Bullish 4ex challenge pricing for you, {{name}}", title: "Our challenge pricing", message: "Hi {{name}},\nhere are the current prices for the accounts we picked for you. Choose your size, pass the challenge and trade our capital with up to 90% profit split.", ctaLabel: "Get funded now", ctaPath: "/dashboard/new-challenge" },
     },
+    plans: db.plans.filter((p: any) => p.status === "active").map((p: any) => ({ id: p.id, model: p.model, size: p.size, price: p.price, realPrice: p.realPrice })),
     coupons: db.coupons.filter((c: any) => c.status === "active").map((c: any) => ({ code: c.code, discountPercent: c.discountPercent })),
     siteUrl: window.location.origin,
     emailConfigured: true,
@@ -327,9 +330,14 @@ export async function demoRequest(path: string, init: RequestInit & { json?: unk
   if (p === "/api/follow-ups/send") return ok({ sentCount: body.userIds?.length ?? 0, failedCount: 0, failed: [] });
   if (p === "/api/follow-ups/preview") {
     const fill = (s: string) => String(s || "").replaceAll("{{name}}", "Ali").replaceAll("{{plan}}", "Two Step $10K").replaceAll("{{amount}}", "$89.00").replaceAll("{{orderId}}", "ORD-10234").replaceAll("{{coupon}}", body.coupon || "").replaceAll("{{account}}", body.account || "challenge");
+    const pct = Number(body.couponPercent) || 0;
+    const picked = db.plans.filter((pl: any) => (body.planIds ?? []).includes(pl.id));
+    const priceList = picked.length
+      ? `<table style="width:100%;margin-top:16px;border:1px solid #27272a;border-radius:10px;background:#09090b;font-size:13px">${picked.map((pl: any) => `<tr><td style="padding:10px 14px;color:#a1a1aa">${pl.model} $${pl.size / 1000}K</td><td align="right" style="padding:10px 14px;color:#2563eb;font-weight:600">${pct ? `<s style="color:#71717a;font-weight:400">$${pl.price}</s> ` : ""}$${+(pl.price * (1 - pct / 100)).toFixed(2)}</td></tr>`).join("")}</table>`
+      : "";
     return ok({
       subject: fill(body.subject),
-      html: `<body style="margin:0;background:#09090b;font-family:Inter,Arial,sans-serif;padding:32px 16px"><div style="max-width:560px;margin:auto"><p style="color:#f4f4f5;font-weight:800">BULLISH<span style="color:#2563eb">4</span>EX <span style="color:#71717a;font-weight:400;font-size:11px">(demo preview)</span></p><div style="background:#121215;border:1px solid #27272a;border-radius:14px;border-top:4px solid #2563eb;padding:28px 32px"><h2 style="color:#f4f4f5;margin:0 0 12px">${fill(body.title)}</h2><div style="color:#a1a1aa;font-size:14px;line-height:1.7;white-space:pre-line">${fill(body.message)}${body.coupon ? `\n\nUse code <b style="color:#2563eb">${body.coupon}</b> at checkout.` : ""}</div>${body.ctaLabel ? `<a style="display:inline-block;margin-top:20px;background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">${body.ctaLabel}</a>` : ""}</div></div></body>`,
+      html: `<body style="margin:0;background:#09090b;font-family:Inter,Arial,sans-serif;padding:32px 16px"><div style="max-width:560px;margin:auto"><p style="color:#f4f4f5;font-weight:800">BULLISH<span style="color:#2563eb">4</span>EX <span style="color:#71717a;font-weight:400;font-size:11px">(demo preview)</span></p><div style="background:#121215;border:1px solid #27272a;border-radius:14px;border-top:4px solid #2563eb;padding:28px 32px"><h2 style="color:#f4f4f5;margin:0 0 12px">${fill(body.title)}</h2><div style="color:#a1a1aa;font-size:14px;line-height:1.7;white-space:pre-line">${fill(body.message)}${body.coupon ? `\n\nUse code <b style="color:#2563eb">${body.coupon}</b> at checkout.` : ""}</div>${priceList}${body.ctaLabel ? `<a style="display:inline-block;margin-top:20px;background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">${body.ctaLabel}</a>` : ""}</div></div></body>`,
     });
   }
   if (p === "/api/audit-logs") return ok({ logs: db.audit });

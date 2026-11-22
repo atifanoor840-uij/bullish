@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, CreditCard, Megaphone, Percent, RotateCcw, Send, ShoppingCart, UserPlus } from "lucide-react";
+import { BadgeCheck, CreditCard, Megaphone, Percent, RotateCcw, Send, ShoppingCart, Tag, UserPlus } from "lucide-react";
 import {
   Badge, Button, Card, CardHeader, EmptyState, ErrorNote, Field, Loading, Modal, Note, PageHeader, SearchInput, cx, inputCls, useAction, useApi,
 } from "@/components/portal/ui";
@@ -16,14 +16,22 @@ const ICONS: Record<FollowUpSegmentId, typeof Send> = {
   failed_challenge: RotateCcw,
   all_traders: Megaphone,
   crypto_extra_5: Percent,
+  pricing: Tag,
 };
+const sizeLabel = (n: number) => (n >= 1000 ? `$${+(n / 1000).toFixed(1)}K` : `$${n}`);
 const RECENT_MS = 3 * 864e5;
 const PLACEHOLDERS = ["{{name}}", "{{plan}}", "{{amount}}", "{{orderId}}", "{{coupon}}", "{{account}}"];
 const ACCOUNT_SIZES = ["$5K", "$10K", "$25K", "$50K", "$100K", "$200K"];
 
 const draftFor = (data: FollowUpData, id: FollowUpSegmentId): FollowUpDraft => {
   const p = data.presets[id];
-  return { subject: p.subject, title: p.title, message: p.message, ctaLabel: p.ctaLabel, ctaUrl: p.ctaPath, coupon: "", account: id === "crypto_extra_5" ? "$100K" : "" };
+  const draft: FollowUpDraft = { subject: p.subject, title: p.title, message: p.message, ctaLabel: p.ctaLabel, ctaUrl: p.ctaPath, coupon: "", account: id === "crypto_extra_5" ? "$100K" : "" };
+  if (id === "pricing") {
+    // Default price list: every Two Step size (or the first few plans if there's no Two Step).
+    const two = data.plans.filter((pl) => pl.model === "Two Step");
+    draft.planIds = (two.length ? two : data.plans.slice(0, 6)).map((pl) => pl.id);
+  }
+  return draft;
 };
 
 function AdminFollowUps() {
@@ -83,6 +91,11 @@ function AdminFollowUps() {
   };
 
   const set = (k: keyof FollowUpDraft) => (e: { target: { value: string } }) => draft && setDraft({ ...draft, [k]: e.target.value });
+  const planIds = new Set(draft?.planIds ?? []);
+  const setPlans = (ids: Set<string>) => draft && setDraft({ ...draft, planIds: (data?.plans ?? []).filter((p) => ids.has(p.id)).map((p) => p.id) });
+  const togglePlan = (id: string) => { const n = new Set(planIds); if (n.has(id)) n.delete(id); else n.add(id); setPlans(n); };
+  const models = [...new Set((data?.plans ?? []).map((p) => p.model))];
+  const needsPlans = segment === "pricing" && !planIds.size;
   const count = selected.size;
   const send = async () => {
     if (!draft) return;
@@ -105,7 +118,7 @@ function AdminFollowUps() {
 
       {loading && !data ? <Card><Loading /></Card> : data && draft && seg ? (
         <>
-          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             {data.segments.map((s) => {
               const Icon = ICONS[s.id];
               const active = s.id === segment;
@@ -174,6 +187,52 @@ function AdminFollowUps() {
             <Card className="min-w-0">
               <CardHeader title="Email" actions={<Button size="sm" variant="ghost" onClick={() => setDraft(draftFor(data, segment))}><RotateCcw className="h-3.5 w-3.5" />Reset</Button>} />
               <div className="space-y-4 p-5">
+                {segment === "pricing" && (
+                  <Field label={`Accounts in the price list · ${planIds.size} selected`} hint="Selected accounts are shown with their live price in the email (coupon discount applied if you pick one).">
+                    {!data.plans.length ? (
+                      <Note tone="warning">No active pricing plans found. Add plans on the Pricing page first.</Note>
+                    ) : (
+                      <div className="space-y-3 rounded-lg border border-white/[0.06] p-3">
+                        {models.map((m) => {
+                          const list = data.plans.filter((p) => p.model === m);
+                          const all = list.every((p) => planIds.has(p.id));
+                          return (
+                            <div key={m}>
+                              <div className="mb-1.5 flex items-center justify-between">
+                                <p className="text-xs font-semibold">{m}</p>
+                                <button
+                                  type="button"
+                                  onClick={() => { const n = new Set(planIds); list.forEach((p) => (all ? n.delete(p.id) : n.add(p.id))); setPlans(n); }}
+                                  className="text-[11px] text-primary hover:underline"
+                                >
+                                  {all ? "Clear" : "Select all"}
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {list.map((p) => {
+                                  const on = planIds.has(p.id);
+                                  return (
+                                    <button
+                                      key={p.id}
+                                      type="button"
+                                      onClick={() => togglePlan(p.id)}
+                                      className={cx(
+                                        "rounded-md border px-2.5 py-1 text-xs tabular-nums transition",
+                                        on ? "border-primary/60 bg-primary/[0.12] text-foreground" : "border-white/10 text-muted-foreground hover:border-white/20",
+                                      )}
+                                    >
+                                      {sizeLabel(p.size)} <span className={on ? "text-primary" : ""}>${p.price}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </Field>
+                )}
                 {(segment === "crypto_extra_5" || `${draft.subject}${draft.title}${draft.message}`.includes("{{account}}")) && (
                   <Field label="Account size" hint="Fills {{account}} in the subject, heading and message">
                     <input list="followup-account-sizes" value={draft.account ?? ""} onChange={set("account")} className={inputCls} placeholder="e.g. $100K" />
@@ -205,7 +264,7 @@ function AdminFollowUps() {
                   <iframe title="Email preview" sandbox="" srcDoc={preview?.html ?? ""} className="h-[26rem] w-full rounded-lg border border-white/10 bg-[#09090b]" />
                 </div>
 
-                <Button variant="primary" className="w-full" busy={busy === "send"} disabled={!count || !draft.subject || !draft.title || !draft.message || !data.emailConfigured} onClick={() => setConfirm(true)}>
+                <Button variant="primary" className="w-full" busy={busy === "send"} disabled={!count || needsPlans || !draft.subject || !draft.title || !draft.message || !data.emailConfigured} onClick={() => setConfirm(true)}>
                   <Send className="h-4 w-4" />Send to {count} {count === 1 ? "person" : "people"}
                 </Button>
                 {note && <Note tone={note.tone}>{note.text}</Note>}
@@ -224,6 +283,7 @@ function AdminFollowUps() {
           >
             <p className="text-sm text-muted-foreground">
               “<span className="text-foreground">{draft.subject}</span>” will be emailed to <b className="text-foreground">{count}</b> {count === 1 ? "person" : "people"} in <b className="text-foreground">{seg.label}</b>
+              {segment === "pricing" && <> with prices for <b className="text-foreground">{planIds.size}</b> account{planIds.size === 1 ? "" : "s"}</>}
               {draft.coupon && <> with coupon <b className="text-primary">{draft.coupon}</b></>}. This can't be undone.
             </p>
           </Modal>

@@ -59,16 +59,18 @@ export type InventoryItem = {
   externalStatisticsId?: string; graphLink?: string; status: "available" | "delivered"; orderId?: string; createdAt?: string;
 };
 
-export type FollowUpSegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders" | "crypto_extra_5";
+export type FollowUpSegmentId = "unpaid_orders" | "unverified" | "no_orders" | "failed_challenge" | "all_traders" | "crypto_extra_5" | "pricing";
 export type FollowUpRecipient = {
   userId: string; name: string; email: string; createdAt: string;
   orderId?: string; plan?: string; amount?: number; orderDate?: string; lastFollowUpAt?: string | null;
 };
-export type FollowUpDraft = { subject: string; title: string; message: string; ctaLabel: string; ctaUrl: string; coupon: string; account?: string };
+export type FollowUpDraft = { subject: string; title: string; message: string; ctaLabel: string; ctaUrl: string; coupon: string; account?: string; planIds?: string[] };
+export type FollowUpPlan = { id: string; model: string; size: number; price: number; realPrice?: number };
 export type FollowUpData = {
   segments: { id: FollowUpSegmentId; label: string; description: string; recipients: FollowUpRecipient[] }[];
   presets: Record<FollowUpSegmentId, { subject: string; title: string; message: string; ctaLabel: string; ctaPath: string }>;
   coupons: { code: string; discountPercent: number }[];
+  plans: FollowUpPlan[];
   siteUrl: string;
   emailConfigured: boolean;
 };

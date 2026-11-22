@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef as useReactRef, useState, type ReactNode } from "react";
-import { Check, Tag, ShieldCheck, Gift, Clock, Sparkles, ShoppingBag, Rocket, ArrowRight, ArrowLeft, Lock, Bitcoin } from "lucide-react";
+import { Check, Tag, ShieldCheck, Gift, Clock, Sparkles, ShoppingBag, Rocket, ArrowRight, ArrowLeft, Lock, Bitcoin, CreditCard } from "lucide-react";
 import { Button, Card, EmptyState, ErrorNote, Field, Loading, Note, PageHeader, cx, inputCls, useApi } from "@/components/portal/ui";
 import { PayOrder } from "@/components/portal/Checkout";
 import { ApiError, computeCheckoutTotal, propApi, type Order, type PricingPlan } from "@/lib/propApi";
@@ -8,6 +8,7 @@ import { money, num, price, sizeLabel } from "@/lib/portal";
 import { isPopularSize } from "@/lib/site-data";
 import { bogoBadge, bogoFor, isLive, isPublic, offerSummary } from "@/lib/offers";
 import { trackPixel } from "@/lib/metaPixel";
+import { bullishIdForPrice, openBullishCheckout } from "@/lib/bullishCheckout";
 
 export const Route = createFileRoute("/dashboard/new-challenge")({
   head: () => ({
@@ -158,8 +159,8 @@ function NewChallenge() {
   const [model, setModel] = useState<PricingPlan["model"]>("Flex");
   const [size, setSize] = useState(100000);
   const [platform, setPlatform] = useState<(typeof PLATFORMS)[number]>("MT5");
-  // Only crypto payments are offered.
-  const method = "Crypto";
+  // Crypto goes through our gateway; Card goes through the Bullish hosted checkout.
+  const [method, setMethod] = useState<"Crypto" | "Card">("Crypto");
   const [weekend, setWeekend] = useState(false);
   const [code, setCode] = useState("");
   const [useRef, setUseRef] = useState(false);
@@ -257,8 +258,24 @@ function NewChallenge() {
     }
   }, [plan?.id, activeModel]);
 
+  const payWithCard = () => {
+    if (!plan) return;
+    setErr("");
+    const title = `${activeModel} ${sizeLabel(plan.size)}`;
+    // Match the card total first, then the catalog price.
+    const id = bullishIdForPrice(total, plan.price);
+    if (!id) {
+      setErr(`Card payment is not available for ${money(total)} right now. Please pay with crypto.`);
+      return;
+    }
+    trackPixel("InitiateCheckout", { content_name: title, content_ids: [plan.id], content_type: "product", value: total, currency: "USD", num_items: 1 });
+    trackPixel("AddPaymentInfo", { content_name: title, value: total, currency: "USD", payment_method: "Card" });
+    openBullishCheckout(id, title);
+  };
+
   const place = async (expected = total) => {
     if (!plan) return;
+    if (method === "Card") return payWithCard();
     setBusy(true);
     setErr("");
     try {
@@ -387,6 +404,8 @@ function NewChallenge() {
     const methods = [
       { id: "Crypto" as const, title: "Crypto", sub: "Bitcoin, Ethereum, USDT, TRX & USDC", icon: <Bitcoin className="h-7 w-7" />, amount: cryptoPrice, note: coupon ? `${coupon.discountPercent}% + 5% extra = ${coupon.discountPercent + 5}% OFF` : "Extra 5% OFF with crypto",
         on: "border-profit/70 bg-gradient-to-b from-profit/[0.10] to-transparent shadow-[inset_0_-2px_0_0_var(--profit)]", iconCls: "border-profit/40 bg-profit/15 text-profit", priceCls: "bg-profit/15 text-profit", noteCls: "text-profit/80" },
+      { id: "Card" as const, title: "Card", sub: "Visa, Mastercard & more", icon: <CreditCard className="h-7 w-7" />, amount: configTotal, note: coupon ? `${coupon.discountPercent}% OFF applied` : "Secure card checkout",
+        on: "border-primary/70 bg-gradient-to-b from-primary/[0.10] to-transparent shadow-[inset_0_-2px_0_0_var(--primary)]", iconCls: "border-primary/40 bg-primary/15 text-primary", priceCls: "bg-primary/15 text-primary", noteCls: "text-primary/80" },
     ];
     const summary: [string, ReactNode, string?][] = [
       ["Program", activeModel],
@@ -408,13 +427,14 @@ function NewChallenge() {
               {(promo || promoOffer) && (
                 <PromoBar discount={promo?.discountPercent} offer={promoOffer?.name} expiresAt={promoExpires} />
               )}
-              <div className="grid gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {methods.map((m) => {
                   const on = payMethod === m.id;
                   return (
                     <button
                       key={m.id}
                       type="button"
+                      onClick={() => { setErr(""); setMethod(m.id); }}
                       className={cx("flex flex-col items-center rounded-2xl border px-4 py-7 text-center transition", on ? m.on : "border-white/[0.08] hover:border-white/20")}
                     >
                       <span className={cx("flex h-16 w-16 items-center justify-center rounded-2xl border", m.iconCls)}>{m.icon}</span>
@@ -577,7 +597,7 @@ function NewChallenge() {
             >
               Place Challenge — {money(configTotal)}<ArrowRight className="h-4 w-4" />
             </Button>
-            <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground"><Bitcoin className="h-3.5 w-3.5" />Secure checkout · Pay with crypto on next step</p>
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground"><Bitcoin className="h-3.5 w-3.5" />Secure checkout · Pay with crypto or card on next step</p>
           </>
         ))}
       </div>
