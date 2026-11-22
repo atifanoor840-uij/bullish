@@ -202,7 +202,7 @@ export async function payOrder(ctx: Ctx) {
     if (!productId) throw new HttpError(400, `Card payment is not available for $${order.amountPaid.toFixed(2)}. Please pay with crypto.`);
     const gatewayRef = `bullish:${productId}:platform=${platform}`;
     await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
-    return { provider: "bullish", checkoutUrl: bullishCheckoutUrl(productId, planName), gatewayRef };
+    return { provider: "bullish", checkoutUrl: bullishCheckoutUrl(productId, planName, order.id), gatewayRef };
   }
   throw new HttpError(400, "Unsupported payment method.");
 }
@@ -271,6 +271,53 @@ export async function whopWebhook(ctx: Ctx) {
   const paymentId = event.data?.id || event.id || "whop_payment";
   await activateOrder(order, { status: "Paid", gatewayRef: `whop:${paymentId}:platform=${platform}` });
   return json({ success: true });
+}
+
+/**
+ * Bullish Academy card checkout → payment success event.
+ * POST /api/orders/pay/bullish-webhook
+ * Auth (either): header `X-Bullish-Signature: <hex HMAC-SHA256(raw body, BULLISH_WEBHOOK_SECRET)>`
+ *             or header `Authorization: Bearer <BULLISH_WEBHOOK_SECRET>`.
+ * Body: { event: "payment.succeeded", orderId: "o-123456", amount?: 9, paymentId?: "pay_…", title?: "…" }
+ */
+export async function bullishWebhook(ctx: Ctx) {
+  const raw = await ctx.req.text();
+  const secret = env.bullish.webhookSecret;
+  if (!secret) return json({ error: "Webhook secret not configured (BULLISH_WEBHOOK_SECRET)." }, 503);
+  const sig = (ctx.req.headers.get("x-bullish-signature") || "").replace(/^sha256=/i, "").toLowerCase();
+  const bearer = (ctx.req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  const authed = (sig && safeEqual(sig, await hmacHex(secret, raw))) || (bearer && safeEqual(bearer, secret));
+  if (!authed) return json({ error: "Invalid signature." }, 401);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- payload shape is defined by Bullish
+  let e: any = {};
+  try { e = JSON.parse(raw); } catch { return json({ error: "Invalid JSON" }, 400); }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const d: any = e?.data && typeof e.data === "object" ? e.data : e;
+
+  const type = String(e.event || e.type || d.status || "").toLowerCase();
+  if (!/(succeeded|success|paid|completed|confirmed)/.test(type)) return json({ success: true, ignored: type || "no event" });
+
+  // Order id: explicit field, metadata, or the "Order o-123456" tag in the checkout title.
+  const orderId = String(
+    d.orderId || d.order_id || d.ref || d.metadata?.orderId || d.metadata?.order_id || e.orderId ||
+    (/\bo-\d{6}\b/.exec(String(d.title || e.title || ""))?.[0] ?? ""),
+  ).trim();
+  const order = orderId ? await db.one<DBOrder>("orders", { id: eq(orderId) }) : null;
+  if (!order) return json({ success: true, ignored: "order not found", orderId });
+  if (order.status !== "Pending") return json({ success: true, alreadyProcessed: true, orderId });
+  if (!order.paymentMethod.toLowerCase().includes("card")) return json({ success: true, ignored: "not a card order", orderId });
+
+  const paid = numv(d.amount ?? d.total ?? d.amountPaid);
+  if (Number.isFinite(paid) && paid > 0 && paid + 0.01 < Number(order.amountPaid)) {
+    return json({ error: `Paid amount $${paid} is less than the order total $${order.amountPaid}.` }, 400);
+  }
+
+  const platform = /platform=([A-Za-z0-9]+)/.exec(order.gatewayRef || "")?.[1] || "MT5";
+  const productId = /^bullish:(\d+)/.exec(order.gatewayRef || "")?.[1] || "";
+  const paymentId = String(d.paymentId || d.payment_id || d.id || e.id || "paid");
+  await activateOrder(order, { status: "Paid", gatewayRef: `bullish:${productId}:${paymentId}:platform=${platform}` });
+  return json({ success: true, orderId: order.id, status: "Paid" });
 }
 
 /** JSON with object keys sorted recursively — NOWPayments signs the IPN body this way. */

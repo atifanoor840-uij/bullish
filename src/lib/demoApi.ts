@@ -263,7 +263,7 @@ export async function demoRequest(path: string, init: RequestInit & { json?: unk
       const pid = bullishIdForPrice(o.amountPaid);
       if (!pid) throw new Error(`Card payment is not available for $${o.amountPaid}.`);
       o.gatewayRef = `bullish:${pid}`;
-      return ok({ provider: "bullish", checkoutUrl: bullishCheckoutUrl(pid, o.planName), gatewayRef: o.gatewayRef });
+      return ok({ provider: "bullish", checkoutUrl: bullishCheckoutUrl(pid, o.planName, o.id), gatewayRef: o.gatewayRef });
     }
     return ok({ provider: "demo", checkoutUrl: "/dashboard?payment=success", gatewayRef: "demo" });
   }

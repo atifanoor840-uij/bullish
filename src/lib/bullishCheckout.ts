@@ -47,8 +47,13 @@ export function bullishIdForPrice(...amounts: number[]): string | undefined {
   return undefined;
 }
 
-export function bullishCheckoutUrl(id: string, title: string) {
-  const params = new URLSearchParams({ id, title });
+/**
+ * With an order id, it is sent as `orderId` and also tagged in the title ("… · Order o-123456"),
+ * so the payment-success webhook can send it back and we can activate the right order.
+ */
+export function bullishCheckoutUrl(id: string, title: string, orderId?: string) {
+  const params = new URLSearchParams({ id, title: orderId ? `${title} · Order ${orderId}` : title });
+  if (orderId) params.set("orderId", orderId);
   return `${BULLISH_ORIGIN}/api/v1/checkout?${params.toString()}`;
 }
 

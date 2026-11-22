@@ -52,6 +52,10 @@ export const env = {
       variantId: read("WHOP_VARIANT_ID") || read("WHOP_PLAN_ID") || "plan_EE7OocLy4ExcR",
     };
   },
+  /** Bullish Academy card checkout. The secret authenticates its payment-success webhook. */
+  get bullish() {
+    return { webhookSecret: read("BULLISH_WEBHOOK_SECRET") };
+  },
   /** NOWPayments (crypto). Hardcoded keys below are used when the env vars are not set. */
   get nowpayments() {
     return {
