@@ -53,15 +53,12 @@ export function bullishIdForPrice(...amounts: number[]): string | undefined {
  */
 export function bullishCheckoutUrl(id: string, title: string, orderId?: string) {
   const params = new URLSearchParams({ id, title: orderId ? `${title} · Order ${orderId}` : title });
-  if (orderId) params.set("orderId", orderId);
+  // Same value as the script's `data-bullish-order-id`; sent under both common names.
+  if (orderId) { params.set("orderId", orderId); params.set("order_id", orderId); }
   return `${BULLISH_ORIGIN}/api/v1/checkout?${params.toString()}`;
 }
 
-type BullishWindow = Window & { BullishCheckout?: { open: (o: { id: string; title: string }) => void } };
-
-/** Opens the Bullish card checkout (uses the loaded script when present, otherwise the same URL directly). */
-export function openBullishCheckout(id: string, title: string) {
-  const w = window as BullishWindow;
-  if (w.BullishCheckout?.open) w.BullishCheckout.open({ id, title });
-  else window.location.href = bullishCheckoutUrl(id, title);
+/** Opens the Bullish card checkout for an order. */
+export function openBullishCheckout(id: string, title: string, orderId?: string) {
+  window.location.href = bullishCheckoutUrl(id, title, orderId);
 }

@@ -301,7 +301,7 @@ export async function bullishWebhook(ctx: Ctx) {
   // Order id: explicit field, metadata, or the "Order o-123456" tag in the checkout title.
   const orderId = String(
     d.orderId || d.order_id || d.ref || d.metadata?.orderId || d.metadata?.order_id || e.orderId ||
-    (/\bo-\d{6}\b/.exec(String(d.title || e.title || ""))?.[0] ?? ""),
+    (/\bo-\d+\b/.exec(String(d.title || e.title || ""))?.[0] ?? ""),
   ).trim();
   const order = orderId ? await db.one<DBOrder>("orders", { id: eq(orderId) }) : null;
   if (!order) return json({ success: true, ignored: "order not found", orderId });
