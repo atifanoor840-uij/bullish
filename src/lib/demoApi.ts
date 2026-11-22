@@ -4,6 +4,7 @@
  * /api server: open any page with `?demo=1` (turn off with `?demo=0`).
  * Only ever active when `import.meta.env.DEV` is true, so production builds never use it.
  */
+import { bullishCheckoutUrl, bullishIdForPrice } from "./bullishCheckout";
 
 const KEY = "b4x-demo";
 
@@ -256,7 +257,16 @@ export async function demoRequest(path: string, init: RequestInit & { json?: unk
     if (m === "DELETE") { db.orders = db.orders.filter((x: any) => x.id !== url.searchParams.get("id")); return ok({ removedAccounts: 0 }); }
     return ok({ orders: mine(db.orders).map((o: any) => ({ ...o, ...(isAdmin() ? { userName: db.users.find((u: any) => u.id === o.userId)?.name, userEmail: db.users.find((u: any) => u.id === o.userId)?.email } : {}) })) });
   }
-  if (p === "/api/orders/pay") return ok({ provider: "demo", checkoutUrl: "/dashboard?payment=success", gatewayRef: "demo" });
+  if (p === "/api/orders/pay") {
+    const o = db.orders.find((x: any) => x.id === body.orderId);
+    if (o && String(o.paymentMethod).toLowerCase().includes("card")) {
+      const pid = bullishIdForPrice(o.amountPaid);
+      if (!pid) throw new Error(`Card payment is not available for $${o.amountPaid}.`);
+      o.gatewayRef = `bullish:${pid}`;
+      return ok({ provider: "bullish", checkoutUrl: bullishCheckoutUrl(pid, o.planName), gatewayRef: o.gatewayRef });
+    }
+    return ok({ provider: "demo", checkoutUrl: "/dashboard?payment=success", gatewayRef: "demo" });
+  }
   if (p === "/api/orders/manual-payment") return m === "GET" ? ok({ url: "https://placehold.co/600x900/png?text=Payment+proof", walletId: "USDT_TRC20", txid: "a1b2c3d4e5f6…" }) : ok({ order: db.orders[0] });
 
   if (p === "/api/accounts") {

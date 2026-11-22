@@ -6,6 +6,7 @@ import {
 } from "../core";
 import { HttpError, body, hmacHex, isAdmin, json, numv, origin, query, requireAdmin, requireUser, safeEqual, str, type Ctx } from "../http";
 import { couponExpired } from "./catalog";
+import { bullishCheckoutUrl, bullishIdForPrice } from "../../lib/bullishCheckout";
 import type { DBAccount, DBAffiliate, DBCoupon, DBOrder, DBPricingPlan, DBReferral } from "../types";
 
 export async function listOrders(ctx: Ctx) {
@@ -25,9 +26,10 @@ export async function referralBalance(userId: string) {
 export async function createOrder(ctx: Ctx) {
   const user = await requireUser(ctx);
   const b = await body(ctx);
-  // Only crypto payments are accepted (card payments were removed).
+  // Crypto (NOWPayments / manual QR) or Card (Bullish hosted checkout).
   const planId = str(b.planId), paymentMethod = str(b.paymentMethod) || "Crypto";
-  if (!paymentMethod.toLowerCase().includes("crypto")) throw new HttpError(400, "Card payments are not available. Please pay with crypto.");
+  const pm = paymentMethod.toLowerCase();
+  if (!pm.includes("crypto") && !pm.includes("card")) throw new HttpError(400, "Unsupported payment method.");
   const plan = await db.one<DBPricingPlan>("pricing_plans", { id: eq(planId) });
   if (!plan) throw new HttpError(404, "Plan not found.");
   if (plan.status !== "active") throw new HttpError(400, "This plan is not available in the pricing catalog.");
@@ -193,7 +195,16 @@ export async function payOrder(ctx: Ctx) {
     await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
     return { provider: "nowpayments", checkoutUrl: data.invoice_url, gatewayRef };
   }
-  throw new HttpError(400, "Card payments are not available. Please pay with crypto.");
+  if (method.includes("card")) {
+    const { planName } = await orderPlan(order);
+    const plan = await db.one<DBPricingPlan>("pricing_plans", { id: eq(order.planId) });
+    const productId = bullishIdForPrice(order.amountPaid, Number(plan?.price));
+    if (!productId) throw new HttpError(400, `Card payment is not available for $${order.amountPaid.toFixed(2)}. Please pay with crypto.`);
+    const gatewayRef = `bullish:${productId}:platform=${platform}`;
+    await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });
+    return { provider: "bullish", checkoutUrl: bullishCheckoutUrl(productId, planName), gatewayRef };
+  }
+  throw new HttpError(400, "Unsupported payment method.");
 }
 
 export async function paddleWebhook(ctx: Ctx) {

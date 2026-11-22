@@ -8,7 +8,7 @@ import { money, num, price, sizeLabel } from "@/lib/portal";
 import { isPopularSize } from "@/lib/site-data";
 import { bogoBadge, bogoFor, isLive, isPublic, offerSummary } from "@/lib/offers";
 import { trackPixel } from "@/lib/metaPixel";
-import { bullishIdForPrice, openBullishCheckout } from "@/lib/bullishCheckout";
+import { bullishIdForPrice } from "@/lib/bullishCheckout";
 
 export const Route = createFileRoute("/dashboard/new-challenge")({
   head: () => ({
@@ -258,24 +258,14 @@ function NewChallenge() {
     }
   }, [plan?.id, activeModel]);
 
-  const payWithCard = () => {
-    if (!plan) return;
-    setErr("");
-    const title = `${activeModel} ${sizeLabel(plan.size)}`;
-    // Match the card total first, then the catalog price.
-    const id = bullishIdForPrice(total, plan.price);
-    if (!id) {
-      setErr(`Card payment is not available for ${money(total)} right now. Please pay with crypto.`);
-      return;
-    }
-    trackPixel("InitiateCheckout", { content_name: title, content_ids: [plan.id], content_type: "product", value: total, currency: "USD", num_items: 1 });
-    trackPixel("AddPaymentInfo", { content_name: title, value: total, currency: "USD", payment_method: "Card" });
-    openBullishCheckout(id, title);
-  };
-
   const place = async (expected = total) => {
     if (!plan) return;
-    if (method === "Card") return payWithCard();
+    const isCard = method === "Card";
+    // Card: check a Bullish product exists for this price before creating the order.
+    if (isCard && !bullishIdForPrice(expected, plan.price)) {
+      setErr(`Card payment is not available for ${money(expected)} right now. Please pay with crypto.`);
+      return;
+    }
     setBusy(true);
     setErr("");
     try {
@@ -302,8 +292,10 @@ function NewChallenge() {
           });
           window.location.href = checkoutUrl;
           return;
-        } catch {
-          // Fall back to the payment step if redirecting immediately fails.
+        } catch (e) {
+          // Card: show why; the order stays Pending and can be paid from My Orders.
+          if (isCard) throw e;
+          // Crypto: fall back to the payment step if redirecting immediately fails.
         }
       }
 
