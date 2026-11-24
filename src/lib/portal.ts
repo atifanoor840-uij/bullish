@@ -97,6 +97,7 @@ export type AccountInfo = {
   profit: number;
   isTrailing?: boolean;
   highWaterMark?: number;
+  maxLossFloor?: number;
 };
 
 /** Joins an account with its order to resolve plan, size and risk limits. */
@@ -115,17 +116,11 @@ export function describeAccount(a: TradingAccount, ordersById: Record<string, Or
 
   // Flex uses 8% trailing max loss measured from highest closed-trade balance, locking at starting balance once 8% in profit
   const isFlex = model === "Flex";
-  const highWaterMark = Math.max(size, num(a["highWaterMark"], num(a.balance)));
-  let maxLimit = num(a["maxDrawdown"]) || (size * limits.overall) / 100;
-  let maxUsed = num(a["currentMaxDrawdown"], Math.max(0, size - Math.min(num(a.balance), equity)));
-
-  if (isFlex) {
-    // Floor rises with closed balance: highest closed balance - 8% of initial size. Locks at starting balance when profit >= 8%
-    const floor = Math.min(size, highWaterMark - (size * 0.08));
-    const allowedTotalLoss = Math.max(0, num(a.balance) - floor);
-    maxLimit = (size * 0.08);
-    maxUsed = Math.max(0, highWaterMark - Math.min(num(a.balance), equity));
-  }
+  const highWaterMark = Math.max(size, num(a.balance), num(a["highWaterMark"]));
+  const maxLimit = num(a["maxDrawdown"]) || (size * limits.overall) / 100;
+  // Floor rises with closed balance: highest closed balance - 8% of initial size. Locks at starting balance when profit >= 8%.
+  const floor = num(a["maxLossFloor"]) || (isFlex ? Math.min(size, highWaterMark - maxLimit) : size - maxLimit);
+  const maxUsed = num(a["currentMaxDrawdown"], Math.max(0, floor + maxLimit - Math.min(num(a.balance), equity)));
 
   return {
     planName: planName || `${model} ${sizeLabel(size)}`,
@@ -142,19 +137,30 @@ export function describeAccount(a: TradingAccount, ordersById: Record<string, Or
     profit: num(a.totalPl, num(a.balance) - size),
     isTrailing: !!limits.isTrailing,
     highWaterMark,
+    maxLossFloor: floor,
   };
 }
 
-/** Stored breach reason for a failed account, if the rules engine left one. */
+/** Rule checks the server reported as breached (hard rule violations). */
+export function breachedRules(a: TradingAccount): { id: string; label?: string; info?: string }[] {
+  const checks = (a["ruleChecks"] as { id: string; label?: string; status?: string; info?: string }[] | undefined) ?? [];
+  return checks.filter((c) => c.status === "failed" || c.status === "breached");
+}
+
+/** A breached hard rule fails the account, even before an admin closes it. */
+export function isBreached(a: TradingAccount): boolean {
+  return a.status === "Failed" || breachedRules(a).length > 0;
+}
+
+/** Stored breach reason for a failed account, or the rules it breached. */
 export function breachReason(a: TradingAccount): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const p: any = a.statisticsPayload || {};
-  return (
-    (a["breachReason"] as string) ||
-    p.breachReason ||
-    p.ruleBreach?.message ||
-    "This account breached a trading rule and has been closed."
-  );
+  const stored = (a["breachReason"] as string) || p.breachReason || p.ruleBreach?.message;
+  if (stored) return stored;
+  const rules = breachedRules(a);
+  if (rules.length) return `Account failed — rule breached: ${rules.map((r) => r.label || r.id).join(", ")}.`;
+  return "This account breached a trading rule and has been closed.";
 }
 
 export type Trade = {

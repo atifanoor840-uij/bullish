@@ -17,6 +17,33 @@ async function ordersFor(accounts: DBAccount[]) {
   return map;
 }
 
+/**
+ * A hard rule breach fails the account automatically, with the same side effects as an admin
+ * marking it Failed (order failed, breach reason stored, trader emailed). Returns the decorated account.
+ */
+export async function decorateAndEnforce(acc: DBAccount, order?: DBOrder | null) {
+  const decorated = await decorateAccount(acc, order);
+  if (acc.status !== "Active" && acc.status !== "Funded") return decorated;
+  const waived = ((acc.statisticsPayload as Record<string, unknown> | null)?.["_waivedBreaches"] as string[] | undefined) ?? [];
+  const breached = decorated.ruleChecks.filter((c) => c.status === "failed" && !waived.includes(c.id));
+  if (!breached.length) return decorated;
+
+  const now = new Date().toISOString();
+  const reason = `Account failed — hard breach of ${breached.map((c) => `${c.label}: ${c.info}`).join("; ")}`;
+  const payload = {
+    ...((acc.statisticsPayload as Record<string, unknown>) ?? {}),
+    breachReason: reason,
+    ruleBreach: { message: reason, rules: breached.map((c) => c.id), at: now },
+  };
+  // Only the request that flips the status sends the email, even when several load the dashboard at once.
+  const [failed] = await db.update<DBAccount>("trading_accounts", { id: eq(acc.id), status: eq(acc.status) }, { status: "Failed", statisticsPayload: payload });
+  if (!failed) return decorated;
+  if (order) await db.update("orders", { id: eq(order.id) }, { status: "Failed", updatedAt: now });
+  await notify(acc.userId, "Challenge failed", `Account #${acc.id}: ${reason}`, "error", "email");
+  await audit(null, "account_auto_fail", acc.id, "account", reason);
+  return decorateAccount(failed, order);
+}
+
 export async function listAccounts(ctx: Ctx) {
   const user = await requireUser(ctx);
   const admin = isAdmin(user) || user.role === "support";
@@ -29,7 +56,7 @@ export async function listAccounts(ctx: Ctx) {
   const users = admin ? await userMap(accounts.map((a) => a.userId)) : new Map<string, DBUser>();
   const decorated = await Promise.all(
     accounts.map(async (a) => ({
-      ...(await decorateAccount(a, orders.get(a.orderId))),
+      ...(await decorateAndEnforce(a, orders.get(a.orderId))),
       ...(admin ? { userName: users.get(a.userId)?.name ?? "", userEmail: users.get(a.userId)?.email ?? "" } : {}),
     })),
   );
@@ -106,6 +133,11 @@ export async function saveAccount(ctx: Ctx) {
       await db.update("orders", { id: eq(order.id) }, { status: "Failed", updatedAt: now });
       await notify(account.userId, "Challenge failed", `Account #${id}: ${reason}`, "error", "email");
     } else if (existing.status === "Failed") {
+      // Admin reinstated the account: the breaches it had so far are waived and won't auto-fail it again.
+      const prev = (account.statisticsPayload as Record<string, unknown>) ?? {};
+      const waived = [...new Set([...((prev["_waivedBreaches"] as string[] | undefined) ?? []), ...(((prev["ruleBreach"] as { rules?: string[] } | undefined)?.rules) ?? [])])];
+      const { breachReason: _r, ruleBreach: _b, ...rest } = prev;
+      await db.update("trading_accounts", { id: eq(id) }, { statisticsPayload: { ...rest, _waivedBreaches: waived } });
       await db.update("orders", { id: eq(order.id) }, { status: orderStatusForPhase(account.phase), updatedAt: now });
     }
     if (status === "Passed") {
@@ -172,5 +204,5 @@ export async function refreshAccountStats(ctx: Ctx) {
   const { account, error } = await refreshStats(acc, true);
   const order = await db.one<DBOrder>("orders", { id: eq(acc.orderId) });
   const u = (await userMap([acc.userId])).get(acc.userId);
-  return { success: !error, ...(error ? { error } : {}), account: { ...(await decorateAccount(account, order)), userName: u?.name ?? "", userEmail: u?.email ?? "" } };
+  return { success: !error, ...(error ? { error } : {}), account: { ...(await decorateAndEnforce(account, order)), userName: u?.name ?? "", userEmail: u?.email ?? "" } };
 }

@@ -81,11 +81,6 @@ export class ApiError extends Error {
 
 // ------------------------------------------------------------------ core
 async function request<T = any>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
-  // Dev-only demo backend (?demo=1). The branch is dropped from production builds.
-  if (import.meta.env.DEV) {
-    const demo = await import("./demoApi");
-    if (demo.demoEnabled()) return demo.demoRequest(path, init) as Promise<T>;
-  }
   const { json, headers, body, ...rest } = init;
   const reqInit: RequestInit = {
     credentials: "include",

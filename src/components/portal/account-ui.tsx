@@ -40,8 +40,10 @@ const STATUS_CHIP: Record<TradingAccount["status"], string> = {
   Failed: "bg-loss text-white",
 };
 
-export function StatusChip({ status }: { status: TradingAccount["status"] }) {
-  return <span className={cx("inline-flex h-5 items-center rounded-md px-1.5 text-xs leading-[14px] font-medium", STATUS_CHIP[status])}>{status === "Failed" ? "Breached" : status}</span>;
+/** `breached` shows the account as failed when a hard rule was breached, even before an admin closes it. */
+export function StatusChip({ status, breached = false }: { status: TradingAccount["status"]; breached?: boolean }) {
+  const failed = breached || status === "Failed";
+  return <span className={cx("inline-flex h-5 items-center rounded-md px-1.5 text-xs leading-[14px] font-medium", STATUS_CHIP[failed ? "Failed" : status])}>{failed ? "Failed" : status}</span>;
 }
 
 /* ---------------- objective indicators ---------------- */

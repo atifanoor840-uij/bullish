@@ -7,7 +7,7 @@ import {
 import { PlanBadge, SegmentedBar, Sheet, StatusChip, chipCls } from "@/components/portal/account-ui";
 import { CredentialRows } from "@/components/portal/AccountDetail";
 import { propApi, type Order, type TradingAccount } from "@/lib/propApi";
-import { breachReason, describeAccount, fmtDate, money, num, signed, tone } from "@/lib/portal";
+import { breachReason, describeAccount, isBreached, fmtDate, money, num, signed, tone } from "@/lib/portal";
 
 export const Route = createFileRoute("/dashboard/")({ component: AccountsOverview });
 
@@ -156,7 +156,7 @@ function AccountCard({ account: a, ordersById, retry, tags, onChanged }: { accou
             Login ID : {pending ? "Pending" : a.login || a.id}
           </Link>
           <div className="flex flex-wrap items-center gap-1.5">
-            <StatusChip status={a.status} />
+            <StatusChip status={a.status} breached={isBreached(a)} />
             {pending && <span className="inline-flex h-5 items-center rounded-md bg-amber-500/15 px-1.5 text-xs font-medium text-amber-500">Preparing</span>}
             <span className="text-xs text-muted-foreground">{a.platform}</span>
           </div>
@@ -198,8 +198,8 @@ function AccountCard({ account: a, ordersById, retry, tags, onChanged }: { accou
           </>
         )}
 
-        {a.status === "Failed" && (
-          <div className="flex items-start gap-2 rounded-xl border border-loss/25 bg-loss/10 px-3 py-2.5 text-xs text-loss">
+        {isBreached(a) && (
+          <div className="flex items-start gap-2 rounded-xl border border-loss/50 bg-loss/15 px-3 py-2.5 text-xs font-medium text-loss">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{breachReason(a)}
           </div>
         )}

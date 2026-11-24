@@ -305,7 +305,7 @@ describe("Bullish4ex Rulebook Validation", () => {
       const decorated = await decorateAccount(dbAccount, dbOrder);
       const weekendCheck = decorated.ruleChecks.find((c) => c.id === "weekend-holding");
       expect(weekendCheck).toBeDefined();
-      expect(weekendCheck?.status).toBe("warning");
+      expect(weekendCheck?.status).toBe("failed");
       expect(weekendCheck?.info).toContain("without add-on");
     });
 
@@ -324,6 +324,84 @@ describe("Bullish4ex Rulebook Validation", () => {
       expect(inactivityCheck).toBeDefined();
       expect(inactivityCheck?.status).toBe("failed");
       expect(inactivityCheck?.info).toContain("no trades executed in 30 consecutive calendar days");
+    });
+
+    it("trails the Flex 8% floor from the stored peak, not the current balance", async () => {
+      // Peak closed balance $105k, now back to $98k: floor is $97k, so $7k of the $8k allowance is used.
+      const dbAccount = makeDBAccount({
+        status: "Active", phase: "Phase 1 (Evaluation)", balance: 98000, equity: 98000,
+        statisticsPayload: { trades: [], _highWaterMark: 105000 },
+      });
+      const decorated = await decorateAccount(dbAccount, makeDBOrder({ planId: "pp-flex-100k" }));
+      expect(decorated.maxLossFloor).toBe(97000);
+      expect(decorated.currentMaxDrawdown).toBe(7000);
+      expect(decorated.ruleChecks.find((c) => c.id === "overall-drawdown")?.status).toBe("warning");
+    });
+
+    it("locks the Flex floor at the starting balance once 8% in profit", async () => {
+      const dbAccount = makeDBAccount({
+        status: "Active", phase: "Phase 1 (Evaluation)", balance: 99500, equity: 99500,
+        statisticsPayload: { trades: [], _highWaterMark: 112000 },
+      });
+      const decorated = await decorateAccount(dbAccount, makeDBOrder({ planId: "pp-flex-100k" }));
+      expect(decorated.maxLossFloor).toBe(100000);
+      expect(decorated.ruleChecks.find((c) => c.id === "overall-drawdown")?.status).toBe("failed");
+    });
+
+    it("keeps the static 6% floor for non-Flex accounts", async () => {
+      const decorated = await decorateAccount(makeDBAccount({ balance: 97000, equity: 97000 }), makeDBOrder());
+      expect(decorated.maxLossFloor).toBe(94000);
+      expect(decorated.currentMaxDrawdown).toBe(3000);
+    });
+
+    it("still returns rule checks for failed accounts (no fake 'Passed' fallback)", async () => {
+      const decorated = await decorateAccount(makeDBAccount({ status: "Failed" }), makeDBOrder());
+      expect(decorated.ruleChecks.length).toBeGreaterThan(0);
+    });
+
+    it("marks news trading as manual review instead of passed", async () => {
+      const decorated = await decorateAccount(makeDBAccount(), makeDBOrder());
+      expect(decorated.ruleChecks.find((c) => c.id === "news-trading")?.status).toBe("manual");
+    });
+
+    it("does not count a Friday→Monday hold as overnight when the weekend add-on is active", async () => {
+      const decorated = await decorateAccount(makeDBAccount({
+        weekendHoldingAddon: true,
+        // 2026-01-16 was a Friday.
+        statisticsPayload: { trades: [{ ticket: "601", symbol: "EURUSD", volume: 1, open_time: "2026-01-16T20:00:00Z", close_time: "2026-01-19T08:00:00Z", net_profit: 10 }] },
+      }), makeDBOrder());
+      expect(decorated.ruleChecks.find((c) => c.id === "overnight-holding")?.status).toBe("passed");
+    });
+  });
+
+  describe("Payout eligibility (decorateAccount.payoutChecks)", () => {
+    // Five recent weekdays (recent so the 30-day inactivity rule stays green).
+    const recentWeekdays: string[] = [];
+    for (let back = 1; recentWeekdays.length < 5; back++) {
+      const d = new Date(Date.now() - back * 864e5);
+      if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) recentWeekdays.push(d.toISOString().slice(0, 10));
+    }
+    const winningTrades = recentWeekdays.map((d, i) => ({
+      ticket: `70${i}`, symbol: "EURUSD", volume: 1, open_time: `${d}T10:00:00Z`, close_time: `${d}T10:30:00Z`, net_profit: 600,
+    }));
+
+    it("is eligible when every gate is met", async () => {
+      const decorated = await decorateAccount(makeDBAccount({ balance: 103000, equity: 103000, statisticsPayload: { trades: winningTrades } }), makeDBOrder());
+      expect(decorated.payoutChecks.every((c) => c.ok)).toBe(true);
+    });
+
+    it("blocks payouts while positions are open or rules are violated", async () => {
+      const decorated = await decorateAccount(makeDBAccount({
+        balance: 103000, equity: 102500,
+        statisticsPayload: { trades: [...winningTrades, { ticket: "799", symbol: "EURUSD", volume: 1, open_time: "2026-01-10T10:00:00Z", close_time: "2026-01-10T10:01:00Z", net_profit: 5 }] },
+      }), makeDBOrder());
+      expect(decorated.payoutChecks.find((c) => c.id === "positions-closed")?.ok).toBe(false);
+      expect(decorated.payoutChecks.find((c) => c.id === "no-violations")?.ok).toBe(false);
+    });
+
+    it("is empty for evaluation accounts", async () => {
+      const decorated = await decorateAccount(makeDBAccount({ status: "Active", phase: "Phase 1 (Evaluation)" }), makeDBOrder());
+      expect(decorated.payoutChecks).toEqual([]);
     });
   });
 });

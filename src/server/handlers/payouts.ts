@@ -3,7 +3,7 @@ import {
   PAYOUT_CAP_PERCENT, PAYOUT_MIN, PAYOUT_PERIOD_DAYS, PHASE, PROFIT_SPLIT_BY_WITHDRAWAL, audit, notify, orderPlan, withUserNames,
 } from "../core";
 import { HttpError, body, isAdmin, numv, randDigits, requireAdmin, requireUser, str, type Ctx } from "../http";
-import { tradesOf } from "../stats";
+import { decorateAccount } from "../stats";
 import type { DBAccount, DBCertificate, DBKyc, DBOrder, DBPayout, DBUser } from "../types";
 
 export async function listPayouts(ctx: Ctx) {
@@ -31,41 +31,19 @@ export async function requestPayout(ctx: Ctx) {
   const { size, model } = order ? await orderPlan(order) : { size: Math.max(0, acc.balance - acc.totalPl), model: "Two Step" };
   const isFlex = model === "Flex";
 
-  // 14 days must have passed since funded account was received
-  const fundedAgeMs = Date.now() - new Date(acc.deliveredAt || acc.createdAt).getTime();
-  if (fundedAgeMs < 14 * 864e5) {
-    const daysLeft = Math.ceil((14 * 864e5 - fundedAgeMs) / 864e5);
-    throw new HttpError(400, `Payouts unlock 14 days after receiving your funded account. ${daysLeft} day(s) remaining.`);
-  }
+  // Eligibility gates (14 days funded, 5 Winning Days, zero violations, positions closed, minimum profit,
+  // Flex consistency) — the same checks the dashboard shows, so the two can never disagree.
+  const { payoutChecks } = await decorateAccount(acc, order);
+  const blocker = payoutChecks.find((c) => !c.ok);
+  if (blocker) throw new HttpError(400, blocker.info);
 
-  // Winning Days gate: 5 Winning Days (each >=0.5% of Initial Balance) required before payout
-  const byDay = new Map<string, number>();
-  tradesOf(acc.statisticsPayload).forEach((t) => t.close_time && byDay.set(t.close_time.slice(0, 10), (byDay.get(t.close_time.slice(0, 10)) ?? 0) + t.profit));
-  const winningDays = [...byDay.values()].filter((pl) => pl >= size * 0.005).length;
-  if (winningDays < 5) {
-    throw new HttpError(400, `You need 5 Winning Days (at least 0.5% / $${(size * 0.005).toFixed(0)} profit each) before requesting a payout. Current: ${winningDays}.`);
-  }
-
-  // Flex Consistency: No single day may account for >20% of total profit
-  if (isFlex) {
-    const totalProfit = Math.max(0, acc.balance - size);
-    const bestDay = Math.max(0, ...byDay.values());
-    if (totalProfit > 0 && bestDay > totalProfit * 0.20) {
-      throw new HttpError(400, `Flex Consistency Rule: No single day may exceed 20% of total profit. Best day: $${bestDay.toFixed(2)} (${((bestDay / totalProfit) * 100).toFixed(1)}% of total profit).`);
-    }
-  }
-
-  // Minimum withdrawal: 1% of Initial Account Balance ($100 minimum for Flex)
-  const minWithdrawal = isFlex ? 100 : Math.max(100, (size * 0.01));
+  const minWithdrawal = isFlex ? 100 : Math.max(PAYOUT_MIN, (size * 0.01));
   const remainingProfit = Math.max(0, acc.balance - size);
-  if (remainingProfit < minWithdrawal) {
-    throw new HttpError(400, `Minimum realized profit required to withdraw is $${minWithdrawal.toFixed(0)} (1% of starting balance). Current profit: $${remainingProfit.toFixed(2)}.`);
-  }
 
-  // Withdrawal Cap: 6% of Initial Account Balance per 14-day cycle. Flex accounts have NO withdrawal cap.
+  // Withdrawal Cap: 6% of Initial Account Balance per 14-day cycle (cycles start when the funded account was delivered). Flex has NO cap.
   const all = await db.select<DBPayout>("payouts", { accountId: eq(acc.id) });
   const periodMs = PAYOUT_PERIOD_DAYS * 864e5;
-  const created = new Date(acc.createdAt).getTime();
+  const created = new Date(acc.deliveredAt || acc.createdAt).getTime();
   const periodStart = created + Math.floor((Date.now() - created) / periodMs) * periodMs;
   const requestedThisPeriod = all
     .filter((p) => p.status !== "rejected" && new Date(p.createdAt).getTime() >= periodStart)
@@ -115,7 +93,15 @@ export async function reviewPayout(ctx: Ctx) {
   });
   if (status === "paid" && payout.status !== "paid") {
     const acc = await db.one<DBAccount>("trading_accounts", { id: eq(payout.accountId) });
-    if (acc) await db.update("trading_accounts", { id: eq(acc.id) }, { balance: acc.balance - payout.amount, equity: acc.equity - payout.amount });
+    if (acc) {
+      // Withdrawn profit also lowers the Flex trailing high-water mark, so a payout is never counted as drawdown.
+      const payload = (acc.statisticsPayload ?? {}) as Record<string, unknown>;
+      const hwm = Number(payload["_highWaterMark"]);
+      await db.update("trading_accounts", { id: eq(acc.id) }, {
+        balance: acc.balance - payout.amount, equity: acc.equity - payout.amount,
+        ...(Number.isFinite(hwm) && hwm > 0 ? { statisticsPayload: { ...payload, _highWaterMark: hwm - payout.amount } } : {}),
+      });
+    }
     const user = await db.one<DBUser>("users", { id: eq(payout.userId) }, { select: "id,name" });
     await db.insert<DBCertificate>("certificates", {
       id: `cert-pay-${payout.id}`, userId: payout.userId, accountId: payout.accountId, traderName: user?.name ?? "",

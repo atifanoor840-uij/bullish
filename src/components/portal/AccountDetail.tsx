@@ -9,13 +9,14 @@ import { ScoreGauge } from "./charts";
 import { DayPills, PlanBadge, SegmentedBar, Sheet, StatTile, StatusChip, chipCls } from "./account-ui";
 import { propApi, type TradingAccount } from "@/lib/propApi";
 import {
-  breachReason, closedTrades, describeAccount, fmtDate, money, num, pct, signed, tone, tradingDays,
+  breachReason, breachedRules, closedTrades, isBreached, describeAccount, fmtDate, money, num, pct, signed, tone, tradingDays,
   type AccountInfo, type DayStat, type Trade,
 } from "@/lib/portal";
 
-type Status = "passed" | "pending" | "warning" | "failed";
+type Status = "passed" | "pending" | "warning" | "failed" | "manual";
 const STATUS: Record<Status, { label: string; cls: string; dot: string }> = {
   passed: { label: "Passed", cls: "bg-profit/15 text-profit", dot: "bg-profit" },
+  manual: { label: "Manual review", cls: "bg-white/[0.06] text-muted-foreground", dot: "bg-muted-foreground" },
   pending: { label: "In progress", cls: "bg-primary/15 text-primary", dot: "bg-primary" },
   warning: { label: "Warning", cls: "bg-amber-500/15 text-amber-500", dot: "bg-amber-500" },
   failed: { label: "Breached", cls: "bg-loss/15 text-loss", dot: "bg-loss" },
@@ -25,9 +26,12 @@ function StatusPill({ s }: { s: Status }) {
   return <span className={cx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold", c.cls)}><span className={cx("h-1.5 w-1.5 rounded-full", c.dot)} />{c.label}</span>;
 }
 const toStatus = (v?: string): Status | undefined =>
-  v === "passed" || v === "pending" || v === "warning" || v === "failed" ? v : v === "breached" ? "failed" : undefined;
+  v === "passed" || v === "pending" || v === "warning" || v === "failed" || v === "manual" ? v : v === "breached" ? "failed" : undefined;
 
 type RuleCheck = { id: string; label?: string; status?: string; info?: string };
+type PayoutCheck = { id: string; label: string; ok: boolean; info: string };
+/** Shown for rules the browser cannot evaluate until the server has synced statistics. */
+const NOT_SYNCED = "Checked once trading statistics sync.";
 
 const TABS = [
   ["overview", "Overview"],
@@ -83,6 +87,7 @@ export function AccountDetail({ accountId, backHref = "/dashboard", admin = fals
   const a = account;
   const info = describeAccount(a, ordersById);
   const pending = a.deliveryStatus === "pending";
+  const breached = isBreached(a);
   const alerts = (a["ruleAlerts"] as { type?: string; title?: string; message?: string }[] | undefined) ?? [];
   const idLabel = pending ? "Pending" : a.login || a.id;
   const cycle = `Started ${fmtDate(a.createdAt)}${a.statisticsUpdatedAt ? ` · Synced ${fmtDate(a.statisticsUpdatedAt, true)}` : ""}`;
@@ -123,7 +128,7 @@ export function AccountDetail({ accountId, backHref = "/dashboard", admin = fals
                   <span className="hidden md:inline">Login ID : {idLabel}</span>
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                  <StatusChip status={a.status} />
+                  <StatusChip status={a.status} breached={breached} />
                   {pending && <span className="inline-flex h-5 items-center rounded-md bg-amber-500/15 px-1.5 text-xs font-medium text-amber-500">Preparing credentials</span>}
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"><BarChart3 className="size-3" />{a.platform}</span>
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"><ArrowLeftRight className="size-3" />{info.phase}</span>
@@ -156,10 +161,17 @@ export function AccountDetail({ accountId, backHref = "/dashboard", admin = fals
         </div>
       </div>
 
-      {(a.status === "Failed" || note || alerts.length > 0) && (
+      {(breached || note || alerts.length > 0) && (
         <div className="mt-4 space-y-2">
-          {a.status === "Failed" && (
-            <div className="flex items-start gap-2 rounded-xl border border-loss/25 bg-loss/10 px-4 py-3 text-sm text-loss"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{breachReason(a)}</div>
+          {breached && (
+            <div role="alert" className="flex items-start gap-3 rounded-xl border-2 border-loss/60 bg-loss/15 px-4 py-4 text-loss">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-base font-bold">Account Failed</p>
+                <p className="mt-0.5 text-sm">{breachReason(a)}</p>
+                {breachedRules(a).map((r) => r.info && <p key={r.id} className="mt-1 text-xs text-loss/80">• {r.label}: {r.info}</p>)}
+              </div>
+            </div>
           )}
           {alerts.map((al, i) => (
             <Note key={i} tone={al.type === "error" ? "error" : al.type === "success" ? "success" : "warning"}><strong>{al.title}:</strong> {al.message}</Note>
@@ -199,6 +211,7 @@ const cardCls = "card-shadow rounded-2xl border border-border bg-card";
 
 function Overview({ account: a, info, trades, days, onRefresh, refreshing }: { account: TradingAccount; info: AccountInfo; trades: Trade[]; days: DayStat[]; onRefresh: () => void; refreshing: boolean }) {
   const checks = (a["ruleChecks"] as RuleCheck[] | undefined) ?? [];
+  const payoutChecks = (a["payoutChecks"] as PayoutCheck[] | undefined) ?? [];
   const equity = num(a.equity, num(a.balance));
   const floating = equity - num(a.balance);
   const profitableDays = days.filter((d) => d.pl >= info.size * 0.005).length;
@@ -230,7 +243,7 @@ function Overview({ account: a, info, trades, days, onRefresh, refreshing }: { a
       {
         id: "minimum-holding-time",
         label: "Minimum Holding Time (3 Min)",
-        status: trades.some((t) => (new Date(t.close_time).getTime() - new Date(t.open_time).getTime()) < 180_000) ? (info.model === "Flex" ? "warning" : "failed") : "passed",
+        status: trades.some((t) => (new Date(t.close_time).getTime() - new Date(t.open_time).getTime()) < 180_000) ? "failed" : "passed",
         info: "All positions must be held for at least 3 minutes (180s) before closing.",
       },
     ];
@@ -254,41 +267,41 @@ function Overview({ account: a, info, trades, days, onRefresh, refreshing }: { a
       items.push({
         id: "one-percent-risk",
         label: "1% Per-Trade Risk Rule",
-        status: "passed",
-        info: `Floating loss on a single position must never exceed $${onePct.toFixed(2)} (1% of starting balance).`,
+        status: "pending",
+        info: `Floating loss on a single position must never exceed $${onePct.toFixed(2)} (1% of starting balance). ${NOT_SYNCED}`,
       });
       items.push({
         id: "trade-layering",
         label: info.model === "Instant" ? "Trade Layering (10m gap, max 2 layers)" : "Trade Layering (10-Min Gap)",
-        status: "passed",
-        info: info.model === "Instant" ? "10 min between trade opens, maximum 2 concurrent layers." : "10 minutes between each trade open time.",
+        status: "pending",
+        info: `${info.model === "Instant" ? "10 min between trade opens, maximum 2 concurrent layers." : "10 minutes between each trade open time."} ${NOT_SYNCED}`,
       });
       items.push({
         id: "news-trading",
         label: "News Trading Window (±5 Min)",
-        status: "passed",
-        info: "Restricted window of 5 minutes before and after high-impact news releases on affected instruments.",
+        status: "manual",
+        info: "Reviewed by the risk team: no trades 5 minutes before to 5 minutes after high-impact news releases.",
       });
     }
     if (info.model !== "Flex") {
       items.push({
         id: "overnight-holding",
         label: "Overnight Holding",
-        status: "passed",
-        info: "Trades must open and close within the same UTC day (before 00:00 UTC).",
+        status: "pending",
+        info: `Trades must open and close within the same UTC day (before 00:00 UTC). ${NOT_SYNCED}`,
       });
       items.push({
         id: "weekend-holding",
         label: "Weekend Holding",
-        status: "passed",
-        info: a.weekendHoldingAddon ? "Weekend Holding Add-on is active." : "Weekend holding prohibited: all trades closed Fri 23:00 to Sun 23:00 UTC.",
+        status: a.weekendHoldingAddon ? "passed" : "pending",
+        info: a.weekendHoldingAddon ? "Weekend Holding Add-on is active." : `Weekend holding prohibited: all trades closed Fri 23:00 to Sun 23:00 UTC. ${NOT_SYNCED}`,
       });
     }
     items.push({
       id: "inactivity",
       label: "Inactivity Rule (30 Days)",
-      status: "passed",
-      info: "Must execute at least 1 trade every 30 consecutive calendar days.",
+      status: "pending",
+      info: `Must execute at least 1 trade every 30 consecutive calendar days. ${NOT_SYNCED}`,
     });
     return items;
   }, [checks, info, trades, profitableDays, a.weekendHoldingAddon]);
@@ -316,12 +329,19 @@ function Overview({ account: a, info, trades, days, onRefresh, refreshing }: { a
         <div className={cx(cardCls, "p-5")}>
           <div className="flex items-center justify-between">
             <p className="flex items-center gap-2 text-base leading-5 font-semibold"><Shield className="size-4 text-muted-foreground" />Rule Checks</p>
-            {allChecks.length > 0 && <span className="text-xs text-muted-foreground">{allChecks.filter((c) => c.status === "passed").length}/{allChecks.length} passed</span>}
+            {allChecks.length > 0 && <span className="text-xs text-muted-foreground">{allChecks.filter((c) => c.status === "passed").length}/{allChecks.filter((c) => c.status !== "manual").length} passed</span>}
           </div>
           {allChecks.length ? (
             <ul className="mt-3 max-h-80 overflow-y-auto pr-1">
-              {allChecks.map((c) => (
-                <li key={c.id} className="border-b border-border py-3 last:border-0 last:pb-0" title={c.info}>
+              {[...allChecks].sort((x, y) => Number(toStatus(y.status) === "failed") - Number(toStatus(x.status) === "failed")).map((c) => (
+                <li
+                  key={c.id}
+                  title={c.info}
+                  className={cx(
+                    "border-b border-border py-3 last:border-0 last:pb-0",
+                    toStatus(c.status) === "failed" && "-mx-2 my-1 rounded-lg border border-loss/50 bg-loss/10 px-2 text-loss last:pb-3",
+                  )}
+                >
                   <div className="flex items-center justify-between gap-2 text-[13px] font-medium">
                     <span>{c.label || c.id}</span>
                     <StatusPill s={toStatus(c.status) ?? "pending"} />
@@ -334,6 +354,29 @@ function Overview({ account: a, info, trades, days, onRefresh, refreshing }: { a
             <p className="mt-3 text-xs text-muted-foreground">Rules are checked once statistics are available.</p>
           )}
         </div>
+
+        {payoutChecks.length > 0 && (
+          <div className={cx(cardCls, "p-5")}>
+            <div className="flex items-center justify-between">
+              <p className="text-base leading-5 font-semibold">Payout Eligibility</p>
+              <span className={cx("text-xs font-semibold", payoutChecks.every((c) => c.ok) ? "text-profit" : "text-muted-foreground")}>
+                {payoutChecks.every((c) => c.ok) ? "Eligible" : `${payoutChecks.filter((c) => c.ok).length}/${payoutChecks.length} met`}
+              </span>
+            </div>
+            <ul className="mt-3">
+              {payoutChecks.map((c) => (
+                <li key={c.id} className="border-b border-border py-3 last:border-0 last:pb-0" title={c.info}>
+                  <div className="flex items-center justify-between gap-2 text-[13px] font-medium">
+                    <span>{c.label}</span>
+                    <StatusPill s={c.ok ? "passed" : "pending"} />
+                  </div>
+                  {!c.ok && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{c.info}</p>}
+                </li>
+              ))}
+              <li className="pt-3 text-xs text-muted-foreground">KYC approval is also required — checked when you request a payout.</li>
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="order-2 flex min-w-0 flex-1 flex-col gap-4 lg:order-1 lg:gap-6">
@@ -507,7 +550,7 @@ function StatusChart({ account: a, info, days }: { account: TradingAccount; info
     return all.filter((p) => p.day >= from);
   }, [a, info.size, days, range]);
 
-  const lossLevel = info.size - info.maxLimit;
+  const lossLevel = info.maxLossFloor ?? info.size - info.maxLimit;
   const targetLevel = info.target > 0 ? info.size + info.target : null;
   const values = points.flatMap((p) => [p.balance, p.equity]).concat(lossLevel, targetLevel ?? info.size);
   const lo = Math.min(...values), hi = Math.max(...values);

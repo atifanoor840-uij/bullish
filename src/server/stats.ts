@@ -36,14 +36,16 @@ export async function refreshStats(acc: DBAccount, force = false): Promise<{ acc
     const res = await fetch(`${env.statisticsBase.replace(/\/$/, "")}/${encodeURIComponent(statsId)}`, { headers: { Accept: "application/json" } });
     const data: any = await res.json();
     if (!res.ok || data?.success === false || !data?.statistics) throw new Error(data?.error || `Statistics feed returned ${res.status}`);
-    const kept = Object.fromEntries(Object.entries(prev).filter(([k]) => k.startsWith("_")));
+    const kept = Object.fromEntries(Object.entries(prev).filter(([k]) => k.startsWith("_") || k === "breachReason" || k === "ruleBreach"));
     const s = data.statistics.account_stats ?? {};
     const balance = Number.isFinite(Number(s.balance)) ? Number(s.balance) : acc.balance;
     const equity = Number.isFinite(Number(s.equity)) ? Number(s.equity) : balance;
     const today = now.slice(0, 10);
     const todayPl = tradesOf(data).filter((t) => t.close_time?.slice(0, 10) === today).reduce((x, t) => x + t.profit, 0) + (equity - balance);
+    // Highest closed balance ever seen — drives the Flex 8% trailing floor. Kept across syncs.
+    const highWaterMark = Math.max(Number(prev?._highWaterMark) || 0, balance);
     const patch: Partial<DBAccount> = {
-      statisticsPayload: { ...data, ...kept, _statsSync: { lastAttemptAt: now, lastSuccessAt: now } },
+      statisticsPayload: { ...data, ...kept, _highWaterMark: highWaterMark, _statsSync: { lastAttemptAt: now, lastSuccessAt: now } },
       statisticsUpdatedAt: now, balance, equity,
       totalPl: Number.isFinite(Number(s.profit)) ? Number(s.profit) : acc.totalPl,
       todayPl: +todayPl.toFixed(2),
@@ -57,7 +59,8 @@ export async function refreshStats(acc: DBAccount, force = false): Promise<{ acc
   }
 }
 
-type RuleStatus = "passed" | "pending" | "warning" | "failed";
+type RuleStatus = "passed" | "pending" | "warning" | "failed" | "manual";
+export type PayoutCheck = { id: string; label: string; ok: boolean; info: string };
 
 /** Adds plan size, limits, usage and rule checks used by the dashboard objective cards. */
 export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
@@ -71,14 +74,11 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
 
   // Max overall loss: 6% static on Initial Balance (1-Step, 2-Step, Instant). Flex: 8% trailing from highest closed balance.
   const isFlex = model === "Flex";
-  const highWaterMark = Math.max(size, Number(payload.highWaterMark ?? acc.balance));
-  let maxDrawdown = (size * limits.overall) / 100;
-  let currentMaxDrawdown = Math.max(0, size - Math.min(acc.balance, acc.equity));
-  if (isFlex) {
-    const floor = Math.min(size, highWaterMark - (size * 0.08));
-    maxDrawdown = size * 0.08;
-    currentMaxDrawdown = Math.max(0, highWaterMark - Math.min(acc.balance, acc.equity));
-  }
+  const highWaterMark = Math.max(size, acc.balance, Number(payload._highWaterMark ?? payload.highWaterMark) || 0);
+  const maxDrawdown = (size * limits.overall) / 100;
+  // Floor: static at size - 6%; Flex trails 8% below the highest closed balance and locks at the starting balance.
+  const maxLossFloor = isFlex ? Math.min(size, highWaterMark - maxDrawdown) : size - maxDrawdown;
+  const currentMaxDrawdown = Math.max(0, maxLossFloor + maxDrawdown - Math.min(acc.balance, acc.equity));
   const currentDailyLoss = Math.max(0, -acc.todayPl);
 
   // Winning Days: calendar day with profit >= 0.5% of Initial Account Balance
@@ -144,7 +144,9 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
         const cDate = new Date(t.close_time);
         const openD = oDate.toISOString().slice(0, 10);
         const closeD = cDate.toISOString().slice(0, 10);
-        if (openD !== closeD) overnightBreaches++;
+        // A Friday→weekend/Monday hold is covered by the Weekend Holding Add-on, not an overnight breach.
+        const addonWeekendHold = acc.weekendHoldingAddon && oDate.getUTCDay() === 5 && [6, 0, 1].includes(cDate.getUTCDay()) && cDate.getTime() - oDate.getTime() < 4 * 864e5;
+        if (openD !== closeD && !addonWeekendHold) overnightBreaches++;
         if (!acc.weekendHoldingAddon) {
           if (isWeekendUtc(oDate) || isWeekendUtc(cDate) || (cDate.getTime() - oDate.getTime() > 48 * 36e5 && (oDate.getUTCDay() === 5 || cDate.getUTCDay() === 1))) {
             weekendBreaches++;
@@ -183,12 +185,12 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
       id: "overall-drawdown", label: isFlex ? "Maximum Loss (8% Trailing)" : "Maximum Loss (6% Static)",
       status: currentMaxDrawdown >= maxDrawdown ? "failed" : currentMaxDrawdown >= maxDrawdown * 0.8 ? "warning" : "passed",
       info: isFlex
-        ? `Trailing floor at $${(highWaterMark - maxDrawdown).toFixed(2)} (8% below peak closed balance). Current drawdown: $${currentMaxDrawdown.toFixed(2)}.`
-        : `Floor is static at $${(size - maxDrawdown).toFixed(2)} (6% below initial balance). Current drawdown: $${currentMaxDrawdown.toFixed(2)}.`,
+        ? `Trailing floor at $${maxLossFloor.toFixed(2)} (8% below peak closed balance $${highWaterMark.toFixed(2)}${maxLossFloor >= size ? ", locked at starting balance" : ""}). Current drawdown: $${currentMaxDrawdown.toFixed(2)}.`
+        : `Floor is static at $${maxLossFloor.toFixed(2)} (6% below initial balance). Current drawdown: $${currentMaxDrawdown.toFixed(2)}.`,
     },
     {
       id: "minimum-holding-time", label: "Minimum Holding Time (3 Min)",
-      status: shortHolds ? (isFlex ? "warning" : "failed") : "passed",
+      status: shortHolds ? "failed" : "passed",
       info: shortHolds ? `${shortHolds} trade(s) closed in under 3 minutes (minimum 180s required)` : "All trades held for at least 3 minutes",
     },
   ];
@@ -209,11 +211,15 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
   }
 
   if (isFundedOrInstant) {
+    // Closed trades are checked per position; open exposure is only known in aggregate (equity - balance).
+    const floatingLoss = Math.max(0, acc.balance - acc.equity);
     ruleChecks.push({
       id: "one-percent-risk", label: "1% Per-Trade Risk Rule",
-      status: excessiveRiskTrades > 0 ? "failed" : "passed",
+      status: excessiveRiskTrades > 0 ? "failed" : floatingLoss > onePctLimit ? "warning" : "passed",
       info: excessiveRiskTrades > 0
         ? `${excessiveRiskTrades} trade(s) exceeded the 1% floating loss limit ($${onePctLimit.toFixed(2)})`
+        : floatingLoss > onePctLimit
+        ? `Open positions are down $${floatingLoss.toFixed(2)} combined — no single position may exceed $${onePctLimit.toFixed(2)} (1% of starting balance)`
         : `Max floating loss on any position must stay within $${onePctLimit.toFixed(2)} (1% of starting balance)`,
     });
 
@@ -230,15 +236,15 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
 
     ruleChecks.push({
       id: "news-trading", label: "News Trading Window (±5 Min)",
-      status: "passed",
-      info: "Funded and Instant accounts: restricted window of 5m before to 5m after high-impact economic news releases",
+      status: "manual",
+      info: "Reviewed by the risk team (not auto-checked): no trades 5m before to 5m after high-impact news releases",
     });
   }
 
   if (model !== "Flex") {
     ruleChecks.push({
       id: "overnight-holding", label: "Overnight Holding",
-      status: overnightBreaches > 0 ? "warning" : "passed",
+      status: overnightBreaches > 0 ? "failed" : "passed",
       info: overnightBreaches > 0
         ? `${overnightBreaches} trade(s) held past 00:00 UTC daily reset (not allowed on 1-Step/2-Step/Instant)`
         : "All positions must close before 00:00 UTC daily reset",
@@ -246,7 +252,7 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
 
     ruleChecks.push({
       id: "weekend-holding", label: "Weekend Holding",
-      status: weekendBreaches > 0 ? "warning" : "passed",
+      status: weekendBreaches > 0 ? "failed" : "passed",
       info: acc.weekendHoldingAddon
         ? "Weekend Holding Add-on active: positions allowed over weekend"
         : weekendBreaches > 0
@@ -269,10 +275,45 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
     });
   }
 
+  // Breaches an admin waived when reinstating the account stay visible but no longer count as failed.
+  const waived = (payload._waivedBreaches as string[] | undefined) ?? [];
+  for (const c of ruleChecks) {
+    if (c.status === "failed" && waived.includes(c.id)) {
+      c.status = "warning";
+      c.info = `${c.info} (waived by the risk team)`;
+    }
+  }
+
+  // Payout eligibility (funded accounts). KYC is checked separately by the payout handler.
+  const payoutChecks: PayoutCheck[] = [];
+  if (acc.status === "Funded" || acc.phase === PHASE.FUNDED) {
+    const fundedAgeMs = Date.now() - new Date(acc.deliveredAt || acc.createdAt).getTime();
+    const daysLeft = Math.ceil((14 * 864e5 - fundedAgeMs) / 864e5);
+    const violations = ruleChecks.filter((c) => c.status === "failed");
+    const openExposure = Math.abs(acc.equity - acc.balance) >= 0.01;
+    const minWithdrawal = isFlex ? 100 : Math.max(100, size * 0.01);
+    payoutChecks.push(
+      { id: "funded-age", label: "14 days since funded", ok: daysLeft <= 0, info: daysLeft <= 0 ? "Funded for at least 14 days" : `Payouts unlock 14 days after receiving your funded account. ${daysLeft} day(s) remaining.` },
+      { id: "winning-days", label: "5 Winning Days", ok: winningDays >= 5, info: `You need 5 Winning Days (at least 0.5% / $${(size * 0.005).toFixed(0)} profit each) before requesting a payout. Current: ${winningDays}.` },
+      { id: "no-violations", label: "Zero rule violations", ok: !failed && violations.length === 0, info: failed || violations.length ? `Payouts are blocked by rule violations: ${failed ? "account failed" : violations.map((v) => v.label).join(", ")}.` : "No rule violations on this account" },
+      { id: "positions-closed", label: "All positions closed", ok: !openExposure, info: openExposure ? "Close all open positions before requesting a payout." : "No open positions" },
+      { id: "min-profit", label: `Minimum profit $${minWithdrawal.toFixed(0)}`, ok: profit >= minWithdrawal, info: `Minimum realized profit required to withdraw is $${minWithdrawal.toFixed(0)} (1% of starting balance). Current profit: $${Math.max(0, profit).toFixed(2)}.` },
+    );
+    if (isFlex) {
+      const bestDay = Math.max(0, ...byDay.values());
+      const ok = profit <= 0 || bestDay <= profit * 0.2;
+      payoutChecks.push({
+        id: "flex-consistency", label: "Consistency (best day ≤ 20%)", ok,
+        info: ok ? "No single day exceeds 20% of total profit" : `Flex Consistency Rule: No single day may exceed 20% of total profit. Best day: $${bestDay.toFixed(2)} (${((bestDay / profit) * 100).toFixed(1)}% of total profit).`,
+      });
+    }
+  }
+
   return {
     ...acc,
-    size, planName: plan.planName, dailyLossLimit, maxDrawdown, currentDailyLoss, currentMaxDrawdown,
-    ruleChecks: acc.deliveryStatus === "delivered" && !failed ? ruleChecks : [],
+    size, planName: plan.planName, dailyLossLimit, maxDrawdown, currentDailyLoss, currentMaxDrawdown, highWaterMark, maxLossFloor,
+    ruleChecks: acc.deliveryStatus === "delivered" ? ruleChecks : [],
+    payoutChecks,
     breachReason: failed ? payload.breachReason || payload.ruleBreach?.message || "" : "",
   };
 }
