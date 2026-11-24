@@ -309,7 +309,7 @@ const PIXEL_EVENTS = ["Purchase", "InitiateCheckout", "AddToCart", "AddPaymentIn
 /** Meta Pixel + Conversions API credentials (hardcoded on purpose — no env setup needed). */
 const META_PIXEL_ID = "29666237749727647";
 const META_CAPI_TOKEN =
-  "EAAhBb2ZBESXEBS4ZA9D7Sheyr1BLe6xlqYW0LCy6hJjMseGDnjj08jgwAiZApdmZCRd1I1LX1ZCKqZBKQ9C0xI9ZAObLNrit1ivRMuXsZAVsi5OZBRyIetWzaCBv3b54Fkbb9gEaqLtPX5VDAts7fASdwt9vRL3bgy8zrQ4G43FIN9AFgOMz5QAtettSZBkwTwngZDZD";
+  "EAAhBb2ZBESXEBTMkqZA9UY7Eko6WnMZCjY5esICKTbCzEuqcsOWMoWwswzRYEC8qjZBxJhHIzBLCnsPpMDTS89JvoKnZBlIMMENpzReURqYJ75dD7BXX58R38ovL5wlqybmjX0fUvWoahBPMNnBVfIN334ajntSZBFnBEyB3gyGSMMZAM9qblCGOgD1TSePNAZDZD";
 const metaPixelId = () => META_PIXEL_ID;
 
 /**
@@ -338,6 +338,7 @@ async function sendCapi(ctx: Ctx, e: {
           ...(e.eventSourceUrl ? { event_source_url: e.eventSourceUrl } : {}),
           ...(e.customData ? { custom_data: e.customData } : {}),
         }],
+        ...(env.metaTestEventCode ? { test_event_code: env.metaTestEventCode } : {}),
       }),
     });
     if (res.ok) return null;
@@ -377,7 +378,7 @@ export async function trackPixel(ctx: Ctx) {
       contentIds: contentIds ?? null, eventSourceUrl: str(b.eventSourceUrl) || null, createdAt: new Date().toISOString(),
     }).catch(() => {});
   }
-  return {};
+  return { sent: !error, ...(error ? { error } : {}) };
 }
 
 export async function listPixelEvents(ctx: Ctx) {

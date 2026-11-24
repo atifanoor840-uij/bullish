@@ -28,6 +28,10 @@ export const env = {
   get appUrl() {
     return read("NEXT_PUBLIC_APP_URL") || read("APP_URL");
   },
+  /** Meta Events Manager → Test events code (e.g. TEST12345). Set only while testing: events sent with it don't count. */
+  get metaTestEventCode() {
+    return read("META_TEST_EVENT_CODE");
+  },
   get crmPasscode() {
     return read("CRM_ADMIN_PASSCODE");
   },
