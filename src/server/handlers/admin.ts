@@ -327,25 +327,28 @@ async function sendCapi(ctx: Ctx, e: {
   if (ua) userData["client_user_agent"] = ua;
   if (e.fbp) userData["fbp"] = e.fbp;
   if (e.fbc) userData["fbc"] = e.fbc;
-  try {
-    const res = await fetch(`https://graph.facebook.com/v19.0/${metaPixelId()}/events?access_token=${encodeURIComponent(token)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        data: [{
-          event_name: e.eventName, event_time: Math.floor(Date.now() / 1000), action_source: "website", user_data: userData,
-          ...(e.eventId ? { event_id: e.eventId } : {}),
-          ...(e.eventSourceUrl ? { event_source_url: e.eventSourceUrl } : {}),
-          ...(e.customData ? { custom_data: e.customData } : {}),
-        }],
-        ...(env.metaTestEventCode ? { test_event_code: env.metaTestEventCode } : {}),
-      }),
-    });
-    if (res.ok) return null;
-    return `Meta ${res.status}: ${(await res.text()).slice(0, 300)}`;
-  } catch (err) {
-    return err instanceof Error ? err.message : "network error";
-  }
+  const data = [{
+    event_name: e.eventName, event_time: Math.floor(Date.now() / 1000), action_source: "website", user_data: userData,
+    ...(e.eventId ? { event_id: e.eventId } : {}),
+    ...(e.eventSourceUrl ? { event_source_url: e.eventSourceUrl } : {}),
+    ...(e.customData ? { custom_data: e.customData } : {}),
+  }];
+  const post = async (testCode?: string) => {
+    try {
+      const res = await fetch(`https://graph.facebook.com/v19.0/${metaPixelId()}/events?access_token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data, ...(testCode ? { test_event_code: testCode } : {}) }),
+      });
+      if (res.ok) return null;
+      return `Meta ${res.status}${testCode ? " (test)" : ""}: ${(await res.text()).slice(0, 300)}`;
+    } catch (err) {
+      return err instanceof Error ? err.message : "network error";
+    }
+  };
+  // The real event always goes out. With a test code set, a copy also goes to Events Manager → Test events.
+  const [real, test] = await Promise.all([post(), env.metaTestEventCode ? post(env.metaTestEventCode) : Promise.resolve(null)]);
+  return real ?? test;
 }
 
 export async function trackPixel(ctx: Ctx) {
