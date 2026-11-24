@@ -1,6 +1,6 @@
 import { propApi } from "./propApi";
 
-export const META_PIXEL_ID = "1129264893163158";
+export const META_PIXEL_ID = "29666237749727647";
 
 declare global {
   interface Window {
