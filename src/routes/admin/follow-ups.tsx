@@ -21,7 +21,9 @@ const ICONS: Record<FollowUpSegmentId, typeof Send> = {
 const sizeLabel = (n: number) => (n >= 1000 ? `$${+(n / 1000).toFixed(1)}K` : `$${n}`);
 const RECENT_MS = 3 * 864e5;
 /** How often the audience list is re-fetched so new sign-ups / orders appear live. */
-const LIVE_REFRESH_MS = 15_000;
+const LIVE_REFRESH_MS = 5_000;
+/** Users who joined / ordered within this window get a "New" badge. */
+const NEW_MS = 30 * 60_000;
 const PLACEHOLDERS = ["{{name}}", "{{plan}}", "{{amount}}", "{{orderId}}", "{{coupon}}", "{{account}}"];
 const ACCOUNT_SIZES = ["$5K", "$10K", "$25K", "$50K", "$100K", "$200K"];
 
@@ -48,6 +50,9 @@ function AdminFollowUps() {
   const { busy, note, setNote, run } = useAction();
 
   const seg = data?.segments.find((s) => s.id === segment);
+  // Recipients that appeared via a live refresh while this page was open.
+  const [arrived, setArrived] = useState<Set<string>>(new Set());
+  const isNew = (r: FollowUpRecipient) => arrived.has(r.userId) || Date.now() - new Date(r.orderDate ?? r.createdAt).getTime() < NEW_MS;
   const recent = (r: FollowUpRecipient) => !!r.lastFollowUpAt && Date.now() - new Date(r.lastFollowUpAt).getTime() < RECENT_MS;
 
   // Reset the draft and selection when the audience changes (not when data reloads after a send).
@@ -61,12 +66,14 @@ function AdminFollowUps() {
       setDraft(draftFor(data, segment));
       setSelected(new Set(seg.recipients.filter((r) => !skipRecent || !recent(r)).map((r) => r.userId)));
       seen.current = new Set(seg.recipients.map((r) => r.userId));
+      setArrived(new Set());
       setNote(null);
       return;
     }
     // Live refresh: auto-select newly arrived users and drop ones who left this audience.
     const ids = new Set(seg.recipients.map((r) => r.userId));
     const fresh = seg.recipients.filter((r) => !seen.current.has(r.userId) && (!skipRecent || !recent(r)));
+    if (fresh.length) setArrived((a) => new Set([...a, ...fresh.map((r) => r.userId)]));
     seen.current = ids;
     setSelected((s) => {
       const n = new Set([...s].filter((id) => ids.has(id)));
@@ -100,7 +107,10 @@ function AdminFollowUps() {
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (seg?.recipients ?? []).filter((r) => !q || r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.orderId?.toLowerCase().includes(q));
+    const list = (seg?.recipients ?? []).filter((r) => !q || r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.orderId?.toLowerCase().includes(q));
+    // Newest activity first, so a just-registered user / just-created order is always at the top.
+    const at = (r: FollowUpRecipient) => new Date(r.orderDate ?? r.createdAt).getTime() || 0;
+    return [...list].sort((a, b) => at(b) - at(a));
   }, [seg, search]);
 
   const coupon = data?.coupons.find((c) => c.code === draft?.coupon);
@@ -220,9 +230,10 @@ function AdminFollowUps() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate text-sm font-medium">{r.name}</p>
+                          {isNew(r) && <Badge tone="success">New</Badge>}
                           {recent(r) && <Badge tone="warning">Emailed {fmtDate(r.lastFollowUpAt!)}</Badge>}
                         </div>
-                        <p className="truncate text-xs text-muted-foreground">{r.email}</p>
+                        <p className="truncate text-xs text-muted-foreground">{r.email} · joined {fmtDate(r.createdAt)}</p>
                         {r.orderId && (
                           <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                             <CreditCard className="h-3 w-3" />

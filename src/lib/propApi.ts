@@ -84,6 +84,8 @@ async function request<T = any>(path: string, init: RequestInit & { json?: unkno
   const { json, headers, body, ...rest } = init;
   const reqInit: RequestInit = {
     credentials: "include",
+    // API data is always live — never serve a cached copy from the browser/CDN.
+    cache: "no-store",
     ...rest,
   };
   if (json !== undefined) {
@@ -232,7 +234,8 @@ export const propApi = {
     deletePromotionTemplate: (id: string) => del(`/api/promotions${q({ id })}`),
     sendPromotion: (b: { subject: string; html: string; recipients: string[] }) => post("/api/promotions/send", b),
     newsletterSubscribers: () => get("/api/newsletter"),
-    followUps: () => get<FollowUpData>("/api/follow-ups"),
+    // Cache-buster so an edge/proxy can never return a stale audience list.
+    followUps: () => get<FollowUpData>(`/api/follow-ups?t=${Date.now()}`),
     previewFollowUp: (b: FollowUpDraft & { withOrder?: boolean; couponPercent?: number }) => post<{ subject: string; html: string }>("/api/follow-ups/preview", b),
     sendFollowUps: (b: FollowUpDraft & { segment: FollowUpSegmentId; userIds: string[] }) =>
       post<{ sentCount: number; failedCount: number; failed: string[] }>("/api/follow-ups/send", b),

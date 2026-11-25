@@ -15,7 +15,8 @@ export const inList = (vs: (string | number)[]) => `in.(${vs.map((v) => `"${Stri
 function headers(extra: Record<string, string> = {}) {
   const key = env.serviceKey;
   if (!env.supabaseUrl || !key) throw new HttpError(503, "Database is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).");
-  return { apikey: key, Authorization: `Bearer ${key}`, ...extra };
+  // no-cache: reads must always reflect the latest rows (new sign-ups / orders show up live).
+  return { apikey: key, Authorization: `Bearer ${key}`, "Cache-Control": "no-cache", ...extra };
 }
 
 function buildQuery(filter: Filter = {}, opts: { select?: string; order?: string; limit?: number } = {}) {

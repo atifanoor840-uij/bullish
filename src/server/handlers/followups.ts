@@ -140,11 +140,14 @@ async function computeSegments(): Promise<Record<SegmentId, Recipient[]>> {
   const byUser = new Map<string, DBOrder[]>();
   for (const o of orders) byUser.set(o.userId, [...(byUser.get(o.userId) ?? []), o]); // newest first
   const base = (u: DBUser): Recipient => ({ userId: u.id, name: u.name, email: u.email, createdAt: u.createdAt, lastFollowUpAt: last.get(u.id) ?? null });
-  const withOrder = async (r: Recipient, o: DBOrder): Promise<Recipient> => ({
-    ...r, orderId: o.id, plan: (await orderPlan(o)).planName, amount: Number(o.amountPaid), orderDate: o.createdAt,
-  });
 
   const out: Record<SegmentId, Recipient[]> = { unpaid_orders: [], unverified: [], no_orders: [], failed_challenge: [], all_traders: [], crypto_extra_5: [], pricing: [] };
+  // Plan names are resolved in parallel (one lookup per plan, not per order) so the list stays fast.
+  const planNames = new Map<string, string>();
+  await Promise.all([...new Set(orders.map((o) => o.planId))].map(async (id) => planNames.set(id, (await orderPlan({ planId: id })).planName)));
+  const withOrder = (r: Recipient, o: DBOrder): Recipient => ({
+    ...r, orderId: o.id, plan: planNames.get(o.planId) ?? o.planId, amount: Number(o.amountPaid), orderDate: o.createdAt,
+  });
   for (const u of users) {
     const list = byUser.get(u.id) ?? [];
     const r = base(u);
@@ -158,10 +161,10 @@ async function computeSegments(): Promise<Record<SegmentId, Recipient[]>> {
     const lastPaid = Math.max(0, ...paid.map((o) => time(o.createdAt)));
     // Shown immediately (no waiting period) so a just-created unpaid order appears live.
     const unpaid = list.find((o) => UNPAID.has(o.status) && time(o.createdAt) > lastPaid);
-    if (unpaid) out.unpaid_orders.push(await withOrder(r, unpaid));
+    if (unpaid) out.unpaid_orders.push(withOrder(r, unpaid));
 
     const newest = paid[0];
-    if (newest && FAILED.has(newest.status)) out.failed_challenge.push(await withOrder(r, newest));
+    if (newest && FAILED.has(newest.status)) out.failed_challenge.push(withOrder(r, newest));
   }
   return out;
 }
