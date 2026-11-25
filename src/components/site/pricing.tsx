@@ -384,7 +384,13 @@ export function Pricing() {
                 >
                   Start Evaluation
                 </CtaButton>
-                <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+                <p className="mt-3 text-center text-xs text-muted-foreground">
+                  Already have an account?{" "}
+                  <a href={`/login?next=${encodeURIComponent(checkoutHref)}`} className="font-semibold text-primary hover:underline">
+                    Log in to order
+                  </a>
+                </p>
+                <p className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
                   <Lock className="h-3 w-3" /> Secure checkout · Card, crypto & bank transfer
                 </p>
               </div>

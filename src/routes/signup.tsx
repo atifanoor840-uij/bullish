@@ -5,7 +5,9 @@ import { Eye, EyeOff, Lock, Mail, User, ArrowRight, AlertCircle } from "lucide-r
 import { Logo } from "@/components/site/primitives";
 import { propApi } from "@/lib/propApi";
 import { trackPixel } from "@/lib/metaPixel";
+import { redirectToCheckoutOrNext, safeNext as toSafeNext } from "@/lib/checkoutRedirect";
 import { CountrySelect } from "@/components/site/country-select";
+import { AuthTabs } from "@/components/site/auth-tabs";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -42,48 +44,12 @@ function SignupPage() {
   const [collabCode, setCollabCode] = useState<string | undefined>();
   const [next, setNext] = useState("/dashboard");
 
-  const redirectToCheckoutOrNext = async (targetNext: string) => {
-    const nextUrl = new URL(targetNext, window.location.origin);
-    const planId = nextUrl.searchParams.get("plan");
-    const couponCode = nextUrl.searchParams.get("coupon")?.trim().toUpperCase();
-    if (planId) {
-      try {
-        const { order } = await propApi.orders.create({
-          planId,
-          paymentMethod: "Crypto",
-          ...(couponCode ? { couponUsed: couponCode } : {}),
-        });
-        trackPixel("InitiateCheckout", {
-          content_name: order.planName || planId,
-          content_ids: [planId],
-          content_type: "product",
-          value: order.amountPaid,
-          currency: "USD",
-          num_items: 1,
-        });
-        const { checkoutUrl } = await propApi.orders.pay(order.id, "MT5");
-        trackPixel("AddPaymentInfo", {
-          content_name: `Order ${order.id}`,
-          value: order.amountPaid,
-          currency: "USD",
-          payment_method: "Crypto",
-        });
-        window.location.href = checkoutUrl;
-        return;
-      } catch {
-        // Fall back to the plan page if direct checkout cannot be initiated (e.g. crypto gateway unavailable).
-      }
-    }
-    window.location.href = targetNext;
-  };
-
   useEffect(() => {
     trackPixel("PageView");
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       // Only allow internal dashboard paths (e.g. the plan picked on the pricing page)
-      const n = params.get("next");
-      const safeNext = n && n.startsWith("/dashboard") ? n : "/dashboard";
+      const safeNext = toSafeNext(params.get("next"));
       setNext(safeNext);
       // Already signed in? Skip signup and continue straight to checkout or the target page.
       propApi.auth.me().then(() => redirectToCheckoutOrNext(safeNext)).catch(() => {});
@@ -163,7 +129,9 @@ function SignupPage() {
             </h1>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-3.5">
+          <AuthTabs active="signup" next={next} />
+
+          <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
             {errorMsg && (
               <div className="flex items-center gap-2 rounded-xl border border-loss/30 bg-loss/10 p-3 text-xs text-loss">
                 <AlertCircle className="h-4 w-4 shrink-0" />

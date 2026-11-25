@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Lock, Mail, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
 import { Logo, Candle } from "@/components/site/primitives";
 import { propApi } from "@/lib/propApi";
+import { redirectToCheckoutOrNext, safeNext } from "@/lib/checkoutRedirect";
+import { AuthTabs } from "@/components/site/auth-tabs";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -34,6 +36,14 @@ function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [next, setNext] = useState("/dashboard");
+
+  useEffect(() => {
+    const n = safeNext(new URLSearchParams(window.location.search).get("next"));
+    setNext(n);
+    // Already signed in? Continue straight to checkout (when ordering) or the target page.
+    propApi.auth.me().then(() => redirectToCheckoutOrNext(n)).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,8 +52,7 @@ function LoginPage() {
 
     try {
       await propApi.auth.signin(email.trim().toLowerCase(), password);
-      const n = new URLSearchParams(window.location.search).get("next");
-      window.location.href = n && n.startsWith("/dashboard") ? n : "/dashboard";
+      await redirectToCheckoutOrNext(next);
     } catch (err: any) {
       console.error("Login failed:", err);
       setErrorMsg(err?.message || "Invalid email or password. Please try again.");
@@ -81,8 +90,10 @@ function LoginPage() {
           </p>
         </div>
 
+        <AuthTabs active="login" next={next} />
+
         {/* Login form */}
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           {errorMsg && (
             <div className="flex items-center gap-2 rounded-xl border border-loss/30 bg-loss/10 p-3 text-xs text-loss">
               <AlertCircle className="h-4 w-4 shrink-0" />
@@ -152,7 +163,7 @@ function LoginPage() {
             disabled={isLoading}
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gold py-3 text-sm font-semibold text-primary-foreground shadow-gold transition hover:brightness-110 active:scale-[0.99] disabled:opacity-70"
           >
-            {isLoading ? "Signing in..." : "Sign In to Portal"}
+            {isLoading ? "Signing in..." : next.includes("plan=") ? "Sign In & Continue Order" : "Sign In to Portal"}
             {!isLoading && <ArrowRight className="h-4 w-4" />}
           </button>
         </form>
@@ -166,7 +177,7 @@ function LoginPage() {
         {/* Switch to Signup */}
         <div className="mt-6 border-t border-white/[0.06] pt-5 text-center text-xs text-muted-foreground">
           Don't have an account yet?{" "}
-          <Link to="/signup" className="font-semibold text-primary transition hover:underline">
+          <Link to="/signup" search={(next !== "/dashboard" ? { next } : {}) as never} className="font-semibold text-primary transition hover:underline">
             Register Challenge
           </Link>
         </div>
