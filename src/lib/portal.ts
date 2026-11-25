@@ -163,6 +163,31 @@ export function breachReason(a: TradingAccount): string {
   return "This account breached a trading rule and has been closed.";
 }
 
+export type BreachTrade = { rule?: string; ticket: string; symbol: string; volume: number; open_time: string; close_time: string; holdSeconds: number; profit: number };
+
+/**
+ * The trades behind a breach: the ones stored when the account failed, else the ones the
+ * server flags now. Older failures stored no trades, so short holds are re-derived from history.
+ */
+export function breachTrades(a: TradingAccount): BreachTrade[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p: any = a.statisticsPayload || {};
+  const stored = p.ruleBreach?.trades as BreachTrade[] | undefined;
+  if (stored?.length) return stored;
+  const checks = (a["ruleChecks"] as { id: string; label?: string; status?: string; trades?: BreachTrade[] }[] | undefined) ?? [];
+  const live = checks.filter((c) => c.status === "failed").flatMap((c) => (c.trades ?? []).map((t) => ({ ...t, rule: c.label ?? c.id })));
+  if (live.length) return live;
+  const rules: string[] = p.ruleBreach?.rules ?? [];
+  const reason = String(p.breachReason || p.ruleBreach?.message || "");
+  if (rules.includes("minimum-holding-time") || /Minimum Holding Time/i.test(reason)) {
+    return closedTrades(a)
+      .map((t) => ({ ...t, holdSeconds: Math.round((new Date(t.close_time).getTime() - new Date(t.open_time).getTime()) / 1000) }))
+      .filter((t) => Number.isFinite(t.holdSeconds) && t.holdSeconds < 180)
+      .map((t) => ({ rule: "Minimum Holding Time (3 Min)", ticket: t.ticket, symbol: t.symbol, volume: t.volume, open_time: t.open_time, close_time: t.close_time, holdSeconds: t.holdSeconds, profit: t.profit }));
+  }
+  return [];
+}
+
 export type Trade = {
   ticket: string;
   symbol: string;

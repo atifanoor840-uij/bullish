@@ -9,8 +9,8 @@ import { ScoreGauge } from "./charts";
 import { DayPills, PlanBadge, SegmentedBar, Sheet, StatTile, StatusChip, chipCls } from "./account-ui";
 import { propApi, type TradingAccount } from "@/lib/propApi";
 import {
-  breachReason, breachedRules, closedTrades, isBreached, describeAccount, fmtDate, money, num, pct, signed, tone, tradingDays,
-  type AccountInfo, type DayStat, type Trade,
+  breachReason, breachedRules, breachTrades, closedTrades, isBreached, describeAccount, fmtDate, money, num, pct, signed, tone, tradingDays,
+  type AccountInfo, type BreachTrade, type DayStat, type Trade,
 } from "@/lib/portal";
 
 type Status = "passed" | "pending" | "warning" | "failed" | "manual";
@@ -54,7 +54,7 @@ export function AccountDetail({ accountId, backHref = "/dashboard", admin = fals
   }, [accountId], admin ? "/admin" : "/login");
   const [tab, setTabState] = useState<TabId>("overview");
   const [creds, setCreds] = useState(false);
-  const { busy, note, run } = useAction();
+  const { busy, note, setNote, run } = useAction();
 
   // Deep-linkable tabs (?tab=history) without touching the route's search schema.
   useEffect(() => {
@@ -97,6 +97,35 @@ export function AccountDetail({ accountId, backHref = "/dashboard", admin = fals
       {!admin && a.status === "Passed" && (
         <Button size="sm" variant="primary" busy={busy === "next"} onClick={async () => (await run("next", () => propApi.accounts.requestNextStage(a.id), "Next stage requested.")) && reload()}>
           {info.model === "Flex" ? "Pay Remaining & Get Funded" : "Request next stage"}
+        </Button>
+      )}
+      {admin && !pending && (
+        <Button
+          size="sm"
+          busy={busy === "graph"}
+          disabled={!(a.externalStatisticsId || a["statisticsApiId"])}
+          title={!(a.externalStatisticsId || a["statisticsApiId"]) ? "Add a Statistics ID to this account first" : "Pull fresh trades, balance and equity from the statistics feed"}
+          onClick={async () => (await run("graph", () => propApi.accounts.refreshStats(a.id), "Graph updated with the latest statistics.")) && reload()}
+        >
+          <RefreshCw className="size-4" />Update graph
+        </Button>
+      )}
+      {admin && a.status === "Failed" && (
+        <Button
+          size="sm"
+          variant="primary"
+          busy={busy === "recheck"}
+          title="Pull fresh statistics and re-run every rule. If nothing fails, the account and its order become active again."
+          onClick={async () => {
+            let res: Awaited<ReturnType<typeof propApi.accounts.recheck>> | null = null;
+            const ok = await run("recheck", async () => { res = await propApi.accounts.recheck(a.id); });
+            if (!ok || !res) return;
+            const r: Awaited<ReturnType<typeof propApi.accounts.recheck>> = res;
+            setNote({ tone: r.reactivated ? "success" : "error", text: r.message });
+            reload();
+          }}
+        >
+          <Shield className="size-4" />Recheck rules
         </Button>
       )}
       {a.graphLink && <a href={a.graphLink} target="_blank" rel="noreferrer" className={outlineAccent}><ExternalLink className="size-4" />Public stats</a>}
@@ -170,6 +199,7 @@ export function AccountDetail({ accountId, backHref = "/dashboard", admin = fals
                 <p className="text-base font-bold">Account Failed</p>
                 <p className="mt-0.5 text-sm">{breachReason(a)}</p>
                 {breachedRules(a).map((r) => r.info && <p key={r.id} className="mt-1 text-xs text-loss/80">• {r.label}: {r.info}</p>)}
+                <BreachTradesTable trades={breachTrades(a)} />
               </div>
             </div>
           )}
@@ -533,6 +563,40 @@ function LossBar({ ratio }: { ratio: number }) {
 }
 
 type Range = "7" | "30" | "all";
+
+/** The trades that caused the breach, so trader and admin can see exactly which position broke which rule. */
+function BreachTradesTable({ trades }: { trades: BreachTrade[] }) {
+  if (!trades.length) return null;
+  const dur = (s: number) => (Number.isFinite(s) ? (s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m` : s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`) : "—");
+  const time = (v: string) => {
+    const d = new Date(v);
+    return v && !Number.isNaN(d.getTime()) ? `${d.toISOString().replace("T", " ").slice(0, 19)} UTC` : "—";
+  };
+  return (
+    <div className="mt-3 overflow-x-auto rounded-lg border border-loss/30 bg-black/20">
+      <p className="px-3 pt-2.5 text-xs font-semibold">Violating trade{trades.length === 1 ? "" : "s"} ({trades.length})</p>
+      <table className="mt-1.5 w-full min-w-[640px] text-left text-xs">
+        <thead className="text-loss/70">
+          <tr>{["Trade ID", "Rule", "Symbol", "Lots", "Opened", "Closed", "Held", "P&L"].map((h) => <th key={h} className="px-3 py-1.5 font-medium">{h}</th>)}</tr>
+        </thead>
+        <tbody className="text-foreground">
+          {trades.map((t, i) => (
+            <tr key={`${t.ticket}-${t.rule}-${i}`} className="border-t border-loss/15">
+              <td className="px-3 py-1.5 font-mono font-semibold text-loss">#{t.ticket || "?"}</td>
+              <td className="px-3 py-1.5 text-muted-foreground">{t.rule || "—"}</td>
+              <td className="px-3 py-1.5">{t.symbol || "—"}</td>
+              <td className="px-3 py-1.5">{t.volume || "—"}</td>
+              <td className="px-3 py-1.5 whitespace-nowrap">{time(t.open_time)}</td>
+              <td className="px-3 py-1.5 whitespace-nowrap">{time(t.close_time)}</td>
+              <td className="px-3 py-1.5 font-semibold text-loss">{dur(t.holdSeconds)}</td>
+              <td className={cx("px-3 py-1.5", t.profit < 0 ? "text-loss" : "text-profit")}>{money(t.profit)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 function StatusChart({ account: a, info, days }: { account: TradingAccount; info: AccountInfo; days: DayStat[] }) {
   const [range, setRange] = useState<Range>("30");

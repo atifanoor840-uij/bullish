@@ -33,7 +33,8 @@ export async function decorateAndEnforce(acc: DBAccount, order?: DBOrder | null)
   const payload = {
     ...((acc.statisticsPayload as Record<string, unknown>) ?? {}),
     breachReason: reason,
-    ruleBreach: { message: reason, rules: breached.map((c) => c.id), at: now },
+    // Trades are kept with the breach: the statistics feed only lists recent trades, so they may drop out later.
+    ruleBreach: { message: reason, rules: breached.map((c) => c.id), at: now, trades: breached.flatMap((c) => (c.trades ?? []).map((t) => ({ ...t, rule: c.label }))) },
   };
   // Only the request that flips the status sends the email, even when several load the dashboard at once.
   const [failed] = await db.update<DBAccount>("trading_accounts", { id: eq(acc.id), status: eq(acc.status) }, { status: "Failed", statisticsPayload: payload });
@@ -205,4 +206,50 @@ export async function refreshAccountStats(ctx: Ctx) {
   const order = await db.one<DBOrder>("orders", { id: eq(acc.orderId) });
   const u = (await userMap([acc.userId])).get(acc.userId);
   return { success: !error, ...(error ? { error } : {}), account: { ...(await decorateAndEnforce(account, order)), userName: u?.name ?? "", userEmail: u?.email ?? "" } };
+}
+
+/**
+ * Admin "Recheck": pulls fresh statistics and re-runs every rule on a failed account as if it
+ * were still trading. If no rule fails now (e.g. it was failed by a feed glitch) the account and
+ * its order are reactivated; otherwise it stays failed and the breaching rules/trades are returned.
+ */
+export async function recheckAccount(ctx: Ctx) {
+  const admin = await requireAdmin(ctx);
+  const b = await body(ctx);
+  const acc = await db.one<DBAccount>("trading_accounts", { id: eq(str(b.accountId)) });
+  if (!acc) throw new HttpError(404, "Account not found.");
+  if (acc.status !== "Failed") throw new HttpError(400, `Only failed accounts can be rechecked (this one is ${acc.status}).`);
+  const order = acc.orderId ? await db.one<DBOrder>("orders", { id: eq(acc.orderId) }) : null;
+
+  let fresh = acc;
+  if (acc.externalStatisticsId || acc.statisticsApiId) {
+    const { account, error } = await refreshStats(acc, true);
+    if (error) throw new HttpError(502, `Could not pull fresh statistics, nothing changed: ${error}`);
+    fresh = account;
+  }
+
+  // Evaluate as a live account; the old breach record is set aside so it can't influence the result.
+  const restored: DBAccount["status"] = fresh.phase === PHASE.FUNDED ? "Funded" : "Active";
+  const prev = (fresh.statisticsPayload as Record<string, unknown>) ?? {};
+  const { breachReason: oldReason, ruleBreach: oldBreach, ...cleanPayload } = prev;
+  const decorated = await decorateAccount({ ...fresh, status: restored, statisticsPayload: cleanPayload }, order);
+  const failing = decorated.ruleChecks.filter((c) => c.status === "failed");
+
+  if (failing.length) {
+    await audit(admin, "account_recheck", acc.id, "account", `Recheck kept account ${acc.id} failed: ${failing.map((c) => c.label).join(", ")}`);
+    return {
+      reactivated: false,
+      message: `Still breached: ${failing.map((c) => `${c.label} — ${c.info}`).join("; ")}`,
+      failedRules: failing,
+    };
+  }
+
+  const now = new Date().toISOString();
+  const payload = { ...cleanPayload, _previousBreach: { reason: oldReason ?? null, ruleBreach: oldBreach ?? null, clearedAt: now, clearedBy: admin.id } };
+  const [updated] = await db.update<DBAccount>("trading_accounts", { id: eq(acc.id), status: eq("Failed") }, { status: restored, statisticsPayload: payload });
+  if (!updated) throw new HttpError(409, "The account changed while rechecking. Reload and try again.");
+  if (order) await db.update("orders", { id: eq(order.id) }, { status: orderStatusForPhase(updated.phase), updatedAt: now });
+  await notify(acc.userId, "Account reactivated", `Account #${acc.id} was rechecked by the risk team and no rule breach was found. It is active again.`, "success", "email");
+  await audit(admin, "account_recheck", acc.id, "account", `Recheck found no breach — account ${acc.id} reactivated (${restored})`);
+  return { reactivated: true, message: `No rule breach found — account reactivated as ${restored}.`, failedRules: [] };
 }

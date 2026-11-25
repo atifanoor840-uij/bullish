@@ -59,7 +59,23 @@ export async function refreshStats(acc: DBAccount, force = false): Promise<{ acc
   }
 }
 
+/** "Trades #123 (45s), #456 (+2 more)": the tickets behind a rule breach, capped so messages stay short. */
+export function ticketList(list: Trade[], detail?: (t: Trade) => string, max = 10): string {
+  const shown = list.slice(0, max).map((t) => `#${t.ticket || "?"}${detail ? ` (${detail(t)})` : ""}`);
+  return `Trade${list.length === 1 ? "" : "s"} ${shown.join(", ")}${list.length > max ? ` (+${list.length - max} more)` : ""}`;
+}
+
+/** One trade behind a rule breach, as stored with the breach and shown to traders and admins. */
+export type BreachTrade = { ticket: string; symbol: string; volume: number; open_time: string; close_time: string; holdSeconds: number; profit: number };
+export function breachTrades(list: Trade[], max = 50): BreachTrade[] {
+  return list.slice(0, max).map((t) => ({
+    ticket: t.ticket, symbol: t.symbol, volume: t.volume, open_time: t.open_time, close_time: t.close_time, profit: t.profit,
+    holdSeconds: Math.round((new Date(t.close_time).getTime() - new Date(t.open_time).getTime()) / 1000),
+  }));
+}
+
 type RuleStatus = "passed" | "pending" | "warning" | "failed" | "manual";
+export type RuleCheck = { id: string; label: string; status: RuleStatus; info: string; trades?: BreachTrade[] };
 export type PayoutCheck = { id: string; label: string; ok: boolean; info: string };
 
 /** Adds plan size, limits, usage and rule checks used by the dashboard objective cards. */
@@ -88,28 +104,34 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
   const minDays = limits.minDays;
 
   // 3-minute minimum holding time
-  const shortHolds = trades.filter((t) => new Date(t.close_time).getTime() - new Date(t.open_time).getTime() < 180_000).length;
+  const holdSecs = (t: Trade) => Math.round((new Date(t.close_time).getTime() - new Date(t.open_time).getTime()) / 1000);
+  const shortHoldTrades = trades.filter((t) => holdSecs(t) < 180);
+  const shortHolds = shortHoldTrades.length;
   const profit = acc.balance - size;
 
   // 1% Per-Trade Risk Rule (Applies to Funded and Instant accounts)
   const isFundedOrInstant = acc.status === "Funded" || acc.phase === PHASE.FUNDED || model === "Instant";
   const onePctLimit = size * 0.01;
-  const excessiveRiskTrades = isFundedOrInstant ? trades.filter((t) => t.profit < -onePctLimit).length : 0;
+  const excessiveRiskList = isFundedOrInstant ? trades.filter((t) => t.profit < -onePctLimit) : [];
+  const excessiveRiskTrades = excessiveRiskList.length;
 
   // Trade Layering Rule: on Funded and Instant, new trade may only open >= 10 minutes after previous trade's opening time
   let layeringBreaches = 0;
+  const layeringList: Trade[] = [];
   if (isFundedOrInstant && trades.length > 1) {
     const sortedByOpen = [...trades].sort((a, b) => new Date(a.open_time).getTime() - new Date(b.open_time).getTime());
     for (let i = 1; i < sortedByOpen.length; i++) {
       const diff = new Date(sortedByOpen[i]!.open_time).getTime() - new Date(sortedByOpen[i - 1]!.open_time).getTime();
       if (diff > 0 && diff < 600_000) {
         layeringBreaches++;
+        layeringList.push(sortedByOpen[i]!);
       }
     }
   }
 
   // Instant accounts additional cap: maximum 2 concurrent layers allowed (opening a 3rd is a hard breach)
   let thirdLayerBreach = false;
+  let thirdLayerTrade: Trade | null = null;
   if (model === "Instant" && trades.length >= 3) {
     for (const t of trades) {
       if (!t.open_time) continue;
@@ -122,6 +144,7 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
       }).length;
       if (concurrent >= 3) {
         thirdLayerBreach = true;
+        thirdLayerTrade = t;
         break;
       }
     }
@@ -135,8 +158,8 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
     return (day === 5 && hour >= 23) || day === 6 || (day === 0 && hour < 23);
   };
 
-  let overnightBreaches = 0;
-  let weekendBreaches = 0;
+  const overnightList: Trade[] = [];
+  const weekendList: Trade[] = [];
   if (model !== "Flex") {
     trades.forEach((t) => {
       if (t.open_time && t.close_time) {
@@ -146,15 +169,18 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
         const closeD = cDate.toISOString().slice(0, 10);
         // A Friday→weekend/Monday hold is covered by the Weekend Holding Add-on, not an overnight breach.
         const addonWeekendHold = acc.weekendHoldingAddon && oDate.getUTCDay() === 5 && [6, 0, 1].includes(cDate.getUTCDay()) && cDate.getTime() - oDate.getTime() < 4 * 864e5;
-        if (openD !== closeD && !addonWeekendHold) overnightBreaches++;
+        if (openD !== closeD && !addonWeekendHold) overnightList.push(t);
         if (!acc.weekendHoldingAddon) {
           if (isWeekendUtc(oDate) || isWeekendUtc(cDate) || (cDate.getTime() - oDate.getTime() > 48 * 36e5 && (oDate.getUTCDay() === 5 || cDate.getUTCDay() === 1))) {
-            weekendBreaches++;
+            weekendList.push(t);
           }
         }
       }
     });
   }
+
+  const overnightBreaches = overnightList.length;
+  const weekendBreaches = weekendList.length;
 
   // Inactivity: trade executed within 30 consecutive calendar days
   const lastTradeTime = trades.length ? Math.max(...trades.map((t) => new Date(t.close_time || t.open_time).getTime())) : new Date(acc.createdAt).getTime();
@@ -163,19 +189,21 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
 
   // Tick scalping: closing 3 or more trades held under 10 seconds within 1 hour
   let tickScalpBreach = false;
+  let tickScalpTrades: Trade[] = [];
   const ultraShort = trades.filter((t) => new Date(t.close_time).getTime() - new Date(t.open_time).getTime() < 10_000);
   if (ultraShort.length >= 3) {
     const sorted = ultraShort.sort((a, b) => new Date(a.open_time).getTime() - new Date(b.open_time).getTime());
     for (let i = 0; i <= sorted.length - 3; i++) {
       if (new Date(sorted[i + 2]!.open_time).getTime() - new Date(sorted[i]!.open_time).getTime() <= 3600_000) {
         tickScalpBreach = true;
+        tickScalpTrades = sorted.slice(i, i + 3);
         break;
       }
     }
   }
 
   const failed = acc.status === "Failed";
-  const ruleChecks: { id: string; label: string; status: RuleStatus; info: string }[] = [
+  const ruleChecks: RuleCheck[] = [
     {
       id: "daily-drawdown", label: "Maximum Daily Drawdown",
       status: currentDailyLoss >= dailyLossLimit ? "failed" : currentDailyLoss >= dailyLossLimit * 0.8 ? "warning" : "passed",
@@ -191,7 +219,8 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
     {
       id: "minimum-holding-time", label: "Minimum Holding Time (3 Min)",
       status: shortHolds ? "failed" : "passed",
-      info: shortHolds ? `${shortHolds} trade(s) closed in under 3 minutes (minimum 180s required)` : "All trades held for at least 3 minutes",
+      info: shortHolds ? `${shortHolds} trade(s) closed in under 3 minutes (minimum 180s required) — ${ticketList(shortHoldTrades, (t) => `${holdSecs(t)}s`)}` : "All trades held for at least 3 minutes",
+      ...(shortHolds ? { trades: breachTrades(shortHoldTrades) } : {}),
     },
   ];
 
@@ -217,10 +246,11 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
       id: "one-percent-risk", label: "1% Per-Trade Risk Rule",
       status: excessiveRiskTrades > 0 ? "failed" : floatingLoss > onePctLimit ? "warning" : "passed",
       info: excessiveRiskTrades > 0
-        ? `${excessiveRiskTrades} trade(s) exceeded the 1% floating loss limit ($${onePctLimit.toFixed(2)})`
+        ? `${excessiveRiskTrades} trade(s) exceeded the 1% floating loss limit ($${onePctLimit.toFixed(2)}) — ${ticketList(excessiveRiskList, (t) => `$${t.profit.toFixed(2)}`)}`
         : floatingLoss > onePctLimit
         ? `Open positions are down $${floatingLoss.toFixed(2)} combined — no single position may exceed $${onePctLimit.toFixed(2)} (1% of starting balance)`
         : `Max floating loss on any position must stay within $${onePctLimit.toFixed(2)} (1% of starting balance)`,
+      ...(excessiveRiskTrades ? { trades: breachTrades(excessiveRiskList) } : {}),
     });
 
     const layeringFailed = layeringBreaches > 0 || thirdLayerBreach;
@@ -228,10 +258,11 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
       id: "trade-layering", label: model === "Instant" ? "Trade Layering (10m gap, max 2 layers)" : "Trade Layering (10-Min Gap)",
       status: layeringFailed ? "failed" : "passed",
       info: thirdLayerBreach
-        ? "Hard breach: 3 or more concurrent layers were open (Instant accounts allow maximum 2 concurrent layers)"
+        ? `Hard breach: 3 or more concurrent layers were open (Instant accounts allow maximum 2 concurrent layers)${thirdLayerTrade ? ` — ${ticketList([thirdLayerTrade])}` : ""}`
         : layeringBreaches > 0
-        ? `${layeringBreaches} violation(s): new trades must open at least 10 minutes apart`
+        ? `${layeringBreaches} violation(s): new trades must open at least 10 minutes apart — ${ticketList(layeringList)}`
         : model === "Instant" ? "10 min between trade opens, maximum 2 concurrent layers" : "New positions must open at least 10 minutes apart",
+      ...(layeringFailed ? { trades: breachTrades(thirdLayerTrade ? [thirdLayerTrade, ...layeringList] : layeringList) } : {}),
     });
 
     ruleChecks.push({
@@ -246,8 +277,9 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
       id: "overnight-holding", label: "Overnight Holding",
       status: overnightBreaches > 0 ? "failed" : "passed",
       info: overnightBreaches > 0
-        ? `${overnightBreaches} trade(s) held past 00:00 UTC daily reset (not allowed on 1-Step/2-Step/Instant)`
+        ? `${overnightBreaches} trade(s) held past 00:00 UTC daily reset (not allowed on 1-Step/2-Step/Instant) — ${ticketList(overnightList)}`
         : "All positions must close before 00:00 UTC daily reset",
+      ...(overnightBreaches ? { trades: breachTrades(overnightList) } : {}),
     });
 
     ruleChecks.push({
@@ -256,8 +288,9 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
       info: acc.weekendHoldingAddon
         ? "Weekend Holding Add-on active: positions allowed over weekend"
         : weekendBreaches > 0
-        ? `${weekendBreaches} position(s) held over the weekend without add-on`
+        ? `${weekendBreaches} position(s) held over the weekend without add-on — ${ticketList(weekendList)}`
         : "Positions must be closed Friday 23:00 to Sunday 23:00 UTC",
+      ...(weekendBreaches && !acc.weekendHoldingAddon ? { trades: breachTrades(weekendList) } : {}),
     });
   }
 
@@ -271,7 +304,8 @@ export async function decorateAccount(acc: DBAccount, order?: DBOrder | null) {
     ruleChecks.push({
       id: "tick-scalping", label: "Tick Scalping",
       status: "failed",
-      info: "Prohibited: 3 or more trades held under 10 seconds within 1 hour",
+      info: `Prohibited: 3 or more trades held under 10 seconds within 1 hour — ${ticketList(tickScalpTrades, (t) => `${holdSecs(t)}s`)}`,
+      trades: breachTrades(tickScalpTrades),
     });
   }
 

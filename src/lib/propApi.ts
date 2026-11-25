@@ -172,6 +172,11 @@ export const propApi = {
     save: (b: { id: string; platform: string; login: string; passwordMaster: string; server: string; passwordInvestor?: string; profitTarget?: number; graphLink?: string; balance?: number; equity?: number; status?: TradingAccount["status"]; phase?: string; externalStatisticsId?: string; inventoryItemId?: string; orderId?: string; userId?: string; notifyTrader?: boolean; releaseOld?: boolean }) =>
       put<{ success: true; account: TradingAccount }>("/api/accounts", b),
     remove: (id: string) => del(`/api/accounts${q({ id })}`),
+    /** Admin: force a fresh pull from the statistics (Graph) feed for one account. */
+    /** Admin: re-run every rule on a failed account with fresh stats; reactivates it if nothing fails now. */
+    recheck: (accountId: string) =>
+      post<{ reactivated: boolean; message: string; failedRules: { id: string; label: string; info: string }[] }>("/api/accounts/recheck", { accountId }),
+    refreshStats: (accountId: string) => post<{ success: boolean; error?: string; account: TradingAccount }>("/api/accounts/refresh-stats", { accountId }),
   },
 
   payouts: {

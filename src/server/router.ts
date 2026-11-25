@@ -64,6 +64,7 @@ const routes: Record<string, Handler> = {
   "DELETE /accounts": accounts.deleteAccount,
   "POST /accounts/request-next": accounts.requestNext,
   "POST /accounts/refresh-stats": accounts.refreshAccountStats,
+  "POST /accounts/recheck": accounts.recheckAccount,
 
   "GET /payouts": payouts.listPayouts,
   "POST /payouts": payouts.requestPayout,

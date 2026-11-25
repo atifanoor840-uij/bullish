@@ -11,7 +11,7 @@ vi.mock("@/server/db", () => ({
   neq: (v: unknown) => `neq.${v}`,
   inList: (vs: unknown[]) => `in.(${vs.join(",")})`,
   db: {
-    one: async () => null,
+    one: async (table: string, filter: Record<string, string>) => (table === "trading_accounts" ? (rows.get(filter["id"]!.slice(3)) ?? null) : table === "orders" ? order : null),
     select: async () => [],
     insert: async (_t: string, row: unknown) => [row],
     remove: async () => {},
@@ -32,7 +32,14 @@ vi.mock("@/server/core", async (orig) => ({
   audit: async () => {},
 }));
 
-const { decorateAndEnforce } = await import("@/server/handlers/accounts");
+vi.mock("@/server/http", async (orig) => ({
+  ...(await orig<typeof import("@/server/http")>()),
+  requireAdmin: async () => ({ id: "admin-1", name: "Admin" }),
+}));
+
+const { decorateAndEnforce, recheckAccount } = await import("@/server/handlers/accounts");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const recheck = (accountId: string) => recheckAccount({ req: new Request("http://x", { method: "POST", body: JSON.stringify({ accountId }) }) } as any);
 
 const order: DBOrder = {
   id: "ord-1", userId: "u1", planId: "pp-two-step-100k", couponUsed: "", amountPaid: 500, paymentMethod: "card",
@@ -77,6 +84,13 @@ describe("auto-fail on hard rule breach", () => {
     expect(notifications).toEqual(["Challenge failed"]);
   });
 
+  it("names the violating trade in the reason and stores it with the breach", async () => {
+    const res = await decorateAndEnforce(account({ statisticsPayload: shortHold }), order);
+    expect(res.breachReason).toContain("Trade #2 (60s)");
+    const stored = (res.statisticsPayload as { ruleBreach: { trades: { ticket: string; holdSeconds: number; rule: string }[] } }).ruleBreach.trades;
+    expect(stored).toEqual([expect.objectContaining({ ticket: "2", holdSeconds: 60, rule: "Minimum Holding Time (3 Min)" })]);
+  });
+
   it("fails only once when two requests race", async () => {
     const a = account({ statisticsPayload: shortHold });
     await Promise.all([decorateAndEnforce(a, order), decorateAndEnforce(a, order)]);
@@ -94,5 +108,32 @@ describe("auto-fail on hard rule breach", () => {
     const res = await decorateAndEnforce(account({ status: "Passed", statisticsPayload: shortHold }), order);
     expect(res.status).toBe("Passed");
     expect(updates).toEqual([]);
+  });
+});
+
+describe("admin recheck", () => {
+  beforeEach(() => {
+    rows.clear();
+    updates.length = 0;
+    notifications.length = 0;
+  });
+
+  it("reactivates a failed account whose trades no longer breach any rule", async () => {
+    account({ status: "Failed", statisticsPayload: { trades: [{ ticket: "1", symbol: "EURUSD", volume: 1, open_time: `${day}T10:00:00Z`, close_time: `${day}T10:30:00Z`, net_profit: 50 }], breachReason: "glitch", ruleBreach: { rules: ["minimum-holding-time"] } } });
+    const res = await recheck("acc-1");
+    expect(res.reactivated).toBe(true);
+    expect(rows.get("acc-1")?.["status"]).toBe("Active");
+    expect((rows.get("acc-1")?.["statisticsPayload"] as Record<string, unknown>)["breachReason"]).toBeUndefined();
+    expect(updates.find((u) => u.table === "orders")?.patch["status"]).toBe("Active");
+    expect(notifications).toEqual(["Account reactivated"]);
+  });
+
+  it("keeps a genuinely breached account failed and says why", async () => {
+    account({ status: "Failed", statisticsPayload: { ...shortHold, breachReason: "old" } });
+    const res = await recheck("acc-1");
+    expect(res.reactivated).toBe(false);
+    expect(res.message).toContain("Trade #2");
+    expect(rows.get("acc-1")?.["status"]).toBe("Failed");
+    expect(notifications).toEqual([]);
   });
 });
