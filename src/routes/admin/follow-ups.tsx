@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, CreditCard, Megaphone, Percent, RotateCcw, Send, ShoppingCart, Tag, UserPlus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BadgeCheck, CreditCard, Megaphone, Percent, RefreshCw, RotateCcw, Send, ShoppingCart, Tag, UserPlus } from "lucide-react";
 import {
   Badge, Button, Card, CardHeader, EmptyState, ErrorNote, Field, Loading, Modal, Note, PageHeader, SearchInput, cx, inputCls, useAction, useApi,
 } from "@/components/portal/ui";
@@ -20,6 +20,8 @@ const ICONS: Record<FollowUpSegmentId, typeof Send> = {
 };
 const sizeLabel = (n: number) => (n >= 1000 ? `$${+(n / 1000).toFixed(1)}K` : `$${n}`);
 const RECENT_MS = 3 * 864e5;
+/** How often the audience list is re-fetched so new sign-ups / orders appear live. */
+const LIVE_REFRESH_MS = 15_000;
 const PLACEHOLDERS = ["{{name}}", "{{plan}}", "{{amount}}", "{{orderId}}", "{{coupon}}", "{{account}}"];
 const ACCOUNT_SIZES = ["$5K", "$10K", "$25K", "$50K", "$100K", "$200K"];
 
@@ -50,14 +52,51 @@ function AdminFollowUps() {
 
   // Reset the draft and selection when the audience changes (not when data reloads after a send).
   const [initFor, setInitFor] = useState<FollowUpSegmentId | null>(null);
+  // Recipient IDs already shown for the current audience, so live refreshes can tell who is new.
+  const seen = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (!data || !seg || initFor === segment) return;
-    setInitFor(segment);
-    setDraft(draftFor(data, segment));
-    setSelected(new Set(seg.recipients.filter((r) => !skipRecent || !recent(r)).map((r) => r.userId)));
-    setNote(null);
+    if (!data || !seg) return;
+    if (initFor !== segment) {
+      setInitFor(segment);
+      setDraft(draftFor(data, segment));
+      setSelected(new Set(seg.recipients.filter((r) => !skipRecent || !recent(r)).map((r) => r.userId)));
+      seen.current = new Set(seg.recipients.map((r) => r.userId));
+      setNote(null);
+      return;
+    }
+    // Live refresh: auto-select newly arrived users and drop ones who left this audience.
+    const ids = new Set(seg.recipients.map((r) => r.userId));
+    const fresh = seg.recipients.filter((r) => !seen.current.has(r.userId) && (!skipRecent || !recent(r)));
+    seen.current = ids;
+    setSelected((s) => {
+      const n = new Set([...s].filter((id) => ids.has(id)));
+      fresh.forEach((r) => n.add(r.userId));
+      return n;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, segment]);
+
+  // Live data: poll while the tab is visible, and refresh as soon as the admin comes back to it.
+  // Paused while the send confirmation is open or a send is running so the list can't change mid-send.
+  const [updatedAt, setUpdatedAt] = useState<number>(Date.now());
+  const [, tick] = useState(0);
+  useEffect(() => { if (data) setUpdatedAt(Date.now()); }, [data]);
+  const paused = confirm || busy === "send";
+  useEffect(() => {
+    if (paused) return;
+    const refresh = () => { if (document.visibilityState === "visible") void reload(); };
+    const id = setInterval(refresh, LIVE_REFRESH_MS);
+    const clock = setInterval(() => tick((n) => n + 1), 5_000);
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(id);
+      clearInterval(clock);
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [paused, reload]);
+  const ago = Math.max(0, Math.round((Date.now() - updatedAt) / 1000));
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -112,7 +151,21 @@ function AdminFollowUps() {
 
   return (
     <>
-      <PageHeader title="Follow-ups" subtitle="Win back unpaid orders, nudge new sign-ups and send promotions — in the Bullish 4ex email style." />
+      <PageHeader
+        title="Follow-ups"
+        subtitle="Win back unpaid orders, nudge new sign-ups and send promotions — in the Bullish 4ex email style."
+        actions={
+          <>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className={cx("h-2 w-2 rounded-full", paused ? "bg-amber-400" : "bg-emerald-400 animate-pulse")} />
+              {paused ? "Live paused" : "Live"} · updated {ago < 5 ? "just now" : `${ago}s ago`}
+            </span>
+            <Button size="sm" variant="ghost" busy={loading && !!data} onClick={() => void reload()}>
+              <RefreshCw className="h-3.5 w-3.5" />Refresh
+            </Button>
+          </>
+        }
+      />
       {error && <ErrorNote message={error} onRetry={reload} />}
       {data && !data.emailConfigured && <div className="mb-4"><Note tone="warning">Email delivery is not configured on the server yet (SMTP_PASS). Emails can't be sent until it is set.</Note></div>}
 

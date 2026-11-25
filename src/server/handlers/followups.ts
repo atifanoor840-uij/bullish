@@ -20,10 +20,9 @@ type Recipient = {
 
 const UNPAID = new Set(["Pending", "Payment Failed"]);
 const FAILED = new Set(["Failed"]);
-const HOUR = 36e5;
 
 export const SEGMENTS: Record<SegmentId, { label: string; description: string }> = {
-  unpaid_orders: { label: "Unpaid orders", description: "Created an order but never paid (older than 1 hour, no paid order since)." },
+  unpaid_orders: { label: "Unpaid orders", description: "Created an order but never paid (no paid order since) — shows up live as soon as the order is created." },
   unverified: { label: "Unverified sign-ups", description: "Signed up but haven't confirmed their email address." },
   no_orders: { label: "No purchase yet", description: "Active traders who never created an order." },
   failed_challenge: { label: "Failed challenge", description: "Latest challenge failed and no new paid order since — offer a retry." },
@@ -157,7 +156,8 @@ async function computeSegments(): Promise<Record<SegmentId, Recipient[]>> {
 
     const paid = list.filter((o) => !UNPAID.has(o.status));
     const lastPaid = Math.max(0, ...paid.map((o) => time(o.createdAt)));
-    const unpaid = list.find((o) => UNPAID.has(o.status) && Date.now() - time(o.createdAt) > HOUR && time(o.createdAt) > lastPaid);
+    // Shown immediately (no waiting period) so a just-created unpaid order appears live.
+    const unpaid = list.find((o) => UNPAID.has(o.status) && time(o.createdAt) > lastPaid);
     if (unpaid) out.unpaid_orders.push(await withOrder(r, unpaid));
 
     const newest = paid[0];
