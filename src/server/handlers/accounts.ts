@@ -1,6 +1,6 @@
 import { db, eq, inList } from "../db";
 import {
-  PENDING_SERVER, PHASE, accountsOfOrder, audit, createNextStage, credentialsMessage, credentialsTaken, notify, orderPlan,
+  PENDING_SERVER, PHASE, accountsOfOrder, activationOrderId, audit, createNextStage, credentialsMessage, credentialsTaken, flexActivationFee, notify, orderPlan,
   orderStatusForPhase, releaseInventory, stagesFor, userMap,
 } from "../core";
 import { HttpError, body, isAdmin, numv, query, requireAdmin, requireUser, str, type Ctx } from "../http";
@@ -189,6 +189,25 @@ export async function requestNext(ctx: Ctx) {
   const nextPhase = stages[stages.indexOf(acc.phase) + 1];
   if (!nextPhase) throw new HttpError(400, "This account is already at its final stage.");
   if ((await accountsOfOrder(order.id)).some((a) => a.phase === nextPhase)) throw new HttpError(400, "The next stage was already requested.");
+  if (model === "Flex" && nextPhase === PHASE.FUNDED) {
+    // Each passed Flex account pays its own activation fee (a BOGO pair = two separate payments).
+    const fee = await flexActivationFee(order);
+    const open = await db.select<DBOrder>("orders", { id: `like.ord-act-${acc.id}-*`, status: eq("Pending") }, { order: "createdAt.desc" });
+    let activation = open[0];
+    if (!activation) {
+      const now = new Date().toISOString();
+      [activation] = await db.insert<DBOrder>("orders", {
+        id: activationOrderId(acc.id), userId: user.id, planId: order.planId, couponUsed: "", amountPaid: fee, paymentMethod: "Crypto",
+        status: "Pending", gatewayRef: `platform=${acc.platform || "MT5"}`, createdAt: now, updatedAt: now, referralBalanceApplied: 0,
+        weekendHoldingAddon: !!order.weekendHoldingAddon, legacyRules: !!order.legacyRules,
+      });
+      if (!activation) throw new HttpError(500, "Could not create the activation payment.");
+    }
+    return {
+      message: `Pay the $${activation.amountPaid} activation fee for account #${acc.id} to receive your funded account.`,
+      accountId: acc.id, activationOrderId: activation.id, amount: activation.amountPaid, requiresPayment: true,
+    };
+  }
   const next = await createNextStage(acc, order);
   return {
     message: next?.deliveryStatus === "delivered" ? "Your next stage account is ready." : "Your next stage account is being prepared.",

@@ -170,7 +170,16 @@ export const propApi = {
 
   accounts: {
     list: () => get<{ success: true; accounts: TradingAccount[] }>("/api/accounts"),
-    requestNextStage: (accountId: string) => post<{ success: true; message: string; accountId: string }>("/api/accounts/request-next", { accountId }),
+    /** Flex: returns an activation order for THIS account and opens its payment; other models: creates the next stage. */
+    requestNextStage: async (accountId: string) => {
+      const res = await post<{ success: true; message: string; accountId: string; requiresPayment?: boolean; activationOrderId?: string; amount?: number }>(
+        "/api/accounts/request-next", { accountId },
+      );
+      if (res.requiresPayment && res.activationOrderId && typeof window !== "undefined") {
+        window.location.href = `/dashboard/orders?pay=${encodeURIComponent(res.activationOrderId)}`;
+      }
+      return res;
+    },
     save: (b: { id: string; platform: string; login: string; passwordMaster: string; server: string; passwordInvestor?: string; profitTarget?: number; graphLink?: string; balance?: number; equity?: number; status?: TradingAccount["status"]; phase?: string; externalStatisticsId?: string; inventoryItemId?: string; orderId?: string; userId?: string; notifyTrader?: boolean; releaseOld?: boolean }) =>
       put<{ success: true; account: TradingAccount }>("/api/accounts", b),
     remove: (id: string) => del(`/api/accounts${q({ id })}`),

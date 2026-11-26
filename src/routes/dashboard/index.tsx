@@ -208,7 +208,7 @@ function AccountCard({ account: a, ordersById, retry, tags, onChanged }: { accou
           <div className="flex flex-wrap gap-2">
             {a.status === "Passed" && (
               <Button size="sm" variant="success" busy={busy === "next"} onClick={async () => (await run("next", () => propApi.accounts.requestNextStage(a.id), "Next stage requested.")) && onChanged()}>
-                {busy === "next" ? "Requesting…" : "Request next stage"}
+                {busy === "next" ? "Requesting…" : info.model === "Flex" ? "Pay activation & get funded" : "Request next stage"}
               </Button>
             )}
             {a.status === "Failed" && retry?.offer && (

@@ -1,7 +1,7 @@
 import { PROOF_BUCKET, db, eq, signedUrl, uploadObject } from "../db";
 import { env } from "../env";
 import {
-  PHASE, WEEKEND_ADDON_PERCENT, accountsOfOrder, activateOrder, audit, createNextStage, createStageAccount, ensureLegacyPlan, newOrderId, notify,
+  PHASE, WEEKEND_ADDON_PERCENT, accountsOfOrder, activateOrder, activationAccountId, audit, createNextStage, createStageAccount, ensureLegacyPlan, newOrderId, notify,
   orderPlan, orderStatusForPhase, releaseInventory, stagesFor, withPlanNames, withUserNames,
 } from "../core";
 import { HttpError, body, hmacHex, isAdmin, json, numv, origin, query, requireAdmin, requireUser, safeEqual, str, type Ctx } from "../http";
@@ -198,7 +198,8 @@ export async function payOrder(ctx: Ctx) {
   if (method.includes("card")) {
     const { planName } = await orderPlan(order);
     const plan = await db.one<DBPricingPlan>("pricing_plans", { id: eq(order.planId) });
-    const productId = bullishIdForPrice(order.amountPaid, Number(plan?.price));
+    // An activation order must be charged its own fee, never the plan's initial price.
+    const productId = activationAccountId(order.id) ? bullishIdForPrice(order.amountPaid) : bullishIdForPrice(order.amountPaid, Number(plan?.price));
     if (!productId) throw new HttpError(400, `Card payment is not available for $${order.amountPaid.toFixed(2)}. Please pay with crypto.`);
     const gatewayRef = `bullish:${productId}:platform=${platform}`;
     await db.update("orders", { id: eq(order.id) }, { gatewayRef, updatedAt: new Date().toISOString() });

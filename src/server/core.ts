@@ -110,7 +110,13 @@ export async function orderPlan(order: Pick<DBOrder, "planId">) {
 }
 
 export async function withPlanNames<T extends DBOrder>(orders: T[]) {
-  return Promise.all(orders.map(async (o) => ({ ...o, planName: (await orderPlan(o)).planName })));
+  return Promise.all(
+    orders.map(async (o) => {
+      const { planName } = await orderPlan(o);
+      const acc = activationAccountId(o.id);
+      return { ...o, planName: acc ? `${planName} · Activation fee (account #${acc})` : planName };
+    }),
+  );
 }
 
 /** Platform chosen at checkout is stored in gatewayRef for gateways that pass it through; default MT5. */
@@ -120,6 +126,26 @@ export function orderPlatform(order: DBOrder): string {
 }
 
 export const newOrderId = () => `o-${randDigits(6)}`;
+
+/* ---------------- Flex activation fee ---------------- */
+
+/** Flex "real" price per size, used when the pricing plan has no realPrice set. Keep in sync with the dashboard. */
+export const FLEX_DEFAULT_REAL_PRICE: Record<number, number> = { 3000: 35, 5000: 49, 10000: 89, 25000: 179, 50000: 299, 100000: 529, 200000: 999 };
+export const FLEX_ACTIVATION_DISCOUNT = 5;
+/** Activation orders are `ord-act-<accountId>-<rand>`: one per passed Flex account, so every account pays its own fee. */
+const ACTIVATION_PREFIX = "ord-act-";
+export const activationOrderId = (accountId: string) => `${ACTIVATION_PREFIX}${accountId}-${rand(4)}`;
+export const activationAccountId = (orderId: string) =>
+  orderId.startsWith(ACTIVATION_PREFIX) ? orderId.slice(ACTIVATION_PREFIX.length).replace(/-[^-]*$/, "") : null;
+
+/** Fee to activate one passed Flex account: (real price − initial price) with the flat activation discount. */
+export async function flexActivationFee(order: Pick<DBOrder, "planId">) {
+  const plan = await getPlan(order.planId);
+  const { size } = await orderPlan(order);
+  const initial = Number(plan?.price ?? 9);
+  const real = Number(plan?.realPrice || FLEX_DEFAULT_REAL_PRICE[size] || 529);
+  return Math.ceil(Math.max(0, real - initial) * (1 - FLEX_ACTIVATION_DISCOUNT / 100));
+}
 
 export async function userMap(ids: string[]) {
   const unique = [...new Set(ids.filter(Boolean))];
@@ -335,14 +361,27 @@ export async function credentialsMessage(acc: DBAccount) {
     : `Your ${acc.phase} account is being prepared. Credentials will be emailed to you shortly.`;
 }
 
-/** Creates the next stage after `account` passed. Returns null when the order is already at its last stage. */
-export async function createNextStage(account: DBAccount, order: DBOrder) {
+/**
+ * Creates the next stage after `account` passed. Returns null when the order is already at its last stage,
+ * or when it is a Flex account whose activation fee is not paid yet (`activationPaid`).
+ */
+export async function createNextStage(account: DBAccount, order: DBOrder, opts: { activationPaid?: boolean } = {}) {
   const { model } = await orderPlan(order);
   const stages = stagesFor(model);
   const next = stages[stages.indexOf(account.phase) + 1];
   if (!next) return null;
   const existing = (await accountsOfOrder(order.id)).find((a) => a.phase === next);
   if (existing) return existing;
+  // Flex: every passed account (bought or free BOGO) pays its own activation fee before the funded account is created.
+  if (model === "Flex" && next === PHASE.FUNDED && !opts.activationPaid) {
+    const fee = await flexActivationFee(order);
+    await notify(
+      order.userId, "Flex challenge passed",
+      `Congratulations, account #${account.id} passed. Pay the $${fee} activation fee for this account to receive your funded account.`,
+      "success", "email",
+    );
+    return null;
+  }
   const acc = await createStageAccount(order, next, account.platform);
   await db.update("orders", { id: eq(order.id) }, { status: orderStatusForPhase(next), updatedAt: new Date().toISOString() });
   await notify(order.userId, `${next} account created`, await credentialsMessage(acc), "success", "email");
@@ -356,6 +395,8 @@ export async function createNextStage(account: DBAccount, order: DBOrder) {
  * Idempotent: never creates a second first-stage account.
  */
 export async function activateOrder(order: DBOrder, opts: { status: string; gatewayRef?: string; actor?: DBUser | null }) {
+  const activationFor = activationAccountId(order.id);
+  if (activationFor) return activateFlexAccount(order, activationFor, opts);
   const { model, planName } = await orderPlan(order);
   const firstPhase = stagesFor(model)[0]!;
   const accounts = await accountsOfOrder(order.id);
@@ -373,6 +414,19 @@ export async function activateOrder(order: DBOrder, opts: { status: string; gate
     await settleReferrals(current);
   }
   await audit(opts.actor ?? null, "order_activate", order.id, "order", `Order ${order.id} → ${opts.status}`);
+  return { order: current, account };
+}
+
+/** A paid Flex activation order: creates the funded account for that one passed account (no BOGO / referral side effects). */
+async function activateFlexAccount(order: DBOrder, accountId: string, opts: { status: string; gatewayRef?: string; actor?: DBUser | null }) {
+  const patch: Partial<DBOrder> = { status: opts.status, updatedAt: new Date().toISOString() };
+  if (opts.gatewayRef) patch.gatewayRef = opts.gatewayRef;
+  const [updated] = await db.update<DBOrder>("orders", { id: eq(order.id) }, patch);
+  const current = updated ?? { ...order, ...patch };
+  const source = await db.one<DBAccount>("trading_accounts", { id: eq(accountId) });
+  const sourceOrder = source ? await db.one<DBOrder>("orders", { id: eq(source.orderId) }) : null;
+  const account = source && sourceOrder ? await createNextStage(source, sourceOrder, { activationPaid: true }) : null;
+  await audit(opts.actor ?? null, "flex_activation", order.id, "order", `Activation ${order.id} for account ${accountId} → ${opts.status}${account ? ` (funded #${account.id})` : " (source account not found)"}`);
   return { order: current, account };
 }
 

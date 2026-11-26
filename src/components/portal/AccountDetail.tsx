@@ -95,8 +95,8 @@ export function AccountDetail({ accountId, backHref = "/dashboard", admin = fals
   const actions = (
     <>
       {!admin && a.status === "Passed" && (
-        <Button size="sm" variant="primary" busy={busy === "next"} onClick={async () => (await run("next", () => propApi.accounts.requestNextStage(a.id), "Next stage requested.")) && reload()}>
-          {info.model === "Flex" ? "Pay Remaining & Get Funded" : "Request next stage"}
+        <Button size="sm" variant="primary" busy={busy === "next"} onClick={async () => (await run("next", () => propApi.accounts.requestNextStage(a.id), info.model === "Flex" ? "Opening activation payment…" : "Next stage requested.")) && reload()}>
+          {info.model === "Flex" ? "Pay Activation Fee & Get Funded" : "Request next stage"}
         </Button>
       )}
       {admin && !pending && (
